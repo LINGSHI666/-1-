@@ -1,0 +1,40 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/Global.xaml" />
+
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/TextBlock.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/ScrollViewer.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/ContextMenu.xaml" />
+
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/Image.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/Button.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/RadioButton.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/TextBox.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/ComboBox.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/CheckBox.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/ToggleButton.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/RichTextBox.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/Slider.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/GroupBox.xaml" />
+
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/ListBox.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/ListBox2.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/ListView.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/ListView2.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/DataGrid.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/DataGrid2.xaml" />
+
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/LabelIcon.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/RadioButtonIcon.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/ProgressBarScore.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/TextBoxHint.xaml" />
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/TabControlIcon.xaml" />
+
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/LoadingSpinner.xaml" />
+
+        <ResourceDictionary Source="/BF1ServerTools.UI;component/Styles/Window.xaml" />
+
+    </ResourceDictionary.MergedDictionaries>
+
+</ResourceDictionary>

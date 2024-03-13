@@ -1,0 +1,75 @@
+﻿<UserControl
+    x:Class="BF1ServerTools.Views.More.SQLiteView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="720"
+    d:DesignWidth="1280"
+    mc:Ignorable="d">
+
+    <DataGrid
+        Margin="5"
+        ItemsSource="{Binding DataGrid_SQLiteLogInfos}"
+        Style="{StaticResource DataGridStyle_SQLite}">
+        <DataGrid.ContextMenu>
+            <ContextMenu>
+                <MenuItem
+                    x:Name="MenuItem_QueryLog_Table1"
+                    Click="MenuItem_QueryLog_Table_Click"
+                    Header="表1 手动操作" />
+                <MenuItem
+                    x:Name="MenuItem_QueryLog_Table2"
+                    Click="MenuItem_QueryLog_Table_Click"
+                    Header="表2 踢出成功" />
+                <MenuItem
+                    x:Name="MenuItem_QueryLog_Table3"
+                    Click="MenuItem_QueryLog_Table_Click"
+                    Header="表3 踢出失败" />
+                <MenuItem
+                    x:Name="MenuItem_QueryLog_Table4"
+                    Click="MenuItem_QueryLog_Table_Click"
+                    Header="表4 换边记录" />
+            </ContextMenu>
+        </DataGrid.ContextMenu>
+        <DataGrid.Columns>
+            <DataGridTextColumn
+                Binding="{Binding Index}"
+                ElementStyle="{StaticResource DataGridTextColumnStyle_SQLite}"
+                Header="序号" />
+            <DataGridTextColumn
+                Binding="{Binding Rank}"
+                ElementStyle="{StaticResource DataGridTextColumnStyle_SQLite}"
+                Header="等级" />
+            <DataGridTextColumn
+                Binding="{Binding Name}"
+                ElementStyle="{StaticResource DataGridTextColumnStyle_SQLite}"
+                Header="玩家ID" />
+            <DataGridTextColumn
+                Binding="{Binding PersonaId}"
+                ElementStyle="{StaticResource DataGridTextColumnStyle_SQLite}"
+                Header="数字ID" />
+            <DataGridTextColumn
+                Binding="{Binding Type}"
+                ElementStyle="{StaticResource DataGridTextColumnStyle_SQLite}"
+                Header="类型" />
+            <DataGridTextColumn
+                Binding="{Binding Message1}"
+                ElementStyle="{StaticResource DataGridTextColumnStyle_SQLite}"
+                Header="信息1" />
+            <DataGridTextColumn
+                Binding="{Binding Message2}"
+                ElementStyle="{StaticResource DataGridTextColumnStyle_SQLite}"
+                Header="信息2" />
+            <DataGridTextColumn
+                Binding="{Binding Message3}"
+                ElementStyle="{StaticResource DataGridTextColumnStyle_SQLite}"
+                Header="信息3" />
+            <DataGridTextColumn
+                Binding="{Binding Date}"
+                ElementStyle="{StaticResource DataGridTextColumnStyle_SQLite}"
+                Header="日期" />
+        </DataGrid.Columns>
+    </DataGrid>
+
+</UserControl>

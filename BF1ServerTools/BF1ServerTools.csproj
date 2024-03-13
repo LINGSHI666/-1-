@@ -1,0 +1,62 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net6.0-windows</TargetFramework>
+		<Nullable>disable</Nullable>
+		<UseWPF>true</UseWPF>
+		<Platforms>x64</Platforms>
+		<StartupObject>BF1ServerTools.App</StartupObject>
+		<AssemblyVersion>3.0.2.0</AssemblyVersion>
+		<FileVersion>3.0.2.0</FileVersion>
+		<ApplicationManifest>Properties\app.manifest</ApplicationManifest>
+		<ApplicationIcon>Assets\Images\Favicon.ico</ApplicationIcon>
+		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+		<DebugType>full</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+		<DebugType>full</DebugType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="Files\config.yml" />
+		<EmbeddedResource Include="Files\go-cqhttp.exe" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\BF1ServerTools.API\BF1ServerTools.API.csproj" />
+		<ProjectReference Include="..\BF1ServerTools.QQ\BF1ServerTools.QQ.csproj" />
+		<ProjectReference Include="..\BF1ServerTools.RES\BF1ServerTools.RES.csproj" />
+		<ProjectReference Include="..\BF1ServerTools.SDK\BF1ServerTools.SDK.csproj" />
+		<ProjectReference Include="..\BF1ServerTools.UI\BF1ServerTools.UI.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Resource Include="Assets\Images\Battlefield1.png" />
+		<Resource Include="Assets\Images\DLC\DLC1.jpg" />
+		<Resource Include="Assets\Images\DLC\DLC2.jpg" />
+		<Resource Include="Assets\Images\DLC\DLC3.jpg" />
+		<Resource Include="Assets\Images\DLC\DLC4.jpg" />
+		<Resource Include="Assets\Images\DLC\DLC5.jpg" />
+		<Resource Include="Assets\Images\DLC\DLC6.jpg" />
+		<Resource Include="Assets\Images\Favicon.ico" />
+		<Resource Include="Assets\Images\Launch.png" />
+		<Resource Include="Assets\Images\Other\Avatar.jpg" />
+		<Resource Include="Assets\Images\Other\BF1.png" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Chinese" Version="0.5.0" />
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.0.0" />
+		<PackageReference Include="Microsoft.Data.Sqlite" Version="7.0.1" />
+		<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.1462.37" />
+		<PackageReference Include="NLog" Version="5.1.0" />
+		<PackageReference Include="Notification.Wpf" Version="6.1.0.5" />
+		<PackageReference Include="Websocket.Client" Version="4.4.43" />
+	</ItemGroup>
+
+</Project>

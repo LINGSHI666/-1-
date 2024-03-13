@@ -1,0 +1,278 @@
+﻿<ui:UiWindow
+    x:Class="BF1ServerTools.Windows.QueryRecordWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://battlefield.vip/ui/2022/xaml"
+    x:Name="Window_QueryRecord"
+    Title="查询玩家战绩"
+    Width="1280"
+    Height="720"
+    MinWidth="1280"
+    MinHeight="720"
+    Closing="Window_QueryRecord_Closing"
+    Loaded="Window_QueryRecord_Loaded"
+    Style="{StaticResource UiWindowStyle}"
+    mc:Ignorable="d">
+
+    <ui:UiWindow.TitleContent>
+        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+            <Image
+                Height="20"
+                Margin="5"
+                Source="\Assets\Images\Favicon.ico"
+                Style="{StaticResource ImageStyle_HighQuality}" />
+            <TextBlock
+                VerticalAlignment="Center"
+                FontSize="14"
+                FontWeight="Bold"
+                Text="{Binding ElementName=Window_QueryRecord, Path=Title}" />
+        </StackPanel>
+    </ui:UiWindow.TitleContent>
+
+    <Grid>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="250" />
+                <ColumnDefinition />
+                <ColumnDefinition Width="350" />
+            </Grid.ColumnDefinitions>
+            <!--  ####################  -->
+            <DockPanel Grid.Column="0">
+                <StackPanel
+                    Margin="0,0,20,0"
+                    DockPanel.Dock="Top"
+                    Orientation="Horizontal">
+                    <!--  玩家Origin头像  -->
+                    <Image
+                        Height="50"
+                        Margin="5"
+                        Source="{Binding QueryModel.Avatar, Converter={StaticResource StringToImageSourceConverter}}"
+                        Style="{StaticResource ImageStyle_HighQuality}">
+                        <Image.Effect>
+                            <DropShadowEffect
+                                BlurRadius="5"
+                                Opacity="0.3"
+                                ShadowDepth="0"
+                                Color="Gray" />
+                        </Image.Effect>
+                    </Image>
+                    <!--  玩家等级和游玩时长  -->
+                    <StackPanel
+                        Margin="5,0,0,0"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                        <TextBlock
+                            Margin="0,0,0,5"
+                            VerticalAlignment="Center"
+                            Text="{Binding QueryModel.Rank}" />
+                        <TextBlock VerticalAlignment="Center" Text="{Binding QueryModel.PlayTime}" />
+                    </StackPanel>
+                </StackPanel>
+                <!--  玩家综合数据列表  -->
+                <ListBox
+                    Margin="5,5,0,5"
+                    DockPanel.Dock="Bottom"
+                    ItemsSource="{Binding ListBox_PlayerDatas}"
+                    Style="{StaticResource ListBoxStyle_PlayerData}" />
+            </DockPanel>
+            <!--  ####################  -->
+            <ListBox
+                Grid.Column="1"
+                Margin="5"
+                ItemsSource="{Binding ListBox_WeaponInfos}"
+                Style="{StaticResource ListBoxStyle_DataTemplate}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Height="70"
+                            Margin="0,1,0,1"
+                            BorderBrush="Gray"
+                            BorderThickness="0,0,0,0.5"
+                            SnapsToDevicePixels="True">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <!--  ####################  -->
+                                <Image
+                                    Grid.Column="0"
+                                    Margin="5,0,5,0"
+                                    Source="{Binding imageUrl, Converter={StaticResource StringToImageSourceConverter}}"
+                                    Style="{StaticResource ImageStyle_HighQuality}" />
+                                <!--  ####################  -->
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Margin="5"
+                                    VerticalAlignment="Center">
+                                    <StackPanel
+                                        Margin="0,0,0,5"
+                                        VerticalAlignment="Center"
+                                        Orientation="Horizontal">
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="14"
+                                            FontWeight="Bold"
+                                            Text="{Binding name}" />
+                                        <TextBlock
+                                            Name="star"
+                                            Margin="10,0,0,0"
+                                            VerticalAlignment="Center"
+                                            FontSize="14"
+                                            Foreground="#ffa200"
+                                            Style="{StaticResource TextBlockStyle_IconFontVerCen}"
+                                            Text="&#xe670;" />
+                                        <TextBlock
+                                            Name="star_count"
+                                            Margin="5,0,0,0"
+                                            VerticalAlignment="Center"
+                                            FontSize="12"
+                                            Foreground="#ffa200"
+                                            Text="{Binding star}" />
+                                    </StackPanel>
+                                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                        <StackPanel Margin="0,0,5,0">
+                                            <TextBlock Text="击杀：" />
+                                            <TextBlock Text="{Binding kills}" />
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,5,0">
+                                            <TextBlock Text="KPM：" />
+                                            <TextBlock Text="{Binding killsPerMinute}" />
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,5,0">
+                                            <TextBlock Text="爆头数：" />
+                                            <TextBlock Text="{Binding headshots}" />
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,5,0">
+                                            <TextBlock Text="爆头率：" />
+                                            <TextBlock Text="{Binding headshotsVKills}" />
+                                        </StackPanel>
+
+                                        <StackPanel Margin="0,0,5,0">
+                                            <TextBlock Text="射击数：" />
+                                            <TextBlock Text="{Binding shots}" />
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,5,0">
+                                            <TextBlock Text="命中数：" />
+                                            <TextBlock Text="{Binding hits}" />
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,5,0">
+                                            <TextBlock Text="命中率：" />
+                                            <TextBlock Text="{Binding hitsVShots}" />
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,5,0">
+                                            <TextBlock Text="效率：" />
+                                            <TextBlock Text="{Binding hitVKills}" />
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,5,0">
+                                            <TextBlock Text="时长：" />
+                                            <TextBlock Text="{Binding time}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=star_count, Path=Text}" Value="">
+                                <Setter TargetName="star" Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <!--  ####################  -->
+            <ListBox
+                Grid.Column="2"
+                Margin="0,5,5,5"
+                ItemsSource="{Binding ListBox_VehicleInfos}"
+                Style="{StaticResource ListBoxStyle_DataTemplate}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Height="70"
+                            Margin="0,1,0,1"
+                            BorderBrush="Gray"
+                            BorderThickness="0,0,0,0.5"
+                            SnapsToDevicePixels="True">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Image
+                                    Grid.Column="0"
+                                    Margin="5,0,5,0"
+                                    Source="{Binding imageUrl, Converter={StaticResource StringToImageSourceConverter}}"
+                                    Style="{StaticResource ImageStyle_HighQuality}" />
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Margin="5"
+                                    VerticalAlignment="Center">
+                                    <StackPanel
+                                        Margin="0,0,0,5"
+                                        VerticalAlignment="Center"
+                                        Orientation="Horizontal">
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="14"
+                                            FontWeight="Bold"
+                                            Text="{Binding name}" />
+                                        <TextBlock
+                                            Name="star"
+                                            Margin="10,0,0,0"
+                                            VerticalAlignment="Center"
+                                            FontSize="14"
+                                            Foreground="#ffa200"
+                                            Style="{StaticResource TextBlockStyle_IconFontVerCen}"
+                                            Text="&#xe670;" />
+                                        <TextBlock
+                                            Name="star_count"
+                                            Margin="5,0,0,0"
+                                            VerticalAlignment="Center"
+                                            FontSize="12"
+                                            Foreground="#ffa200"
+                                            Text="{Binding star}" />
+                                    </StackPanel>
+                                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                        <StackPanel Margin="0,0,5,0">
+                                            <TextBlock Text="击杀：" />
+                                            <TextBlock Text="{Binding kills}" />
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,5,0">
+                                            <TextBlock Text="KPM：" />
+                                            <TextBlock Text="{Binding killsPerMinute}" />
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,5,0">
+                                            <TextBlock Text="摧毁：" />
+                                            <TextBlock Text="{Binding destroyed}" />
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,5,0">
+                                            <TextBlock Text="时长：" />
+                                            <TextBlock Text="{Binding time}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=star_count, Path=Text}" Value="">
+                                <Setter TargetName="star" Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+        <!--  ########################################  -->
+        <ui:UiLoadingSpinner
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Diameter="50"
+            IsLoading="{Binding QueryModel.IsLoading}"
+            Thickness="5"
+            Color="#1E88E5" />
+    </Grid>
+
+</ui:UiWindow>

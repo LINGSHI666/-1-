@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33122.133
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BF1ServerTools", "BF1ServerTools\BF1ServerTools.csproj", "{BA80C44F-D887-4C74-9E4B-0B292B078117}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BF1ServerTools.API", "BF1ServerTools.API\BF1ServerTools.API.csproj", "{6AE4614E-B665-4FB8-B8DF-EAA2E6C09EF3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BF1ServerTools.SDK", "BF1ServerTools.SDK\BF1ServerTools.SDK.csproj", "{F9A33405-050A-454F-96A8-817C316CB489}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BF1ServerTools.UI", "BF1ServerTools.UI\BF1ServerTools.UI.csproj", "{81CADC7B-2B26-4BE7-80BD-84B321433146}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BF1ServerTools.RES", "BF1ServerTools.RES\BF1ServerTools.RES.csproj", "{C0653427-CD57-422D-A5A5-BAA5E49C2394}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BF1ServerTools.QQ", "BF1ServerTools.QQ\BF1ServerTools.QQ.csproj", "{EEF27E3B-8CAF-450F-B8F1-0EEE567A8B98}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BA80C44F-D887-4C74-9E4B-0B292B078117}.Debug|x64.ActiveCfg = Debug|x64
+		{BA80C44F-D887-4C74-9E4B-0B292B078117}.Debug|x64.Build.0 = Debug|x64
+		{BA80C44F-D887-4C74-9E4B-0B292B078117}.Release|x64.ActiveCfg = Release|x64
+		{BA80C44F-D887-4C74-9E4B-0B292B078117}.Release|x64.Build.0 = Release|x64
+		{6AE4614E-B665-4FB8-B8DF-EAA2E6C09EF3}.Debug|x64.ActiveCfg = Debug|x64
+		{6AE4614E-B665-4FB8-B8DF-EAA2E6C09EF3}.Debug|x64.Build.0 = Debug|x64
+		{6AE4614E-B665-4FB8-B8DF-EAA2E6C09EF3}.Release|x64.ActiveCfg = Release|x64
+		{6AE4614E-B665-4FB8-B8DF-EAA2E6C09EF3}.Release|x64.Build.0 = Release|x64
+		{F9A33405-050A-454F-96A8-817C316CB489}.Debug|x64.ActiveCfg = Debug|x64
+		{F9A33405-050A-454F-96A8-817C316CB489}.Debug|x64.Build.0 = Debug|x64
+		{F9A33405-050A-454F-96A8-817C316CB489}.Release|x64.ActiveCfg = Release|x64
+		{F9A33405-050A-454F-96A8-817C316CB489}.Release|x64.Build.0 = Release|x64
+		{81CADC7B-2B26-4BE7-80BD-84B321433146}.Debug|x64.ActiveCfg = Debug|x64
+		{81CADC7B-2B26-4BE7-80BD-84B321433146}.Debug|x64.Build.0 = Debug|x64
+		{81CADC7B-2B26-4BE7-80BD-84B321433146}.Release|x64.ActiveCfg = Release|x64
+		{81CADC7B-2B26-4BE7-80BD-84B321433146}.Release|x64.Build.0 = Release|x64
+		{C0653427-CD57-422D-A5A5-BAA5E49C2394}.Debug|x64.ActiveCfg = Debug|x64
+		{C0653427-CD57-422D-A5A5-BAA5E49C2394}.Debug|x64.Build.0 = Debug|x64
+		{C0653427-CD57-422D-A5A5-BAA5E49C2394}.Release|x64.ActiveCfg = Release|x64
+		{C0653427-CD57-422D-A5A5-BAA5E49C2394}.Release|x64.Build.0 = Release|x64
+		{EEF27E3B-8CAF-450F-B8F1-0EEE567A8B98}.Debug|x64.ActiveCfg = Debug|x64
+		{EEF27E3B-8CAF-450F-B8F1-0EEE567A8B98}.Debug|x64.Build.0 = Debug|x64
+		{EEF27E3B-8CAF-450F-B8F1-0EEE567A8B98}.Release|x64.ActiveCfg = Release|x64
+		{EEF27E3B-8CAF-450F-B8F1-0EEE567A8B98}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {60BAA67B-4E36-4310-AEB4-22E681A354D4}
+	EndGlobalSection
+EndGlobal
