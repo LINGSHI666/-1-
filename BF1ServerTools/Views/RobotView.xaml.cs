@@ -164,46 +164,36 @@ public partial class RobotView : UserControl
         RunPeriodicTasks();
     }
     private async void RunPeriodicTasks()
-    {   for (int i = 0; i < 99; i++)
+    {
+        bool balanceAchieved = false;
+        for (int i = 0; i < 99 && !balanceAchieved; i++)
         {
             List<PlayerData> playerList = Player.GetPlayerList(); // 假设这个方法可以获取当前所有玩家的列表
+
+            // 更新玩家的生涯KD和KPM
+            foreach (var item in playerList)
+            {
+                item.LifeKd = PlayerUtil.GetLifeKD(item.PersonaId);
+                item.LifeKpm = PlayerUtil.GetLifeKPM(item.PersonaId);
+            }
 
             var team1Players = playerList.Where(p => p.TeamId == 1).ToList();
             var team2Players = playerList.Where(p => p.TeamId == 2).ToList();
 
-            var avgKdTeam1 = team1Players.Any() ? team1Players.Average(p => p.Kill / (float)(p.Dead == 0 ? 1 : p.Dead)) : 0;
-            var avgKpmTeam1 = team1Players.Any() ? team1Players.Average(p => p.Kpm): 0;
+            var avgLifeKdTeam1 = team1Players.Average(p => p.LifeKd);
+            var avgLifeKpmTeam1 = team1Players.Average(p => p.LifeKpm);
 
-            var avgKdTeam2 = team2Players.Any() ? team2Players.Average(p => p.Kill / (float)(p.Dead == 0 ? 1 : p.Dead)) : 0;
-            var avgKpmTeam2 = team2Players.Any() ? team2Players.Average(p => p.Kpm) : 0;
-
-            // 计算KD和KPM的差异
-            var kdDiff = Math.Abs(avgKdTeam1 - avgKdTeam2);
-            var kpmDiff = Math.Abs(avgKpmTeam1 - avgKpmTeam2);
-            var kdDiff2 = Math.Abs(avgKdTeam2 - avgKdTeam1);
-            var kpmDiff2 = Math.Abs(avgKpmTeam2 - avgKpmTeam1);
+            var avgLifeKdTeam2 = team2Players.Average(p => p.LifeKd);
+            var avgLifeKpmTeam2 = team2Players.Average(p => p.LifeKpm);
 
             // 判断是否需要调整玩家队伍
-            if (avgKdTeam1 < avgKdTeam2 + 0.1 && avgKpmTeam1 < avgKpmTeam2 + 0.1)
+            if (avgLifeKdTeam1 < avgLifeKdTeam2 + 0.1 && avgLifeKpmTeam1 < avgLifeKpmTeam2 + 0.1)
             {
-                PlayerData playerToMove = null;
-
-                // 根据差异的大小决定以哪个指标为准进行玩家选择
-                if (kdDiff > kpmDiff)
+                // 示例：移动生涯KD最高的玩家从队伍1到队伍2
+                var playerToMove = team1Players.OrderByDescending(p => p.LifeKd).FirstOrDefault();
+                if (playerToMove != null)
                 {
-                    // KD差异更大，选择对KD影响最大的玩家
-                    playerToMove = team2Players.OrderByDescending(p => p.Kill / (float)(p.Dead == 0 ? 1 : p.Dead)).First();
-                }
-                else
-                {
-                    // KPM差异更大，选择对KPM影响最大的玩家
-                    playerToMove = team1Players.OrderByDescending(p => p.Kpm).First();
-                }
-                
-
-                    if (playerToMove != null)
-                {
-                    var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, 1); // 移动到队伍1
+                    var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, 2);
                     if (result.IsSuccess)
                     {
                         NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍1成功");
@@ -214,54 +204,37 @@ public partial class RobotView : UserControl
                     }
                 }
             }
-            else if(avgKdTeam1 > avgKdTeam2 + 0.2 && avgKpmTeam1 > avgKpmTeam2 + 0.2 )
+            else if (avgLifeKdTeam1 > avgLifeKdTeam2 + 0.2 || avgLifeKpmTeam1 > avgLifeKpmTeam2 + 0.2)
             {
-                PlayerData playerToMove = null;
-
-                // 根据差异的大小决定以哪个指标为准进行玩家选择
-                if (kdDiff2 > kpmDiff2)
-                {
-                    // KD差异更大，选择对KD影响最大的玩家
-                    playerToMove = team1Players.OrderByDescending(p => p.Kill / (float)(p.Dead == 0 ? 1 : p.Dead)).First();
-                }
-                else
-                {
-                    // KPM差异更大，选择对KPM影响最大的玩家
-                    playerToMove = team1Players.OrderByDescending(p => p.Kpm).First();
-                }
-
-
+                // 示例：移动生涯KPM最低的玩家从队伍1到队伍2
+                var playerToMove = team1Players.OrderBy(p => p.LifeKpm).FirstOrDefault();
                 if (playerToMove != null)
                 {
-                    var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, 2); // 移动到队伍2
+                    var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, 2);
                     if (result.IsSuccess)
                     {
-                        NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍2成功");
+                        NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍1成功");
                     }
                     else
                     {
-                        NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍2失败\n{result.Content}");
+                        NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍1失败\n{result.Content}");
                     }
                 }
             }
             else
             {
-                NotifierHelper.Show(NotifierType.Success, $"无需换边 kd {avgKdTeam1.ToString("0.00")}||{avgKdTeam2.ToString("0.00")} kpm {avgKpmTeam1.ToString("0.00")}||{avgKpmTeam2.ToString("0.00")}");
-                break;
+                balanceAchieved = true;
+                NotifierHelper.Show(NotifierType.Information, "队伍已平衡，无需进一步操作。");
             }
-            NotifierHelper.Show(NotifierType.Success, $"正在换边 kd {avgKdTeam1.ToString("0.00")}||{avgKdTeam2.ToString("0.00")} kpm {avgKpmTeam1.ToString("0.00")}||{avgKpmTeam2.ToString("0.00")}");
-            await Task.Delay(6000);
+
+            if (!balanceAchieved)
+            {
+                await Task.Delay(6000);
+            }
         }
+    }
+    
 
-
-
-
-
-
-
-    // 这里放置你想要定时执行的代码
-    // 例如：LoggerHelper.Info("定时任务正在执行...");
-}
 private DispatcherTimer timer;
     /// <summary>
     /// 启动Websocket服务
