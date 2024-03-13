@@ -13,7 +13,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BF1ServerTools.UI", "BF1Ser
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BF1ServerTools.RES", "BF1ServerTools.RES\BF1ServerTools.RES.csproj", "{C0653427-CD57-422D-A5A5-BAA5E49C2394}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BF1ServerTools.QQ", "BF1ServerTools.QQ\BF1ServerTools.QQ.csproj", "{EEF27E3B-8CAF-450F-B8F1-0EEE567A8B98}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BF1ServerTools.QQ", "BF1ServerTools.QQ\BF1ServerTools.QQ.csproj", "{EEF27E3B-8CAF-450F-B8F1-0EEE567A8B98}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

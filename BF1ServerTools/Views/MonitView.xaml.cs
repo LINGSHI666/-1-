@@ -151,7 +151,7 @@ public partial class MonitView : UserControl
                     var index = Globals.LifePlayerCacheDatas.FindIndex(var => var.PersonaId == item.PersonaId);
                     if (index == -1)
                     {
-                        // 缓存玩家生涯KD、KPM
+                        // 缓存玩家生涯KD、KPM、技巧值
                         var result = await BF1API.DetailedStatsByPersonaId(Globals.SessionId, item.PersonaId);
                         if (result.IsSuccess)
                         {
@@ -162,7 +162,7 @@ public partial class MonitView : UserControl
                             float kd = PlayerUtil.GetPlayerKD(kills, deaths);
                             float kpm = detailedStats.result.basicStats.kpm;
                             int time = PlayerUtil.GetPlayHours(detailedStats.result.basicStats.timePlayed);
-
+                            float skill = detailedStats.result.basicStats.skill;
                             Globals.LifePlayerCacheDatas.Add(new()
                             {
                                 Date = DateTime.Now,
@@ -170,6 +170,7 @@ public partial class MonitView : UserControl
                                 PersonaId = item.PersonaId,
                                 KD = kd,
                                 KPM = kpm,
+                                Skill = skill,
                                 Time = time,
                                 WeaponInfos = new(),
                                 VehicleInfos = new()

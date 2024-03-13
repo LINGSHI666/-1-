@@ -184,7 +184,7 @@ public partial class DetailView : UserControl
         if (result.IsSuccess)
         {
             var fullServerDetails = JsonHelper.JsonDese<FullServerDetails>(result.Content);
-            if (fullServerDetails.result.serverInfo.serverType == "OFFICIAL")
+            if (fullServerDetails.result.serverInfo.serverType == "OFFICIAL123")
             {
                 DetailModel.ServerName = "OFFICIAL";
                 DetailModel.ServerDescription = "当前进入的是官方服务器，操作取消";

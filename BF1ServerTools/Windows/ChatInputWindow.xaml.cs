@@ -1,4 +1,5 @@
-﻿using BF1ServerTools.SDK;
+﻿using BF1ServerTools.Models;
+using BF1ServerTools.SDK;
 using BF1ServerTools.SDK.Core;
 using BF1ServerTools.Utils;
 
@@ -199,7 +200,29 @@ public partial class ChatInputWindow : Window
 
         Chat.SendChsToBF1Chat(ChsUtil.ToTraditional(message));
     }
+    public void SendMessage(string message)
+    {
+        TextBox_InputMessage.Clear();
 
+        ChsUtil.SetInputLanguageENUS();
+        Memory.SetBF1WindowForeground();
+
+        //////////////////////////////////////////////////////
+
+        Chat.SendChsToBF1Chat(ChsUtil.ToTraditional(message));
+    }
+    public static void SendChsToBF1Chat(string message)
+    {
+       ChsUtil.SetInputLanguageENUS();
+        Memory.SetBF1WindowForeground();
+
+        //////////////////////////////////////////////////////
+        Thread.Sleep(500);
+        Memory.KeyPress(WinVK.J, 50);
+        Thread.Sleep(500);
+
+        Chat.SendChsToBF1Chat(ChsUtil.ToTraditional(message));
+    }
     /// <summary>
     /// 取消发送消息命令
     /// </summary>

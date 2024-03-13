@@ -375,7 +375,7 @@ public partial class ChatView : UserControl
     /// 发送中文到战地1聊天框
     /// </summary>
     /// <param name="message"></param>
-    private void SendTextToBf1Game(string message)
+    public void SendTextToBf1Game(string message)
     {
         // 如果内容为空，则跳过
         if (string.IsNullOrEmpty(message))
@@ -399,7 +399,7 @@ public partial class ChatView : UserControl
 
         Chat.SendChsToBF1Chat(ChsUtil.ToTraditional(message));
     }
-
+    
     /// <summary>
     /// 激活换边通知
     /// </summary>
@@ -504,7 +504,7 @@ public partial class ChatView : UserControl
                         {
                             TextBox_GameChats.AppendText($"{sender} {content}\n");
                         });
-                        RobotView.ActionSendGameChatsMsgToQQ(sender, content);
+                        
 
                         old_pSender = pSender;
                         old_pContent = pContent;

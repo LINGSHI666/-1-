@@ -20,6 +20,7 @@ public class PlayerData
     public int Kill { get; set; }
     public int Dead { get; set; }
     public int Score { get; set; }
+    public float Skill { get; set; }
 
     public float Kd { get; set; }
     public float Kpm { get; set; }

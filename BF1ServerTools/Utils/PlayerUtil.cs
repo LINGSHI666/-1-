@@ -220,7 +220,25 @@ public static class PlayerUtil
             return 0;
         }
     }
+    /// <summary>
+    /// 获取玩家技巧值
+    /// </summary>
+    /// <param name="personaId"></param>
+    /// <returns></returns>
+    public static float GetSkill(long personaId)
+    {
+        lock (Obj)
+        {
+            if (Globals.LifePlayerCacheDatas != null)
+            {
+                var index = Globals.LifePlayerCacheDatas.FindIndex(item => item.PersonaId == personaId);
+                if (index != -1)
+                    return Globals.LifePlayerCacheDatas[index].Skill;
+            }
 
+            return 0;
+        }
+    }
     /// <summary>
     /// 获取游玩时长
     /// </summary>
@@ -310,7 +328,7 @@ public static class PlayerUtil
         if (!Globals.LoginPlayerIsAdmin)
         {
             NotifierHelper.Show(NotifierType.Warning, $"玩家 {Globals.DisplayName} 不是当前服务器的管理员");
-            return false;
+           return false;
         }
 
         if (Globals.ServerId == 0)

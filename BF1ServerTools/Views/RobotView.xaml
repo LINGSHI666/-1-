@@ -23,117 +23,108 @@
         <!--  ************************************  -->
         <StackPanel Grid.Column="1">
             <ui:UiLabelIcon Content="功能开关" />
-            <Button
-                x:Name="Button_RunGoCqHttpServer"
-                Click="Button_RunGoCqHttpServer_Click"
-                Content="启动QQ机器人服务" />
+
+            <!-- 水平方向的StackPanel包含两个按钮 -->
+            <StackPanel Orientation="Horizontal">
+                <Button
+            x:Name="Button_RunGoCqHttpServer"
+            Click="Button_RunGoCqHttpServer_Click"
+            Content="启动自动平衡"
+            Width="191" />
+                <!-- 按钮宽度 -->
+
+                <Button
+            x:Name="Button_Balance"
+            Click="Button_Balance_Click"
+            Content="立刻启动平衡"
+            Width="190" />
+                <!-- 新按钮宽度 -->
+            </StackPanel>
+
+            <Slider
+        x:Name="slider"
+        Minimum="1"
+        Maximum="60"
+        ValueChanged="Slider_ValueChanged"
+        TickFrequency="1"
+        IsSnapToTickEnabled="True" />
+
+            <Label
+        x:Name="labelCurrentMinutes"
+        Content="当前自动平衡间隔为0分钟"
+        Margin="5" />
+
+            <!-- 用于“启动投票选图”和“关闭自动平衡”按钮 -->
             <UniformGrid Columns="2">
                 <Button
-                    x:Name="Button_RunWebsocketServer"
-                    Margin="5,0,2,5"
-                    Click="Button_RunWebsocketServer_Click"
-                    Content="启动Websocket服务" />
+            x:Name="Button_RunWebsocketServer"
+            Margin="5,0,2,5"
+            Click="Button_RunWebsocketServer_Click"
+            Content="启动投票选图" />
                 <Button
-                    x:Name="Button_StopWebsocketServer"
-                    Margin="2,0,5,5"
-                    Click="Button_StopWebsocketServer_Click"
-                    Content="关闭Websocket服务" />
+            x:Name="Button_StopWebsocketServer"
+            Margin="2,0,5,5"
+            Click="Button_StopWebsocketServer_Click"
+            Content="关闭自动平衡" />
             </UniformGrid>
+
             <TextBlock Style="{StaticResource TextBlockStyle_Hint}">
-                提示：先启动QQ机器人服务，等QQ机器人加载完成后再启动Websocket服务
+        提示：想关闭投票选图关闭程序即可
             </TextBlock>
-            <TextBlock Style="{StaticResource TextBlockStyle_Hint}">
-                提示：如果修改权限内容，需要重新启动Websocket服务生效
-            </TextBlock>
-            <!--  ********************  -->
-            <ui:UiLabelIcon Content="QQ群授权" />
-            <UniformGrid Columns="2">
-                <DockPanel>
+            <ui:UiLabelIcon Content="平衡参数调整" />
+
+            <UniformGrid Columns="1" Height="Auto">
+                <DockPanel MinWidth="300">
+                    <!-- 增加了最小宽度 -->
+                    <!-- 添加一个复选框用于控制是否排除VIP和管理员 -->
+                    <CheckBox x:Name="ExcludeAdminsAndVIPsCheckBox" Content="排除VIP和管理员" DockPanel.Dock="Top" />
+                    <Slider
+            x:Name="sliderkdkpm"
+            Minimum="-1"
+            Maximum="1"
+            ValueChanged="Slider_ValueChangedkdkpm"
+            TickFrequency="0.01"
+            IsSnapToTickEnabled="True"
+            DockPanel.Dock="Top" />
+                    <!-- 确保滑块停靠在顶部 -->
+
                     <TextBlock
-                        Margin="5"
-                        DockPanel.Dock="Top"
-                        FontWeight="Bold"
-                        Text="授权的QQ群成员列表" />
-                    <ListBox
-                        x:Name="ListBox_QQGroupMemberIDs"
-                        Margin="5"
-                        DockPanel.Dock="Bottom" />
+            x:Name="labelCurrentkdkpm"
+            Text="平衡目标为进攻(队伍1)lifekd、lifekp高于防守(队伍2){}(+-0.5)"
+            Margin="5"
+            DockPanel.Dock="Top"
+            TextWrapping="Wrap" />
+                    <!-- 启用文本换行并更正显示内容 -->
                 </DockPanel>
-                <StackPanel>
-                    <TextBlock
-                        Margin="5"
-                        FontWeight="Bold"
-                        Text="授权的QQ群号" />
-                    <ui:UiTextBoxHint x:Name="TextBox_QQGroupID" Hint="请输入QQ群号" />
-                    <TextBlock
-                        Margin="5"
-                        FontWeight="Bold"
-                        Text="授权的QQ群成员QQ号" />
-                    <ui:UiTextBoxHint x:Name="TextBox_AddQQGroupMemberID" Hint="请输入授权的QQ群成员QQ号" />
-                    <WrapPanel>
-                        <Button
-                            x:Name="Button_AddQQGMID"
-                            Click="Button_AddQQGMID_Click"
-                            Content="增加" />
-                        <Button
-                            x:Name="Button_RemoveQQGMID"
-                            Margin="0,5,0,5"
-                            Click="Button_RemoveQQGMID_Click"
-                            Content="删除" />
-                        <Button
-                            x:Name="Button_ClearQQGMID"
-                            Click="Button_ClearQQGMID_Click"
-                            Content="清空" />
-                    </WrapPanel>
-                    <Button
-                        x:Name="Button_SaveRobotConfig"
-                        Click="Button_SaveRobotConfig_Click"
-                        Content="保存" />
-                </StackPanel>
+                <CheckBox x:Name="skillbalance" Content="切换至技巧值平衡，这会在导致平衡时忽略lifekp和lifekpm" DockPanel.Dock="Top" />
+                <Slider
+        x:Name="sliderskill"
+        Minimum="-300"
+        Maximum="300"
+        ValueChanged="Slider_ValueChangedskill"
+        TickFrequency="10"
+        IsSnapToTickEnabled="True"
+        DockPanel.Dock="Top" />
+                <TextBlock
+        x:Name="labelCurrentdskill"
+        Text="平衡目标为进攻(队伍1)技巧值高于防守(队伍2){}(+-30)"
+        Margin="5"
+        DockPanel.Dock="Top"
+        TextWrapping="Wrap" />
+                <Button Content="播报当前投票信息" Click="Reportmapinfo_Click" />
             </UniformGrid>
+
             <!--  ********************  -->
             <ui:UiLabelIcon Content="高级功能" />
             <WrapPanel>
-                <Button
-                    x:Name="Button_ChangeGoCqHttpQQID"
-                    Margin="5,5,0,5"
-                    Click="Button_ChangeGoCqHttpQQID_Click"
-                    Content="更换QQ机器人账号" />
-                <Button
-                    x:Name="Button_ClearImageCache"
-                    Margin="5,5,0,5"
-                    Click="Button_ClearImageCache_Click"
-                    Content="清理图片缓存" />
-                <Button
-                    x:Name="Button_OpenGoCqHttpPath"
-                    Margin="5,5,0,5"
-                    Click="Button_OpenGoCqHttpPath_Click"
-                    Content="打开配置文件夹" />
+                
             </WrapPanel>
         </StackPanel>
         <!--  ************************************  -->
         <StackPanel Grid.Column="2">
-            <ui:UiLabelIcon Content="QQ机器人功能" />
+            <ui:UiLabelIcon Content="刷分服" />
             <UniformGrid Columns="2">
-                <GroupBox Header="机器人指令" Style="{StaticResource GroupBoxStyle_Normal}">
-                    <StackPanel>
-                        <TextBlock Margin="5" Text="#中文聊天 xxxx" />
-                        <TextBlock Margin="5" Text="#屏幕截图" />
-                        <TextBlock Margin="5" Text="#得分板截图" />
-                    </StackPanel>
-                </GroupBox>
-                <GroupBox Header="附加功能" Style="{StaticResource GroupBoxStyle_Normal}">
-                    <StackPanel>
-                        <CheckBox
-                            x:Name="CheckBox_IsSendChangeTeam"
-                            Margin="5"
-                            Content="转发换边通知" />
-                        <CheckBox
-                            x:Name="CheckBox_IsSendGameChat"
-                            Margin="5"
-                            Content="转发游戏聊天" />
-                    </StackPanel>
-                </GroupBox>
+                <Button Content="启动刷分服换图" Click="shuafen" />
             </UniformGrid>
         </StackPanel>
     </Grid>

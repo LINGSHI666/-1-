@@ -4,6 +4,7 @@ using BF1ServerTools.Utils;
 using BF1ServerTools.Models;
 using BF1ServerTools.API;
 using BF1ServerTools.API.RespJson;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 
 namespace BF1ServerTools.Windows;
 
@@ -161,8 +162,42 @@ public partial class QueryRecordWindow
                 AddPlayerInfo($"加成分数 : {detailed.result.bonusScore}");
             });
         }
+    }/// <summary>
+    /// 获取总游戏场数
+    /// </summary>
+    /// <param name="personaId"></param>
+    /// <returns></returns>
+    public static async Task<int> GetGameCount(long personaId)
+    {
+        var result = await BF1API.DetailedStatsByPersonaId(Globals.SessionId, personaId);
+        if (result.IsSuccess)
+        {    
+            var detailedStats = JsonHelper.JsonDese<DetailedStats>(result.Content);
+            int gameCount = detailedStats.result.roundsPlayed;
+            return gameCount; // 返回游戏场数
+        }
+        else
+        {
+            // 处理错误情况
+            return 0;
+        }
     }
-
+    public static async Task<float> GetGameskill(long personaId)
+    {
+        var result = await BF1API.DetailedStatsByPersonaId(Globals.SessionId, personaId);
+        if (result.IsSuccess)
+        {
+            var detailed = JsonHelper.JsonDese<DetailedStats>(result.Content);
+            var basic = detailed.result.basicStats;
+            float gameskill = basic.skill;
+            return gameskill; // 返回技巧值
+        }
+        else
+        {
+            // 处理错误情况
+            return 0;
+        }
+    }
     /// <summary>
     /// 获取玩家武器数据
     /// </summary>

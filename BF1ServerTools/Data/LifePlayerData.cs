@@ -8,6 +8,7 @@ public class LifePlayerData
 
     public float KD { get; set; }
     public float KPM { get; set; }
+    public float Skill { get; set; }
     public int Time { get; set; }
 
     public bool IsWeaponOK { get; set; }
