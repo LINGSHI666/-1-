@@ -1,7 +1,8 @@
-# 战地1服务器管理工具
+# 战地1服务器管理工具改版
 
 一个方便服主和管理员管理服务器的综合工具
-
+由https://github.com/CrazyZhang666/BF1ServerTools    开发
+感谢前人的贡献
 * [交流群：710801277](https://jq.qq.com/?_wv=1027&amp;k=ajEymecs)  
 
 ## 编译
