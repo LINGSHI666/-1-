@@ -258,7 +258,10 @@ public partial class MonitView : UserControl
             Thread.Sleep(5000);
         }
     }
-
+    public static string Mapnameget()
+    {   
+        return Server.GetMapName();
+    }
     /// <summary>
     /// 检查违规玩家线程
     /// </summary>
