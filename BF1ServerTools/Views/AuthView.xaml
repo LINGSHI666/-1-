@@ -133,6 +133,19 @@
                 x:Name="Button_OpenConfigFolder"
                 Click="Button_OpenConfigFolder_Click"
                 Content="打开配置文件夹" />
+            <ui:UiTextBoxHint
+    x:Name="TextBox_MessageContent"
+    Height="30"
+    Margin="5,0,5,0"
+    Padding="5"
+    VerticalContentAlignment="Top"
+    Hint="请输入能找到服务器的唯一gameid"
+    InputLanguageManager.InputLanguage="zh-CN"
+    TextChanged="TextBox_MessageContent_TextChanged" 
+    TextWrapping="Wrap"
+    ToolTip=" ">
+            </ui:UiTextBoxHint>
+
         </StackPanel>
         <!--  ******************************  -->
         <RichTextBox

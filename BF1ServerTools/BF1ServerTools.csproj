@@ -54,6 +54,7 @@
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.0.0" />
 		<PackageReference Include="Microsoft.Data.Sqlite" Version="7.0.1" />
 		<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.1462.37" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="NLog" Version="5.1.0" />
 		<PackageReference Include="Notification.Wpf" Version="6.1.0.5" />
 		<PackageReference Include="Websocket.Client" Version="4.4.43" />

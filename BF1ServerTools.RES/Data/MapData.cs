@@ -63,4 +63,41 @@ public static class MapData
         new() { English="ID_M_MP_LEVEL_BLITZ", Chinese="伦敦的呼唤：夜袭", Team1=GER, Team2=UK, Team1Image="GER", Team2Image="UK", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Blitz_LandscapeLarge-5e26212f.jpg" },
         new() { English="ID_M_MP_LEVEL_LONDON", Chinese="伦敦的呼唤：灾祸", Team1=GER, Team2=UK, Team1Image="GER", Team2Image="UK", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_London_LandscapeLarge-0b51fe46.jpg" }
     };
+
+    public readonly static List<MapName> AllMapInfo2 = new()
+{
+    new() { English="MP_Menu", Chinese="大厅菜单", Team1="_DEF", Team2="_DEF", Team1Image="_DEF", Team2Image="_DEF" },
+    new() { English="MP_MountainFort", Chinese="格拉巴山", Team1=ITA, Team2=AHU, Team1Image="ITA", Team2Image="AHU", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_MountainFort_LandscapeLarge-8a517533.jpg" },
+    new() { English="MP_Forest", Chinese="阿尔贡森林", Team1=USA, Team2=GER, Team1Image="USA", Team2Image="GER", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Forest_LandscapeLarge-dfbbe910.jpg" },
+    new() { English="MP_ItalianCoast", Chinese="帝国边境", Team1=ITA, Team2=AHU, Team1Image="ITA", Team2Image="AHU", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_ItalianCoast_LandscapeLarge-1503eec7.jpg" },
+    new() { English="MP_Chateau", Chinese="流血宴厅", Team1=USA, Team2=GER, Team1Image="USA", Team2Image="GER", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Chateau_LandscapeLarge-244d5987.jpg" },
+    new() { English="MP_Scar", Chinese="圣康坦的伤痕", Team1=GER, Team2=UK, Team1Image="GER", Team2Image="UK", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Scar_LandscapeLarge-ee25fbd6.jpg" },
+    new() { English="MP_Desert", Chinese="西奈沙漠", Team1=UK, Team2=OTM, Team1Image="UK", Team2Image="OTM", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Desert_LandscapeLarge-d8f749da.jpg" },
+    new() { English="MP_Amiens", Chinese="亚眠", Team1=GER, Team2=UK, Team1Image="GER", Team2Image="UK", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Amiens_LandscapeLarge-e195589d.jpg" },
+    new() { English="MP_Suez", Chinese="苏伊士", Team1=UK, Team2=OTM, Team1Image="UK", Team2Image="OTM", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Suez_LandscapeLarge-f630fc76.jpg" },
+    new() { English="MP_FaoFortress", Chinese="法欧堡", Team1=UK, Team2=OTM, Team1Image="UK", Team2Image="OTM", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_FaoFortress_LandscapeLarge-cad1748e.jpg" },
+    new() { English="MP_Giant", Chinese="庞然暗影", Team1=UK, Team2=GER, Team1Image="UK", Team2Image="GER", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Giant_LandscapeLarge-dd0b93ef.jpg" },
+    new() { English="MP_Fields", Chinese="苏瓦松", Team1=FRA, Team2=GER, Team1Image="FRA", Team2Image="GER", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Fields_LandscapeLarge-5f53ddc4.jpg" },
+    new() { English="MP_Graveyard", Chinese="决裂", Team1=FRA, Team2=GER, Team1Image="FRA", Team2Image="GER", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Graveyard_LandscapeLarge-bd1012e6.jpg" },
+    new() { English="MP_Underworld", Chinese="法乌克斯要塞", Team1=GER, Team2=FRA, Team1Image="GER", Team2Image="FRA", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Underworld_LandscapeLarge-b6c5c7e7.jpg" },
+    new() { English="MP_Verdun", Chinese="凡尔登高地", Team1=GER, Team2=FRA, Team1Image="GER", Team2Image="FRA", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Verdun_LandscapeLarge-1a364063.jpg" },
+    new() { English="MP_Trench", Chinese="尼维尔之夜", Team1=GER, Team2=FRA, Team1Image="GER", Team2Image="FRA", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Trench_LandscapeLarge-dbd1248f.jpg" },
+    new() { English="MP_Shoveltown", Chinese="攻占托尔", Team1=GER, Team2=FRA, Team1Image="GER", Team2Image="FRA", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Shoveltown_LandscapeLarge-d0aa5920.jpg" },
+    new() { English="MP_Bridge", Chinese="勃鲁希洛夫关口", Team1=RUS, Team2=AHU, Team1Image="RUS", Team2Image="AHU", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Bridge_LandscapeLarge-5b7f1b62.jpg" },
+    new() { English="MP_Islands", Chinese="阿尔比恩", Team1=GER, Team2=RUS, Team1Image="GER", Team2Image="RUS", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Islands_LandscapeLarge-c9d8272b.jpg" },
+    new() { English="MP_Ravines", Chinese="武普库夫山口", Team1=AHU, Team2=RUS, Team1Image="AHU", Team2Image="RUS", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Ravines_LandscapeLarge-1fe0d3f6.jpg" },
+    new() { English="MP_Valley", Chinese="加利西亚", Team1=RUS, Team2=AHU, Team1Image="RUS", Team2Image="AHU", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Valley_LandscapeLarge-8dc1c7ca.jpg" },
+    new() { English="MP_Tsaritsyn", Chinese="察里津", Team1=BOL, Team2=RUS, Team1Image="BOL", Team2Image="RUS", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Tsaritsyn_LandscapeLarge-2dbd3bf5.jpg" },
+    new() { English="MP_Volga", Chinese="窝瓦河", Team1=BOL, Team2=RUS, Team1Image="BOL", Team2Image="RUS", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Volga_LandscapeLarge-6ac49c25.jpg" },
+    new() { English="MP_Beachhead", Chinese="海丽丝岬", Team1=UK, Team2=OTM, Team1Image="UK", Team2Image="OTM", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Beachhead_LandscapeLarge-5a13c655.jpg" },
+    new() { English="MP_Harbor", Chinese="泽布吕赫", Team1=RM, Team2=GER, Team1Image="RM", Team2Image="GER", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Harbor_LandscapeLarge-d382c7ea.jpg" },
+    new() { English="MP_Naval", Chinese="黑尔戈兰湾", Team1=RM, Team2=GER, Team1Image="RM", Team2Image="GER", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Naval_LandscapeLarge-dc2e8daf.jpg" },
+    new() { English="MP_Ridge", Chinese="阿奇巴巴", Team1=UK, Team2=OTM, Team1Image="UK", Team2Image="OTM", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Ridge_LandscapeLarge-8c057a19.jpg" },
+    new() { English="MP_Offensive", Chinese="索姆河", Team1=UK, Team2=GER, Team1Image="UK", Team2Image="GER", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Offensive_LandscapeLarge-6dabdea3.jpg" },
+    new() { English="MP_Hell", Chinese="帕斯尚尔", Team1=UK, Team2=GER, Team1Image="UK", Team2Image="GER", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Hell_LandscapeLarge-7176911c.jpg" },
+    new() { English="MP_River", Chinese="卡波雷托", Team1=AHU, Team2=ITA, Team1Image="AHU", Team2Image="ITA", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_River_LandscapeLarge-21443ae9.jpg" },
+    new() { English="MP_Alps", Chinese="剃刀边缘", Team1=GER, Team2=UK, Team1Image="GER", Team2Image="UK", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Alps_LandscapeLarge-7ab30e3e.jpg" },
+    new() { English="MP_Blitz", Chinese="伦敦的呼唤：夜袭", Team1=GER, Team2=UK, Team1Image="GER", Team2Image="UK", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_Blitz_LandscapeLarge-5e26212f.jpg" },
+    new() { English="MP_London", Chinese="伦敦的呼唤：灾祸", Team1=GER, Team2=UK, Team1Image="GER", Team2Image="UK", Image=@"\BF1ServerTools.RES;component\Assets\Images\Maps\MP_London_LandscapeLarge-0b51fe46.jpg" }
+};
 }

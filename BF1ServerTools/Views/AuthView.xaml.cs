@@ -11,8 +11,12 @@ using Microsoft.Web.WebView2.Core;
 using CommunityToolkit.Mvvm.Messaging;
 using System.Xml.Linq;
 using System;
-
+using Newtonsoft.Json;
 namespace BF1ServerTools.Views;
+public class Config
+{
+    public string ServerUrl { get; set; }
+}
 
 /// <summary>
 /// AuthView.xaml 的交互逻辑
@@ -33,6 +37,41 @@ public partial class AuthView : UserControl
     /// 配置文件，以json格式保存到本地
     /// </summary>
     private AuthConfig AuthConfig = new();
+
+    private readonly string F_Auth_Path2 = FileUtil.D_Config_Path + @"\AuthConfig2.json";
+
+    private void TextBox_MessageContent_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        TextBox textBox = sender as TextBox;
+        SaveInput(textBox.Text);
+    }
+    private string lastInput = ""; 
+    public static long gameid233 = 0 ;
+    private void SaveInput(string input)
+    {
+        if (lastInput != input)
+        {
+            lastInput = input;
+            string url = $"https://api.gametools.network/bf1/players/?gameid={Uri.EscapeDataString(input)}";
+            long.TryParse(lastInput, out gameid233);
+            var config = new Config
+            {
+                ServerUrl = url
+            };
+
+            string json = JsonConvert.SerializeObject(config, Formatting.Indented);
+
+            try
+            {
+                File.WriteAllText(F_Auth_Path2, json); // Note the use of F_Auth_Path2 here
+                
+            }
+            catch (Exception ex)
+            {
+                
+            }
+        }
+    }
 
     /// <summary>
     /// 配置文件名称动态集合

@@ -150,7 +150,7 @@ public partial class DetailView : UserControl
     }
 
     /// <summary>
-    /// 获取当前服务器详情数据
+    /// 获取当前服务器详情数据（图池）
     /// </summary>
     private async Task<bool> GetFullServerDetails()
     {

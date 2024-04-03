@@ -18,7 +18,14 @@ public static class ClientHelper
         else
             return originMapName;
     }
-
+    public static string GetMapChsName2(string originMapName)
+    {
+        var index = MapData.AllMapInfo2.FindIndex(var => var.English == originMapName);
+        if (index != -1)
+            return MapData.AllMapInfo2[index].Chinese;
+        else
+            return originMapName;
+    }
     /// <summary>
     /// 获取地图对应预览图
     /// </summary>
@@ -32,7 +39,14 @@ public static class ClientHelper
         else
             return string.Empty;
     }
-
+    public static string GetMapPrevImage2(string originMapName)
+    {
+        var index = MapData.AllMapInfo2.FindIndex(var => var.English == originMapName);
+        if (index != -1)
+            return MapData.AllMapInfo2[index].Image;
+        else
+            return string.Empty;
+    }
     /// <summary>
     /// 获取武器对应中文名称
     /// </summary>
@@ -194,7 +208,14 @@ public static class ClientHelper
 
         return "\\BF1ServerTools.RES;component\\Assets\\Images\\Teams\\_DEF.png";
     }
+    public static string GetTeam1Image2(string mapName)
+    {
+        var index = MapData.AllMapInfo2.FindIndex(var => var.English.Equals(mapName));
+        if (index != -1 && mapName != "ID_M_LEVEL_MENU")
+            return $"\\BF1ServerTools.RES;component\\Assets\\Images\\Teams\\{MapData.AllMapInfo2[index].Team1Image}.png";
 
+        return "\\BF1ServerTools.RES;component\\Assets\\Images\\Teams\\_DEF.png";
+    }
     /// <summary>
     /// 获取队伍2阵营图片路径
     /// </summary>
@@ -207,7 +228,14 @@ public static class ClientHelper
 
         return "\\BF1ServerTools.RES;component\\Assets\\Images\\Teams\\_DEF.png";
     }
+    public static string GetTeam2Image2(string mapName)
+    {
+        var index = MapData.AllMapInfo2.FindIndex(var => var.English.Equals(mapName));
+        if (index != -1 && mapName != "ID_M_LEVEL_MENU")
+            return $"\\BF1ServerTools.RES;component\\Assets\\Images\\Teams\\{MapData.AllMapInfo2[index].Team2Image}.png";
 
+        return "\\BF1ServerTools.RES;component\\Assets\\Images\\Teams\\_DEF.png";
+    }
     /// <summary>
     /// 获取队伍阵营中文名称
     /// </summary>
@@ -227,6 +255,19 @@ public static class ClientHelper
 
         return string.Empty;
     }
+    public static string GetTeamChsName2(string mapName, int teamId)
+    {
+        var index = MapData.AllMapInfo2.FindIndex(var => var.English.Equals(mapName));
+        if (index != -1 && mapName != "ID_M_LEVEL_MENU")
+        {
+            if (teamId == 1)
+                return MapData.AllMapInfo2[index].Team1;
+
+            return MapData.AllMapInfo2[index].Team2;
+        }
+
+        return string.Empty;
+    }
 
     /// <summary>
     /// 获取当前地图游戏模式
@@ -238,6 +279,14 @@ public static class ClientHelper
         var index = ModeData.AllModeInfo.FindIndex(var => var.Mark.Equals(modeName));
         if (index != -1)
             return ModeData.AllModeInfo[index].Chinese;
+        else
+            return string.Empty;
+    }
+    public static string GetGameMode2(string modeName)
+    {
+        var index = ModeData.AllModeInfo2.FindIndex(var => var.Mark.Equals(modeName));
+        if (index != -1)
+            return ModeData.AllModeInfo2[index].Chinese;
         else
             return string.Empty;
     }

@@ -86,6 +86,7 @@
                         Command="{Binding ButtonClickCommand}"
                         CommandParameter="ExitMainAPP"
                         Content="退出程序" />
+                    
                 </WrapPanel>
             </StackPanel>
         </Grid>

@@ -1,5 +1,6 @@
 ﻿using BF1ServerTools.Data;
 
+
 namespace BF1ServerTools;
 
 public static class Globals
@@ -13,6 +14,7 @@ public static class Globals
     /// 是否使用模式1
     /// </summary>
     public static bool IsUseMode1 = true;
+
 
     ///////////////////////////////////////////////////////
 

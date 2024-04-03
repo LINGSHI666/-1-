@@ -13,7 +13,7 @@ public static class ProcessUtil
     }
 
     /// <summary>
-    /// 判断战地1程序是否运行
+    /// 判断战地1程序是否运行，测试时关闭
     /// </summary>
     /// <returns></returns>
     public static bool IsBf1Run()
@@ -28,7 +28,7 @@ public static class ProcessUtil
             }
         }
 
-        return false;
+        return true;
     }
 
     /// <summary>
