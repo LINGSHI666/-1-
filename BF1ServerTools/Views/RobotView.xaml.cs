@@ -35,8 +35,10 @@ public partial class RobotView : UserControl
 ///   换图播报控制
 /// </summary>
     public static bool showflag { get; set; }
-    public static int mapflag = 1;  // 1表示启动切换地图
-    public static int jiankongflag = 0;
+    public static bool liveflag { get; set; } = false;//监控存活判断
+
+    public static int jiankongflag = 0; // 1表示启动切换地图
+    
     public Queue<PlayerData> excludeList = new Queue<PlayerData>(); // 使用队列来管理排除名单 
     /// <summary>
     /// Robot配置文件集，以json格式保存到本地
@@ -350,7 +352,7 @@ public partial class RobotView : UserControl
                         : $"得票最多的地图有: {highestMaps}，每张地图都得到了{maxVote}票。";
 
                     // 合并两条消息
-                    string combinedMessage = highestVoteMessage + "\n所有地图的得票数: " + allMapsVotesMessage + "\n投票示例 vote yamian";
+                    string combinedMessage = highestVoteMessage + "\n所有地图的得票数: " + allMapsVotesMessage + "\n使用 vote 地图名称（拼音）来投票\n投票示例 vote yamian";
 
                     // 发送消息
                     ChatInputWindow.SendChsToBF1Chat(combinedMessage);
@@ -377,11 +379,16 @@ public partial class RobotView : UserControl
                     if (isPlayerInTeam3)
                     {
                         // 取消当前的监控任务
-                        monitoringCts.Cancel();
-                        await Task.Delay(2000);  // 等待一段时间确保监控任务已经完全停止
+                        while (liveflag)
+                        {
+                            monitoringCts.Cancel();
+                            liveflag = false;
+                            await Task.Delay(1000);  // 等待一段时间确保监控任务已经完全停止
+                        }
                         jiankongflag = 0;
                          flag = 0;
                          flagthen = 0;
+                        await Task.Delay(14000);
                         monitoringCts = new CancellationTokenSource();  // 创建新的 CancellationTokenSource 以便于重新启动监控
                         _ = Task.Run(async () =>
                         {
@@ -400,6 +407,11 @@ public partial class RobotView : UserControl
                                 MessageBox.Show($"监控过程中出错: {ex.Message}");
                             }
                         });
+                        await Task.Delay(800);
+                        if (jiankongflag == 1)
+                        {
+                            MessageBox.Show($"监控过程中出错,请关闭程序");
+                        }
                     }
                     else
                     {
@@ -857,7 +869,7 @@ public partial class RobotView : UserControl
 
         // 获取前两名玩家进行监控
         var topPlayers = playerList.GroupBy(p => p.TeamId)
-                                   .SelectMany(g => g.OrderByDescending(p => p.Score).Take(2))
+                                   .SelectMany(g => g.OrderByDescending(p => p.Score).Take(3))
                                    .ToList();
 
         var initialGameCounts = new Dictionary<long, int>();
@@ -880,7 +892,7 @@ public partial class RobotView : UserControl
                     increasedCount++;
                 }
             }
-
+            liveflag = true;
             int playerCountThreshold = topPlayers.Count == 1 ? 1 : topPlayers.Count - 1;
             if (increasedCount >= playerCountThreshold)
             {
@@ -917,7 +929,7 @@ public partial class RobotView : UserControl
                     break;
                 }
             }
-
+            liveflag = true;
             // 如果 monitoringCts 请求了取消操作，那么应该退出循环
             if (monitoringCts.Token.IsCancellationRequested)
             {
@@ -971,9 +983,9 @@ public partial class RobotView : UserControl
 
         if (mapName != "阿奇巴巴" && mapName != "西奈沙漠")
         {
-            var result = await BF1API.RSPChooseLevel(Globals.SessionId, Globals.PersistedGameId, mapid1);
-            if(result != null) { NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换服务器 {Globals.GameId} 地图为 {mapName1} 成功"); }
-            await Task.Delay(10000);
+            var result = await BF1API.RSPChooseLevel(Globals.SessionId, Globals.PersistedGameId, mapid2);
+            if(result != null) { NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换服务器 {Globals.GameId} 地图为 {mapName2} 成功"); }
+            await Task.Delay(15000);
         }
         // 在后台线程中异步启动监控，不等待其完成
         _ = Task.Run(async () =>
@@ -1011,9 +1023,13 @@ public partial class RobotView : UserControl
                 }
                 var result = await BF1API.RSPChooseLevel(Globals.SessionId, Globals.PersistedGameId, mapidnext);
                 if (result != null) { NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换服务器 {Globals.GameId} 地图为 {mapnamenext} 成功"); }
-                // 取消当前的监控任务
-                monitoringCts.Cancel();
-                await Task.Delay(2000);  // 等待一段时间确保监控任务已经完全停止
+                while (liveflag)
+                {
+                    monitoringCts.Cancel();
+                    liveflag = false;
+                    await Task.Delay(1000);  // 等待一段时间确保监控任务已经完全停止
+                }
+                await Task.Delay(20000);  // 等待一段时间确保监控任务已经完全停止
                 jiankongflag = 0;
                 monitoringCts = new CancellationTokenSource();  // 创建新的 CancellationTokenSource 以便于重新启动监控
                 _ = Task.Run(async () =>

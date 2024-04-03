@@ -80,7 +80,7 @@ public partial class LoadWindow
                 Directory.CreateDirectory(FileUtil.D_Robot_Path);
 
                 LoadModel.LoadState = "正在检测战地1是否运行...";
-                // 检测战地1是否运行
+                // 检测战地1是否运行，测试离线运行
                 if (!ProcessUtil.IsBf1Run())
                 {
                     LoadModel.LoadState = "未发现《战地1》游戏进程！程序即将关闭";
