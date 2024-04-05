@@ -24,6 +24,8 @@ using BF1ServerTools.Windows;
 using System.Collections.Generic;
 using BF1ServerTools.API.RespJson;
 using BF1ServerTools.RES;
+using System.Collections;
+using System.ComponentModel;
 
 namespace BF1ServerTools.Views;
 
@@ -808,49 +810,146 @@ public partial class RobotView : UserControl
             NotifierHelper.Show(NotifierType.Information, "已停止自动平衡");
         }
 
-        
+      
 
         //ShowServerMapList();
     }
-    //刷分服
+    //获取地图列表
     private async void shuafenfu(object sender, RoutedEventArgs e)
     {
-        NotifierHelper.Show(NotifierType.Information, "已启动刷分服监控");
-        XPFARM();
-        
+        NotifierHelper.Show(NotifierType.Information, "正在尝试获取地图列表");
+        await ShowServerMapList();
+
+    }
+    bool Changerun = false;
+    private async void changemap(object sender, RoutedEventArgs e)
+    {
+        if (!Changerun)
+        {
+            Changerun = true;
+            NotifierHelper.Show(NotifierType.Information, "已启动换图");
+            await XPFARM();
+        }
+    }
+    private object _draggedItem;
+
+    private void MapListView_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var listView = sender as ListView;
+        var position = e.GetPosition(listView);
+        var result = VisualTreeHelper.HitTest(listView, position);
+
+        if (result != null && result.VisualHit.FindAncestorOrSelf<CheckBox>() == null)
+        {
+            _draggedItem = GetItemAt(position);
+            if (_draggedItem != null)
+            {
+                DragDrop.DoDragDrop(listView, _draggedItem, DragDropEffects.Move);
+            }
+        }
     }
 
-
-    private async Task ShowServerMapList()
+    private object GetItemAt(System.Windows.Point position)
     {
+        var hitTestResult = VisualTreeHelper.HitTest(MapListView, position);
+        if (hitTestResult != null)
+        {
+            var target = hitTestResult.VisualHit;
+            while (target != null && !(target is ListViewItem))
+            {
+                target = VisualTreeHelper.GetParent(target);
+            }
+            return target != null ? ((ListViewItem)target).DataContext : null;
+        }
+        return null;
+    }
+
+    private void MapListView_Drop(object sender, DragEventArgs e)
+    {
+        var listView = sender as ListView;
+        var targetItem = GetItemAt(e.GetPosition(listView));
+
+        if (_draggedItem != null && targetItem != null && _draggedItem != targetItem)
+        {
+            var items = listView.ItemsSource as IList;
+            if (items != null)
+            {
+                int oldIndex = items.IndexOf(_draggedItem);
+                int newIndex = items.IndexOf(targetItem);
+
+                items.RemoveAt(oldIndex);
+                items.Insert(newIndex, _draggedItem);
+
+                listView.Items.Refresh();
+            }
+        }
+    }
+    public class MapItem : INotifyPropertyChanged
+    {
+        private bool _isSelected;
+
+        public string MapName { get; set; }
+        public string MapMode { get; set; }
+
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                if (_isSelected != value)
+                {
+                    _isSelected = value;
+                    OnPropertyChanged(nameof(IsSelected));
+                }
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public string DisplayText => $"{MapName} - {MapMode}";
+    }
+
+    public  async  Task ShowServerMapList()
+    {
+
         if (string.IsNullOrEmpty(Globals.SessionId))
         {
             MessageBox.Show("会话 ID 为空，无法获取地图列表。");
             return;
         }
-
+        var mapNamesToId = await CreateMapNamesToIdMapAsync();
         var result = await BF1API.GetFullServerDetails(Globals.SessionId, Globals.GameId);
         if (result.IsSuccess)
         {
             var fullServerDetails = JsonHelper.JsonDese<BF1ServerTools.API.RespJson.FullServerDetails>(result.Content);
-            var mapList = new StringBuilder();
+            var mapItems = new List<MapItem>();
 
             foreach (var item in fullServerDetails.result.serverInfo.rotation)
             {
-                string mapName = ChsUtil.ToSimplified(item.mapPrettyName);
-                string mapMode = ChsUtil.ToSimplified(item.modePrettyName);
-
-                mapList.AppendLine($"{mapName} - {mapMode}");
+                mapItems.Add(new MapItem
+                {
+                    MapName = ChsUtil.ToSimplified(item.mapPrettyName),
+                    MapMode = ChsUtil.ToSimplified(item.modePrettyName)
+                });
             }
 
-            MessageBox.Show(mapList.ToString(), "地图列表");
+            // 确保在UI线程更新ListView
+            Dispatcher.Invoke(() =>
+            {
+                MapListView.ItemsSource = mapItems;
+            });
         }
         else
         {
             MessageBox.Show("获取服务器详情失败。");
         }
     }
-
+   
     private CancellationTokenSource monitoringCts = new CancellationTokenSource();//监控控制
                                                                                   // 监控玩家场数变化
     public async Task StartMonitoringTopPlayersGameCount(CancellationToken cancellationToken)
@@ -867,7 +966,7 @@ public partial class RobotView : UserControl
             return; // 直接返回，因为没有玩家
         }
 
-        // 获取前两名玩家进行监控
+        // 获取前三名玩家进行监控
         var topPlayers = playerList.GroupBy(p => p.TeamId)
                                    .SelectMany(g => g.OrderByDescending(p => p.Score).Take(3))
                                    .ToList();
@@ -896,6 +995,8 @@ public partial class RobotView : UserControl
             int playerCountThreshold = topPlayers.Count == 1 ? 1 : topPlayers.Count - 1;
             if (increasedCount >= playerCountThreshold)
             {
+                if (cancellationToken.IsCancellationRequested)
+                { break; }
                 jiankongflag = 1;
                 break; // 至少比玩家数少一的玩家游戏场数加1，或在一个人时该人场数加1
             }
@@ -947,7 +1048,7 @@ public partial class RobotView : UserControl
         {
             var serverDetails = JsonHelper.JsonDese<BF1ServerTools.API.RespJson.FullServerDetails>(result.Content);
 
-            int mapId = 0; // 假设每个地图有一个唯一的ID
+            int mapId = 0; // 每个地图有一个唯一的ID
             foreach (var map in serverDetails.result.serverInfo.rotation)
             {
                 string mapNameBegin = map.mapPrettyName; // 获取地图的原始名称
@@ -966,27 +1067,32 @@ public partial class RobotView : UserControl
 
         return mapNamesToId;
     }
-    public async Task XPFARM()
-    {   
-        int mapidnext = 0;
-        string mapnamenext = "0";
-        var mapnamebegin = MonitView.Mapnameget();
-        string mapName = ChsUtil.ToSimplified(ClientHelper.GetMapChsName(mapnamebegin)); 
-        string mapName1 = "阿奇巴巴";
-        string mapName2 = "西奈沙漠";
-        
-        
-        var mapNamesToId = await CreateMapNamesToIdMapAsync();
-       
-        int mapid1 = mapNamesToId[mapName1];
-        int mapid2 = mapNamesToId[mapName2];
 
-        if (mapName != "阿奇巴巴" && mapName != "西奈沙漠")
+
+
+    public async Task XPFARM()
+    {
+        var mapNamesToId = await CreateMapNamesToIdMapAsync();
+
+        // MapListView是你的ListView控件的名字
+        var selectedMaps = MapListView.Items.Cast<MapItem>().Where(item => item.IsSelected).ToList();
+
+        if (!selectedMaps.Any())
         {
-            var result = await BF1API.RSPChooseLevel(Globals.SessionId, Globals.PersistedGameId, mapid2);
-            if(result != null) { NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换服务器 {Globals.GameId} 地图为 {mapName2} 成功"); }
-            await Task.Delay(15000);
+            MessageBox.Show("没有选中任何地图。");
+            return;
         }
+
+        int currentIndex = 0;
+        string currentMapName = ChsUtil.ToSimplified(ClientHelper.GetMapChsName(MonitView.Mapnameget()));
+
+        // 找到当前地图在列表中的位置
+        var currentMap = selectedMaps.FirstOrDefault(item => item.MapName == currentMapName);
+        if (currentMap != null)
+        {
+            currentIndex = selectedMaps.IndexOf(currentMap);
+        }
+
         // 在后台线程中异步启动监控，不等待其完成
         _ = Task.Run(async () =>
         {
@@ -997,7 +1103,6 @@ public partial class RobotView : UserControl
             catch (OperationCanceledException)
             {
                 // 监控被取消了
-
             }
             catch (Exception ex)
             {
@@ -1005,32 +1110,32 @@ public partial class RobotView : UserControl
                 MessageBox.Show($"监控过程中出错: {ex.Message}");
             }
         });
+
         while (true)
         {
-            if(jiankongflag == 1)
+            if (jiankongflag == 1)
             {
-                mapnamebegin = MonitView.Mapnameget();
-                mapName = ChsUtil.ToSimplified(ClientHelper.GetMapChsName(mapnamebegin));//获取当前地图名称
-                if(mapName == mapName1) 
+                currentIndex = (currentIndex + 1) % selectedMaps.Count;
+                var nextMap = selectedMaps[currentIndex];
+                int mapIdNext = mapNamesToId[nextMap.MapName];
+
+                var result = await BF1API.RSPChooseLevel(Globals.SessionId, Globals.PersistedGameId, mapIdNext);
+                if (result != null)
                 {
-                    mapidnext = mapid2;
-                    mapnamenext = mapName2;
+                    NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换服务器 {Globals.GameId} 地图为 {nextMap.MapName} 成功");
                 }
-                if(mapName == mapName2)
-                {
-                    mapidnext= mapid1;
-                    mapnamenext = mapName1;
-                }
-                var result = await BF1API.RSPChooseLevel(Globals.SessionId, Globals.PersistedGameId, mapidnext);
-                if (result != null) { NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换服务器 {Globals.GameId} 地图为 {mapnamenext} 成功"); }
-                while (liveflag)
-                {
-                    monitoringCts.Cancel();
-                    liveflag = false;
-                    await Task.Delay(1000);  // 等待一段时间确保监控任务已经完全停止
-                }
+              
+                    // 取消当前的监控任务
+                    while (liveflag)
+                    {
+                        monitoringCts.Cancel();
+                        liveflag = false;
+                        await Task.Delay(1000);  // 等待一段时间确保监控任务已经完全停止
+                    }
+                    jiankongflag = 0;
+                    jiankongflag = 0;
                 await Task.Delay(20000);  // 等待一段时间确保监控任务已经完全停止
-                jiankongflag = 0;
+
                 monitoringCts = new CancellationTokenSource();  // 创建新的 CancellationTokenSource 以便于重新启动监控
                 _ = Task.Run(async () =>
                 {
@@ -1041,7 +1146,6 @@ public partial class RobotView : UserControl
                     catch (OperationCanceledException)
                     {
                         // 监控被取消了
-
                     }
                     catch (Exception ex)
                     {
@@ -1050,10 +1154,25 @@ public partial class RobotView : UserControl
                     }
                 });
             }
+
             await Task.Delay(100);
         }
+    }
+
+}
+public static class VisualTreeExtensions
+{
+    public static T FindAncestorOrSelf<T>(this DependencyObject obj) where T : DependencyObject
+    {
+        while (obj != null)
+        {
+            if (obj is T)
+                return (T)obj;
+
+            obj = VisualTreeHelper.GetParent(obj);
+        }
+        return null;
     }
 }
 
 
-   

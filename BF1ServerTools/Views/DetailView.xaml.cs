@@ -70,6 +70,7 @@ public partial class DetailView : UserControl
                 {
                     if (await GetFullServerDetails())
                     {
+                       
                         ListBox_MapList.ForEach(map =>
                         {
                             this.Dispatcher.BeginInvoke(DispatcherPriority.Background, () =>

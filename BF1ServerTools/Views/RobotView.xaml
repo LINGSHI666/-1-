@@ -18,14 +18,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- 左侧控制台日志区域 -->
-            <TextBox
-                x:Name="TextBox_ConsoleLogger"
-                Grid.Column="0"
-                Margin="5"
-                Style="{StaticResource TextBoxStyle_Logger}"
-                VerticalScrollBarVisibility="Auto"
-                HorizontalScrollBarVisibility="Auto"
-                TextWrapping="Wrap" />
+            
 
             <!-- 中间功能区域 -->
             <StackPanel Grid.Column="1" Margin="5">
@@ -122,10 +115,35 @@
 
             <!-- 右侧功能区域 -->
             <StackPanel Grid.Column="2" Margin="5">
-                <ui:UiLabelIcon Content="刷分服" />
+                <ui:UiLabelIcon Content="自动换图" />
                 <UniformGrid Columns="2">
-                    <Button Content="刷分服模式启动" Click="shuafenfu" />
+                    <Button Content="获取地图列表" Click="shuafenfu" />
+                    <Button Content="启动换图" Click="changemap" />
+
+                    <TextBlock Style="{StaticResource TextBlockStyle_Hint}">
+提示：如地图列表显示不全请尝试上下滚动，如需关闭切图机关闭工具即可
+                    </TextBlock>
+                    <TextBlock Style="{StaticResource TextBlockStyle_Hint}">
+提示：换图机启动时会自动确定当前地图在列表中的位置，如需从头开始换图，请手动切换当前地图为您选中的第一张图,再启动切图
+                    </TextBlock>
                 </UniformGrid>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ListView x:Name="MapListView" AllowDrop="True" PreviewMouseLeftButtonDown="MapListView_PreviewMouseLeftButtonDown" Drop="MapListView_Drop">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="选择">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="地图名称" DisplayMemberBinding="{Binding MapName}" />
+                                <GridViewColumn Header="游戏模式" DisplayMemberBinding="{Binding MapMode}" />
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </ScrollViewer>
             </StackPanel>
         </Grid>
     </ScrollViewer>

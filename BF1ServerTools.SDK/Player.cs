@@ -1,6 +1,8 @@
 ﻿using BF1ServerTools.SDK.Core;
 using BF1ServerTools.SDK.Data;
 using Newtonsoft.Json;
+using System.IO.Pipes;
+using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using static BF1ServerTools.SDK.Player;
@@ -171,8 +173,20 @@ public static class Player
         [JsonProperty("platoon")]
         public string Platoon { get; set; }
     }
+    //接受url
+    static async Task<string> StartNamedPipeClientAsync()
+    {
+        using (var pipe = new NamedPipeClientStream(".", "TestPipe", PipeDirection.In, PipeOptions.Asynchronous))
+        {
+            await pipe.ConnectAsync();
 
-    static string retrievedString = Environment.GetEnvironmentVariable("GLOBAL_STRING", EnvironmentVariableTarget.Process);
+            using (var reader = new StreamReader(pipe))
+            {
+                return await reader.ReadLineAsync();
+            }
+        }
+    }
+    public static string retrievedString = Environment.GetEnvironmentVariable("GLOBAL_STRING", EnvironmentVariableTarget.Process);
     /// <summary>
     /// 获取玩家列表信息
     /// </summary>
@@ -183,8 +197,9 @@ public static class Player
         // 初始化 HttpClient 实例
         using (var httpClient = new HttpClient())
             if (!IsBf1Run())//测试时为false
-                {
+                {   
                     List<PlayerData> _playerList = new List<PlayerData>();
+                
                 try
                 {
                     var responseTask = httpClient.GetAsync(retrievedString);
