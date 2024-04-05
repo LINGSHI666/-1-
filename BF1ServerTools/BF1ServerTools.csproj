@@ -5,7 +5,7 @@
 		<TargetFramework>net6.0-windows</TargetFramework>
 		<Nullable>disable</Nullable>
 		<UseWPF>true</UseWPF>
-		<Platforms>x64</Platforms>
+		<Platforms>x64;ARM64;x86</Platforms>
 		<StartupObject>BF1ServerTools.App</StartupObject>
 		<AssemblyVersion>3.0.2.0</AssemblyVersion>
 		<FileVersion>3.0.2.0</FileVersion>
@@ -18,8 +18,24 @@
 		<DebugType>full</DebugType>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+	  <DebugType>full</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+	  <DebugType>full</DebugType>
+	</PropertyGroup>
+
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
 		<DebugType>full</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+	  <DebugType>full</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+	  <DebugType>full</DebugType>
 	</PropertyGroup>
 
 	<ItemGroup>
