@@ -13,6 +13,7 @@ using System.Net.Http;
 
 using System.Threading.Tasks;
 using static BF1ServerTools.Views.ScoreView;
+using System.IO.Pipes;
 
 namespace BF1ServerTools.Views;
 
@@ -190,6 +191,20 @@ public partial class ScoreView : UserControl
 
         return config;
     }
+    //传递url
+    static async Task StartNamedPipeServerAsync(string messageToSend)
+    {
+        using (var pipe = new NamedPipeServerStream("TestPipe", PipeDirection.Out, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous))
+        {
+            await pipe.WaitForConnectionAsync();
+
+            using (var writer = new StreamWriter(pipe))
+            {
+                writer.AutoFlush = true;
+                await writer.WriteLineAsync(messageToSend);
+            }
+        }
+    }
     /// <summary>
     /// 更新服务器信息线程
     /// </summary>
@@ -208,7 +223,8 @@ public partial class ScoreView : UserControl
                         {
                              serverUrl = config.ServerUrl;
                             string globalString = serverUrl;
-                            Environment.SetEnvironmentVariable("GLOBAL_STRING", globalString, EnvironmentVariableTarget.Process);
+                            Player.retrievedString = globalString;
+                            
                         }
                         else
                         {
