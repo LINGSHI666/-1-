@@ -32,7 +32,7 @@ public partial class App : Application
         {
             MsgBoxUtil.Warning($"请不要重复打开，程序已经运行\n如果一直提示，请到\"任务管理器-详细信息（win7为进程）\"里\n强制结束 \"{AppName}.exe\" 程序"
                 , "重复运行警告");
-            Current.Shutdown();
+            //Current.Shutdown();//测试多开时关闭
         }
     }
 

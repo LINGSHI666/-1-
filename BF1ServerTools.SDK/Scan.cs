@@ -49,6 +49,7 @@ public static class Scan
 
                 // 设置基地址偏移
                 baseAddress += (long)mbi.RegionSize;
+                
             }
 
             foreach (var item in canReadAddresses)

@@ -191,20 +191,7 @@ public partial class ScoreView : UserControl
 
         return config;
     }
-    //传递url
-    static async Task StartNamedPipeServerAsync(string messageToSend)
-    {
-        using (var pipe = new NamedPipeServerStream("TestPipe", PipeDirection.Out, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous))
-        {
-            await pipe.WaitForConnectionAsync();
-
-            using (var writer = new StreamWriter(pipe))
-            {
-                writer.AutoFlush = true;
-                await writer.WriteLineAsync(messageToSend);
-            }
-        }
-    }
+   
     /// <summary>
     /// 更新服务器信息线程
     /// </summary>
@@ -212,16 +199,16 @@ public partial class ScoreView : UserControl
     {// 初始化 HttpClient 实例
         using (var httpClient = new HttpClient())
             while (MainWindow.IsAppRunning)
-        {
-            if (!Globals.IsUseMode1)
+            {
+                Player.IsUseMode1 = Globals.IsUseMode1;
+                if (!Globals.IsUseMode1)
             {
                 try
                 {
-                        Config config = ReadConfig();
-                        string serverUrl;
-                        if (config != null)
+                        string serverUrl = "";
+                        if (AuthView.URL != null)
                         {
-                             serverUrl = config.ServerUrl;
+                            serverUrl = AuthView.URL;
                             string globalString = serverUrl;
                             Player.retrievedString = globalString;
                             

@@ -173,20 +173,9 @@ public static class Player
         [JsonProperty("platoon")]
         public string Platoon { get; set; }
     }
-    //接受url
-    static async Task<string> StartNamedPipeClientAsync()
-    {
-        using (var pipe = new NamedPipeClientStream(".", "TestPipe", PipeDirection.In, PipeOptions.Asynchronous))
-        {
-            await pipe.ConnectAsync();
-
-            using (var reader = new StreamReader(pipe))
-            {
-                return await reader.ReadLineAsync();
-            }
-        }
-    }
-    public static string retrievedString = Environment.GetEnvironmentVariable("GLOBAL_STRING", EnvironmentVariableTarget.Process);
+   
+    public static string retrievedString = "";
+    public static bool IsUseMode1 = true;
     /// <summary>
     /// 获取玩家列表信息
     /// </summary>
@@ -196,14 +185,14 @@ public static class Player
     {
         // 初始化 HttpClient 实例
         using (var httpClient = new HttpClient())
-            if (!IsBf1Run())//测试时为false
+            if (!IsUseMode1)//测试时为false
                 {   
                     List<PlayerData> _playerList = new List<PlayerData>();
                 
                 try
                 {
                     var responseTask = httpClient.GetAsync(retrievedString);
-                    responseTask.Wait(); // 等待任务完成，可能会导致线程阻塞
+                    responseTask.Wait(); // 等待任务完成
 
                     var response = responseTask.Result; // 获取结果
 

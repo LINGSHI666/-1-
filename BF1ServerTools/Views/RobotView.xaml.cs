@@ -42,16 +42,7 @@ public partial class RobotView : UserControl
     public static int jiankongflag = 0; // 1表示启动切换地图
     
     public Queue<PlayerData> excludeList = new Queue<PlayerData>(); // 使用队列来管理排除名单 
-    /// <summary>
-    /// Robot配置文件集，以json格式保存到本地
-    /// </summary>
-    private RobotConfig RobotConfig { get; set; } = new();
-
-    /// <summary>
-    /// Robot配置文件路径
-    /// </summary>
-    private readonly string F_Robot_Path = FileUtil.D_Config_Path + @"\RobotConfig.json";
-
+   
     ////////////////////////////////////////////////////////
 
 
@@ -70,7 +61,7 @@ public partial class RobotView : UserControl
         showflag = true;
     }
     /// <summary>
-    /// 启动QQ机器人服务
+    /// 启动定时平衡
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
@@ -1120,11 +1111,14 @@ public partial class RobotView : UserControl
                 int mapIdNext = mapNamesToId[nextMap.MapName];
 
                 var result = await BF1API.RSPChooseLevel(Globals.SessionId, Globals.PersistedGameId, mapIdNext);
-                if (result != null)
+                if (result.IsSuccess)
                 {
                     NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换服务器 {Globals.GameId} 地图为 {nextMap.MapName} 成功");
                 }
-              
+                else
+                {
+                   NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换服务器 {Globals.GameId} 地图为 {nextMap.MapName} 失败");
+                }
                     // 取消当前的监控任务
                     while (liveflag)
                     {

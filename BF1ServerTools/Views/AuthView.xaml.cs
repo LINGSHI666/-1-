@@ -47,29 +47,18 @@ public partial class AuthView : UserControl
     }
     private string lastInput = ""; 
     public static long gameid233 = 0 ;
+    public static string URL = "";
     private void SaveInput(string input)
     {
         if (lastInput != input)
         {
             lastInput = input;
             string url = $"https://api.gametools.network/bf1/players/?gameid={Uri.EscapeDataString(input)}";
+            
             long.TryParse(lastInput, out gameid233);
-            var config = new Config
-            {
-                ServerUrl = url
-            };
-
-            string json = JsonConvert.SerializeObject(config, Formatting.Indented);
-
-            try
-            {
-                File.WriteAllText(F_Auth_Path2, json); // Note the use of F_Auth_Path2 here
-                
-            }
-            catch (Exception ex)
-            {
-                
-            }
+            
+            URL = url ;
+            
         }
     }
 

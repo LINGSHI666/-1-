@@ -121,7 +121,7 @@
                     <Button Content="启动换图" Click="changemap" />
 
                     <TextBlock Style="{StaticResource TextBlockStyle_Hint}">
-提示：如地图列表显示不全请尝试上下滚动，如需关闭切图机关闭工具即可
+提示：地图列表可以拖动排序，如地图列表显示不全请尝试上下滚动，如需关闭切图机关闭工具即可
                     </TextBlock>
                     <TextBlock Style="{StaticResource TextBlockStyle_Hint}">
 提示：换图机启动时会自动确定当前地图在列表中的位置，如需从头开始换图，请手动切换当前地图为您选中的第一张图,再启动切图
