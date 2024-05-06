@@ -17,10 +17,24 @@
                 <ColumnDefinition Width="400" />
             </Grid.ColumnDefinitions>
 
-            <!-- 左侧控制台日志区域 -->
-            
+            <!-- 左侧区域 -->
+            <StackPanel Grid.Column="0" Margin="5">
+            <ui:UiLabelIcon Grid.Row="0" Content="自动换边" Margin="0,10" />
+            <Button Grid.Row="1" x:Name="Button_Allchange" Click="Button_Allchange_Click"
+            Content="立刻启动全部换边" Margin="0,10" HorizontalAlignment="Left"/>
+            <Slider Grid.Row="2" x:Name="sliderAllchange"
+            Minimum="0" Maximum="1000" TickFrequency="10" IsSnapToTickEnabled="True"
+            ValueChanged="Slider_ValueChangedAllchange" Margin="0,10"/>
+            <TextBlock Grid.Row="3" x:Name="labelAllchange"
+               Text="启动压家换边的分数上限[0]（仅征服）（高于该分数不启动全部换边）"
+               TextWrapping="Wrap" Margin="0,10"/>
+            <Button Grid.Row="4" x:Name="Button_RunAutoAllchange"
+            Click="Button_RunAutoAllchange_Click"
+            Content="启动自动压家换边（人满重开）" Margin="0,10" HorizontalAlignment="Left"/>
+            </StackPanel>
 
-            <!-- 中间功能区域 -->
+
+            <!-- 中间区域 -->
             <StackPanel Grid.Column="1" Margin="5">
                 <ui:UiLabelIcon Content="功能开关" />
 
@@ -113,7 +127,7 @@
     TextWrapping="Wrap" />
             </StackPanel>
 
-            <!-- 右侧功能区域 -->
+            <!-- 右侧区域 -->
             <StackPanel Grid.Column="2" Margin="5">
                 <ui:UiLabelIcon Content="自动换图" />
                 <UniformGrid Columns="2">
@@ -145,6 +159,7 @@
                     </ListView>
                 </ScrollViewer>
             </StackPanel>
+
         </Grid>
     </ScrollViewer>
 </UserControl>

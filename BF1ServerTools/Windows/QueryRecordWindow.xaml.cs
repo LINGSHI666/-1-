@@ -182,6 +182,26 @@ public partial class QueryRecordWindow
             return 0;
         }
     }
+    public static async Task<int[]> GetAllGameCount(long personaId)
+    {
+        int[] array = new int[2];
+        var result = await BF1API.DetailedStatsByPersonaId(Globals.SessionId, personaId);
+        if (result.IsSuccess)
+        {
+            var detailedStats = JsonHelper.JsonDese<DetailedStats>(result.Content);
+            int gameCount = detailedStats.result.roundsPlayed;
+            var detailed = JsonHelper.JsonDese<DetailedStats>(result.Content);
+            var basic = detailed.result.basicStats;
+            array[0] = gameCount;
+            array[1] = basic.wins;
+            return array; // 返回游戏场数
+        }
+        else
+        {
+            // 处理错误情况
+            return array;
+        }
+    }
     public static async Task<float> GetGameskill(long personaId)
     {
         var result = await BF1API.DetailedStatsByPersonaId(Globals.SessionId, personaId);

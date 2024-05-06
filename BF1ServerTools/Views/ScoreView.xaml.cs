@@ -40,6 +40,11 @@ public partial class ScoreView : UserControl
     /// </summary>
     private ServerData _serverData = new();
 
+    public static string mapname = "";//用于判断当前地图
+    public static string mapmode = "";
+    public static int Team1FlagScore = 0;
+    public static int Team2FlagScore = 0;
+
     ///////////////////////////////////////////////////////
 
     /// <summary>
@@ -202,24 +207,24 @@ public partial class ScoreView : UserControl
             {
                 Player.IsUseMode1 = Globals.IsUseMode1;
                 if (!Globals.IsUseMode1)
-            {
-                try
                 {
+                    try
+                    {
                         string serverUrl = "";
                         if (AuthView.URL != null)
                         {
                             serverUrl = AuthView.URL;
                             string globalString = serverUrl;
                             Player.retrievedString = globalString;
-                            
+
                         }
                         else
                         {
-                             serverUrl = "1";
+                            serverUrl = "1";
                         }
-                    
+
                         var response = await httpClient.GetStringAsync(serverUrl);
-                    var serverInfo = JsonConvert.DeserializeObject<ServerInfoRoot>(response);
+                        var serverInfo = JsonConvert.DeserializeObject<ServerInfoRoot>(response);
 
                         // 使用serverInfo中的数据
 
@@ -228,7 +233,7 @@ public partial class ScoreView : UserControl
 
                         _serverData.MapName = serverInfo.ServerInfo.Level;
                         _serverData.MapName = string.IsNullOrEmpty(_serverData.MapName) ? "未知" : _serverData.MapName;
-                        
+
                         _serverData.GameMode = serverInfo.ServerInfo.Mode;
 
 
@@ -243,7 +248,7 @@ public partial class ScoreView : UserControl
                         ScoreModel.ServerMapName = ClientHelper.GetMapChsName2(_serverData.MapName);
                         ScoreModel.ServerMapImg = ClientHelper.GetMapPrevImage2(_serverData.MapName);
 
-                       
+
                         ScoreModel.ServerGameMode = ClientHelper.GetGameMode2(_serverData.GameMode);
 
                         ScoreModel.Team1Img = ClientHelper.GetTeam1Image2(_serverData.MapName);
@@ -277,45 +282,51 @@ public partial class ScoreView : UserControl
 
                         // ... 其他数据更新
                     }
-                catch (HttpRequestException httpEx)
-                {
+                    catch (HttpRequestException httpEx)
+                    {
                         //MessageBox.Show("http");
+                    }
+                    catch (Exception ex)
+                    {
+                        // TODO: 处理其他异常
+                    }
                 }
-                catch (Exception ex)
-                {
-                    // TODO: 处理其他异常
-                }
-            }
-            else
-            {
-
-
-                // 服务器名称
-                _serverData.Name = Server.GetServerName();
-                _serverData.Name = string.IsNullOrEmpty(_serverData.Name) ? "未知" : _serverData.Name;
-
-                // 服务器地图名称
-                _serverData.MapName = Server.GetMapName();
-                _serverData.MapName = string.IsNullOrEmpty(_serverData.MapName) ? "未知" : _serverData.MapName;
-
-                // 服务器游戏模式
-                _serverData.GameMode = Server.GetGameMode();
-
-                // 服务器时间
-                _serverData.Time = Server.GetServerTime();
-
-                //////////////////////////////// 服务器数据整理 ////////////////////////////////
-
-                ScoreModel.ServerName = _serverData.Name;
-                ScoreModel.ServerTime = PlayerUtil.SecondsToMMSS(_serverData.Time);
-
-                ScoreModel.ServerMapName = ClientHelper.GetMapChsName(_serverData.MapName);
-                ScoreModel.ServerMapImg = ClientHelper.GetMapPrevImage(_serverData.MapName);
-
-                if (_serverData.MapName == "未知" || ScoreModel.ServerMapName == "大厅菜单")
-                    ScoreModel.ServerGameMode = "未知";
                 else
+                {
+
+
+                    // 服务器名称
+                    _serverData.Name = Server.GetServerName();
+                    _serverData.Name = string.IsNullOrEmpty(_serverData.Name) ? "未知" : _serverData.Name;
+
+
+                    // 服务器地图名称
+                    _serverData.MapName = Server.GetMapName();
+                    _serverData.MapName = string.IsNullOrEmpty(_serverData.MapName) ? "未知" : _serverData.MapName;
+
+
+                    // 服务器游戏模式
+                    _serverData.GameMode = Server.GetGameMode();
+
+
+                    // 服务器时间
+                    _serverData.Time = Server.GetServerTime();
+
+                    //////////////////////////////// 服务器数据整理 ////////////////////////////////
+
+                    ScoreModel.ServerName = _serverData.Name;
+                    ScoreModel.ServerTime = PlayerUtil.SecondsToMMSS(_serverData.Time);
+
+                    ScoreModel.ServerMapName = ClientHelper.GetMapChsName(_serverData.MapName);
+                    mapname = ScoreModel.ServerMapName;
+                    ScoreModel.ServerMapImg = ClientHelper.GetMapPrevImage(_serverData.MapName);
+
+                    if (_serverData.MapName == "未知" || ScoreModel.ServerMapName == "大厅菜单")
+                        ScoreModel.ServerGameMode = "未知";
+                    else { 
                     ScoreModel.ServerGameMode = ClientHelper.GetGameMode(_serverData.GameMode);
+                        mapmode = ScoreModel.ServerGameMode;
+                    }
 
                 ScoreModel.Team1Img = ClientHelper.GetTeam1Image(_serverData.MapName);
                 ScoreModel.Team2Img = ClientHelper.GetTeam2Image(_serverData.MapName);
@@ -336,6 +347,7 @@ public partial class ScoreView : UserControl
                     _serverData.Team2Kill = Server.GetTeam2KillScore();
                     // 队伍1、队伍2从旗帜获取得分
                     _serverData.Team1Flag = Server.GetTeam1FlagScore();
+
                     _serverData.Team2Flag = Server.GetTeam2FlagScore();
 
                     ///////////////////////////// 修正服务器得分数据 /////////////////////////////
