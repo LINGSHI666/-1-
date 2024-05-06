@@ -26,6 +26,7 @@ using BF1ServerTools.API.RespJson;
 using BF1ServerTools.RES;
 using System.Collections;
 using System.ComponentModel;
+using BF1ServerTools.RES.Img;
 
 namespace BF1ServerTools.Views;
 
@@ -90,6 +91,10 @@ public partial class RobotView : UserControl
 
 
     }
+    private void Button_RunAutoAllchange_Click(object sender, RoutedEventArgs e)
+    {
+        AutoAllchange();
+    }
     private void Button_Balance_Click(object sender, RoutedEventArgs e)
     {
         RunPeriodicTasks();
@@ -120,6 +125,15 @@ public partial class RobotView : UserControl
         {
             double newValue = e.NewValue; // 获取滑块的当前值
             labelCurrentdskill.Text = $"平衡目标为进攻(队伍1)技巧值高于防守(队伍2){newValue}(+-30)"; // 更新标签内容
+        }
+    }
+    private void Slider_ValueChangedAllchange(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+
+        if (labelAllchange != null) // 检查控件是否为null
+        {
+            double newValue = e.NewValue; // 获取滑块的当前值
+            labelAllchange.Text = $"启动压家换边的分数上限[{newValue}]（仅征服）（高于该分数不启动全部换边）"; // 更新标签内容
         }
     }
     private DispatcherTimer voteTimer;
@@ -426,7 +440,45 @@ public partial class RobotView : UserControl
             await Task.Delay(200); // 每200毫秒检查一次聊天
         }
     }
+    //压家
+    private async void AutoAllchange()
+    {
+        double scoreflag = sliderAllchange != null ? sliderAllchange.Value : 700 ;
+        //获取地图列表，便于重开
+        NotifierHelper.Show(NotifierType.Information, "正在尝试获取地图列表");
+        var mapItems = await GetServerMapList();
+        int? mapid = await FindMapId(ScoreView.mapname, ScoreView.mapmode);
+        if (mapid.HasValue)
+        {
+           
+            var result = await BF1API.RSPChooseLevel(Globals.SessionId, Globals.PersistedGameId, (int)mapid);
+            if (result.IsSuccess)
+            {
+                NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换服务器 {Globals.GameId} 地图 成功");
+            }
+            else
+            {
+                NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换服务器 {Globals.GameId} 地图 成功");
+            }
+        }
+        else
+        {
+            MessageBox.Show("程序出错");
+        }
 
+    }
+    // 查找地图 ID 的方法
+    public async Task<int?> FindMapId(string mapName, string mapMode)
+    {
+        var mapItems = await GetServerMapList(); // 获取地图列表
+
+        var mapItem = mapItems.FirstOrDefault(item =>
+            item.MapName.Equals(mapName, StringComparison.OrdinalIgnoreCase) &&
+            item.MapMode.Equals(mapMode, StringComparison.OrdinalIgnoreCase));
+
+        return mapItem?.MapId;
+    }
+    //自动平衡
     private async void RunPeriodicTasks()
     {
 
@@ -438,13 +490,12 @@ public partial class RobotView : UserControl
             // 保持控制台打开，直到用户按下任意键
             //Console.ReadKey();
             List<PlayerData> playerListbegin = Player.GetPlayerList(); // 获取当前所有玩家的列表
-            List<PlayerData> playerList = playerListbegin.Where(p => p.Kill >= 1 || p.Dead >= 1).ToList();
-            //排除机器人
+            List<PlayerData> playerList = playerListbegin.Where(p => p.Kill >= 1 || p.Dead >= 1).ToList(); //排除机器人
             int count = playerList.Count(p => p.PersonaId != 0);
 
-            double kdkpmflag = sliderkdkpm != null ? sliderkdkpm.Value : 10;
+            double kdkpmflag = sliderkdkpm != null ? sliderkdkpm.Value : 0;
             double skillflag = sliderskill != null ? sliderskill.Value : 100;
-            if (count < 30)
+            if (count < 30 && false)
             {
                 NotifierHelper.Show(NotifierType.Error, "人数不足,或游戏刚开始");
                 break;
@@ -518,14 +569,14 @@ public partial class RobotView : UserControl
                     var playerToMove = maxAction();
 
                     // 根据playerToMove所在队伍决定移动方向
-                    int targetTeam = playerToMove.TeamId == 1 ? 2 : 1;
+                    int targetTeam = playerToMove.TeamId == 1 ? 1 : 2;
 
                     // 执行移动
                     var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, targetTeam);
                     // 重新获取玩家列表以验证换边是否成功
                     var updatedPlayerList = Player.GetPlayerList();
                     var movedPlayer = updatedPlayerList.FirstOrDefault(p => p.PersonaId == playerToMove.PersonaId);
-
+                    targetTeam = playerToMove.TeamId == 1 ? 2 : 1;
                     if (movedPlayer != null && movedPlayer.TeamId == targetTeam)
                     {
                         // 如果排除名单已有三人，则移除最早添加的玩家
@@ -564,14 +615,14 @@ public partial class RobotView : UserControl
                     var playerToMove = maxAction();
 
                     // 根据playerToMove所在队伍决定移动方向
-                    int targetTeam = playerToMove.TeamId == 1 ? 2 : 1;
+                    int targetTeam = playerToMove.TeamId == 1 ? 1 : 2;
 
                     // 执行移动
                     var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, targetTeam);
                     // 重新获取玩家列表以验证换边是否成功
                     var updatedPlayerList = Player.GetPlayerList();
                     var movedPlayer = updatedPlayerList.FirstOrDefault(p => p.PersonaId == playerToMove.PersonaId);
-
+                    targetTeam = playerToMove.TeamId == 1 ? 2 : 1;
                     if (movedPlayer != null && movedPlayer.TeamId == targetTeam)
                     {
                         // 如果排除名单已有三人，则移除最早添加的玩家
@@ -657,7 +708,7 @@ public partial class RobotView : UserControl
                     var playerToMove = maxAction();
 
                     // 根据playerToMove所在队伍决定移动方向
-                    int targetTeam = playerToMove.TeamId == 1 ? 2 : 1;
+                    int targetTeam = playerToMove.TeamId == 1 ? 1 : 2;
 
                     // 执行移动
                     var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, targetTeam);
@@ -672,7 +723,7 @@ public partial class RobotView : UserControl
                     // 重新获取玩家列表以验证换边是否成功
                     var updatedPlayerList = Player.GetPlayerList();
                     var movedPlayer = updatedPlayerList.FirstOrDefault(p => p.PersonaId == playerToMove.PersonaId);
-
+                    targetTeam = playerToMove.TeamId == 1 ? 2 : 1;
                     if (movedPlayer != null && movedPlayer.TeamId == targetTeam)
                     {
                         // 如果排除名单已有三人，则移除最早添加的玩家
@@ -713,7 +764,7 @@ public partial class RobotView : UserControl
                     var playerToMove = maxAction();
 
                     // 根据playerToMove所在队伍决定移动方向
-                    int targetTeam = playerToMove.TeamId == 1 ? 2 : 1;
+                    int targetTeam = playerToMove.TeamId == 1 ? 1 : 2;
 
                     // 执行移动
                     var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, targetTeam);
@@ -728,7 +779,7 @@ public partial class RobotView : UserControl
                     // 重新获取玩家列表以验证换边是否成功
                     var updatedPlayerList = Player.GetPlayerList();
                     var movedPlayer = updatedPlayerList.FirstOrDefault(p => p.PersonaId == playerToMove.PersonaId);
-
+                    targetTeam = playerToMove.TeamId == 1 ? 2 : 1;
                     if (movedPlayer != null && movedPlayer.TeamId == targetTeam)
                     {
                         // 如果排除名单已有三人，则移除最早添加的玩家
@@ -800,10 +851,11 @@ public partial class RobotView : UserControl
             timer.Stop();
             NotifierHelper.Show(NotifierType.Information, "已停止自动平衡");
         }
-
-      
-
         //ShowServerMapList();
+    }
+    private async void Button_Allchange_Click(object sender, RoutedEventArgs e) 
+    {
+        await ChangeAllPlayers();
     }
     //获取地图列表
     private async void shuafenfu(object sender, RoutedEventArgs e)
@@ -881,6 +933,7 @@ public partial class RobotView : UserControl
 
         public string MapName { get; set; }
         public string MapMode { get; set; }
+        public int MapId { get; set; }
 
         public bool IsSelected
         {
@@ -904,8 +957,41 @@ public partial class RobotView : UserControl
 
         public string DisplayText => $"{MapName} - {MapMode}";
     }
+    //获取地图列表
+    public  async Task<List<MapItem>> GetServerMapList()
+    {
 
-    public  async  Task ShowServerMapList()
+        if (string.IsNullOrEmpty(Globals.SessionId))
+        {
+            MessageBox.Show("会话 ID 为空，无法获取地图列表。");
+            return null ;
+        }
+        var mapNamesToId = await CreateMapNamesToIdMapAsync();
+        var result = await BF1API.GetFullServerDetails(Globals.SessionId, Globals.GameId);
+        if (result.IsSuccess)
+        {
+            var fullServerDetails = JsonHelper.JsonDese<BF1ServerTools.API.RespJson.FullServerDetails>(result.Content);
+            var mapItems = new List<MapItem>();
+            int mapId = 0;  
+            foreach (var item in fullServerDetails.result.serverInfo.rotation)
+            {
+                mapItems.Add(new MapItem
+                {
+                    MapName = ChsUtil.ToSimplified(item.mapPrettyName),
+                    MapMode = ChsUtil.ToSimplified(item.modePrettyName),
+                    MapId = mapId++  // 分配并自增 mapId
+                }) ;
+            }
+
+            return mapItems;
+        }
+        else
+        {
+            MessageBox.Show("获取服务器详情失败。");
+            return null ;
+        }
+    }
+    public async Task ShowServerMapList()
     {
 
         if (string.IsNullOrEmpty(Globals.SessionId))
@@ -919,13 +1005,14 @@ public partial class RobotView : UserControl
         {
             var fullServerDetails = JsonHelper.JsonDese<BF1ServerTools.API.RespJson.FullServerDetails>(result.Content);
             var mapItems = new List<MapItem>();
-
+            int mapId = 0;
             foreach (var item in fullServerDetails.result.serverInfo.rotation)
             {
                 mapItems.Add(new MapItem
                 {
                     MapName = ChsUtil.ToSimplified(item.mapPrettyName),
-                    MapMode = ChsUtil.ToSimplified(item.modePrettyName)
+                    MapMode = ChsUtil.ToSimplified(item.modePrettyName),
+                    MapId = mapId++  // 分配并自增 mapId
                 });
             }
 
@@ -940,7 +1027,7 @@ public partial class RobotView : UserControl
             MessageBox.Show("获取服务器详情失败。");
         }
     }
-   
+
     private CancellationTokenSource monitoringCts = new CancellationTokenSource();//监控控制
                                                                                   // 监控玩家场数变化
     public async Task StartMonitoringTopPlayersGameCount(CancellationToken cancellationToken)
@@ -959,7 +1046,7 @@ public partial class RobotView : UserControl
 
         // 获取前三名玩家进行监控
         var topPlayers = playerList.GroupBy(p => p.TeamId)
-                                   .SelectMany(g => g.OrderByDescending(p => p.Score).Take(3))
+                                   .SelectMany(g => g.OrderByDescending(p => p.Rank).Take(3))
                                    .ToList();
 
         var initialGameCounts = new Dictionary<long, int>();
@@ -983,13 +1070,13 @@ public partial class RobotView : UserControl
                 }
             }
             liveflag = true;
-            int playerCountThreshold = topPlayers.Count == 1 ? 1 : topPlayers.Count - 1;
+            int playerCountThreshold = topPlayers.Count <= 3 ? 1 : topPlayers.Count - 3;
             if (increasedCount >= playerCountThreshold)
             {
                 if (cancellationToken.IsCancellationRequested)
                 { break; }
                 jiankongflag = 1;
-                break; // 至少比玩家数少一的玩家游戏场数加1，或在一个人时该人场数加1
+                break; // 至少比玩家数少3的玩家游戏场数加1，或在少于4人时一个人场数加1
             }
 
             await Task.Delay(checkInterval, cancellationToken);
@@ -1053,19 +1140,78 @@ public partial class RobotView : UserControl
         }
         else
         {
-            Console.WriteLine("获取服务器详情失败。");
+            //Console.WriteLine("获取服务器详情失败。");
         }
 
         return mapNamesToId;
     }
 
+    public async Task ChangeAllPlayers()
+    {
+        List<PlayerData> playerList = Player.GetPlayerList(); // 获取当前所有玩家的列表
+        int count = playerList.Count(p => p.PersonaId != 0);
+        if (count < 60 && count > 0)
+        {
+            var team1Players = playerList.Where(p => p.TeamId == 1).ToList();
+            var team2Players = playerList.Where(p => p.TeamId == 2).ToList();
+            for (int z = 0; z < 22; z++)
+            {
+                // 移动队伍1的玩家到队伍2
+                var tasksTeam1ToTeam2 = team1Players.Select(player => new
+                {
+                    Task = BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, player.PersonaId, 1),
+                    Player = player
+                }).ToList();
+
+                var resultsTeam1ToTeam2 = await Task.WhenAll(tasksTeam1ToTeam2.Select(x => x.Task));
+
+                for (int i = 0; i < resultsTeam1ToTeam2.Length; i++)
+                {
+                    var result = resultsTeam1ToTeam2[i];
+                    var player = tasksTeam1ToTeam2[i].Player;
+                    if (result.IsSuccess)
+                    {
+                        NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {player.Name} 到队伍2成功");
+                    }
+                    else
+                    {
+                        NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换玩家 {player.Name} 到队伍2失败\n{result.Content}");
+                    }
+                }
+
+                // 移动队伍2的玩家到队伍1
+                var tasksTeam2ToTeam1 = team2Players.Select(player => new
+                {
+                    Task = BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, player.PersonaId, 2),
+                    Player = player
+                }).ToList();
+
+                var resultsTeam2ToTeam1 = await Task.WhenAll(tasksTeam2ToTeam1.Select(x => x.Task));
+
+                for (int i = 0; i < resultsTeam2ToTeam1.Length; i++)
+                {
+                    var result = resultsTeam2ToTeam1[i];
+                    var player = tasksTeam2ToTeam1[i].Player;
+                    if (result.IsSuccess)
+                    {
+                        NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {player.Name} 到队伍1成功");
+                    }
+                    else
+                    {
+                        NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换玩家 {player.Name} 到队伍1失败\n{result.Content}");
+                    }
+                }
+                await Task.Delay(100);
+            }
+        }
+    }
 
 
     public async Task XPFARM()
     {
         var mapNamesToId = await CreateMapNamesToIdMapAsync();
 
-        // MapListView是你的ListView控件的名字
+        // MapListView是控件的名字
         var selectedMaps = MapListView.Items.Cast<MapItem>().Where(item => item.IsSelected).ToList();
 
         if (!selectedMaps.Any())
@@ -1106,6 +1252,7 @@ public partial class RobotView : UserControl
         {
             if (jiankongflag == 1)
             {
+               
                 currentIndex = (currentIndex + 1) % selectedMaps.Count;
                 var nextMap = selectedMaps[currentIndex];
                 int mapIdNext = mapNamesToId[nextMap.MapName];
@@ -1128,8 +1275,17 @@ public partial class RobotView : UserControl
                     }
                     jiankongflag = 0;
                     jiankongflag = 0;
-                await Task.Delay(20000);  // 等待一段时间确保监控任务已经完全停止
+                await Task.Delay(300000);  // 等待一段时间确保监控任务已经完全停止
+                while (liveflag)
+                {
+                    monitoringCts.Cancel();
+                    liveflag = false;
+                    await Task.Delay(1000);  // 等待一段时间确保监控任务已经完全停止
 
+                }
+               
+                jiankongflag = 0;
+                jiankongflag = 0;
                 monitoringCts = new CancellationTokenSource();  // 创建新的 CancellationTokenSource 以便于重新启动监控
                 _ = Task.Run(async () =>
                 {
