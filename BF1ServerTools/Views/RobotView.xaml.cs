@@ -95,9 +95,18 @@ public partial class RobotView : UserControl
 
 
     }
+    private bool autoallchange = false;
     private void Button_RunAutoAllchange_Click(object sender, RoutedEventArgs e)
     {
-        AutoAllchange();
+        if (!autoallchange)
+        {
+            AutoAllchange();
+            autoallchange = true;
+        }
+        else
+        {
+            NotifierHelper.Show(NotifierType.Information, "压家检测已经启动了");
+        }
     }
     private void Button_Balance_Click(object sender, RoutedEventArgs e)
     {
@@ -473,6 +482,7 @@ public partial class RobotView : UserControl
     //压家
     private async void AutoAllchange()
     {
+        NotifierHelper.Show(NotifierType.Information, "压家检测已启动");
         double scoreflag = sliderAllchange != null ? sliderAllchange.Value : 700;
         var maptopoint = new Dictionary<string, int>
 {
@@ -550,11 +560,10 @@ public partial class RobotView : UserControl
                 { break; }
             }
             await Task.Delay(490);
-        }
-        while (true);
+        }while (true);
         List<PlayerData> playerList = Player.GetPlayerList(); // 获取当前所有玩家的列表
         int count = playerList.Count(p => p.PersonaId != 0);
-        if (count < 60 && count > 0)
+        if (count < 60 && count > 0 && !(autooconquerplayerchange.IsChecked ?? false))
         { await ChangeAllPlayers(); }
         else
         {
@@ -1360,6 +1369,7 @@ public partial class RobotView : UserControl
     }
 
 
+
     public async Task XPFARM()
     {
         var mapNamesToId = await CreateMapNamesToIdMapAsync();
@@ -1433,7 +1443,7 @@ public partial class RobotView : UserControl
                         }
                     }
                 }
-                if (ScoreView.mapmode == "行动模式")
+                if (ScoreView.mapmode == "行动模式" && (autooperationplayerchange.IsChecked ?? false))
                 {
                     ChangeAllPlayers();
                 }
