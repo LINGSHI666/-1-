@@ -10,7 +10,7 @@ public static class FileUtil
     /// <summary>
     /// 默认配置文件路径
     /// </summary>
-    public static readonly string Default_Path = MyDocuments_Path + @"\BF1ServerTools";
+    public static readonly string Default_Path = MyDocuments_Path + @"\BF1ServerTools2";
 
     public static readonly string D_Cache_Path = Default_Path + @"\Cache";
     public static readonly string D_Config_Path = Default_Path + @"\Config";

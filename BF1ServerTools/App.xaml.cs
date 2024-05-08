@@ -22,17 +22,20 @@ public partial class App : Application
     /// <param name="e"></param>
     protected override void OnStartup(StartupEventArgs e)
     {
-        AppMainMutex = new Mutex(true, AppName, out var createdNew);
-        if (createdNew)
+        if (false)
         {
-            RegisterEvents();
-            base.OnStartup(e);
-        }
-        else
-        {
-            MsgBoxUtil.Warning($"请不要重复打开，程序已经运行\n如果一直提示，请到\"任务管理器-详细信息（win7为进程）\"里\n强制结束 \"{AppName}.exe\" 程序"
-                , "重复运行警告");
-            //Current.Shutdown();//测试多开时关闭
+            AppMainMutex = new Mutex(true, AppName, out var createdNew);
+            if (createdNew)
+            {
+                RegisterEvents();
+                base.OnStartup(e);
+            }
+            else
+            {
+                MsgBoxUtil.Warning($"请不要重复打开，程序已经运行\n如果一直提示，请到\"任务管理器-详细信息（win7为进程）\"里\n强制结束 \"{AppName}.exe\" 程序"
+                    , "重复运行警告");
+                //Current.Shutdown();//测试多开时关闭
+            }
         }
     }
 
