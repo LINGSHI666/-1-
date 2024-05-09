@@ -7,14 +7,47 @@ using BF1ServerTools.Helper;
 
 
 using CommunityToolkit.Mvvm.Input;
+using System.Net.Sockets;
 
 namespace BF1ServerTools;
+public class UdpClientService
+{
+    private Socket udpClient;
+    private IPEndPoint remoteEndPoint;
 
+    public UdpClientService(string serverIp, int serverPort)
+    {
+        udpClient = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+        remoteEndPoint = new IPEndPoint(IPAddress.Parse(serverIp), serverPort);
+    }
+
+    public void SendMessage(string message)
+    {
+        // 使用 UTF-8 编码将字符串转换为字节数组
+        byte[] sendBuffer = Encoding.UTF8.GetBytes(message);
+        udpClient.SendTo(sendBuffer, remoteEndPoint);
+    }
+
+    public string ReceiveMessage()
+    {
+        byte[] receiveBuffer = new byte[1024];
+        EndPoint serverEndPoint = new IPEndPoint(IPAddress.Any, 0);
+        int receivedBytes = udpClient.ReceiveFrom(receiveBuffer, ref serverEndPoint);
+        return Encoding.ASCII.GetString(receiveBuffer, 0, receivedBytes);
+    }
+
+    public void Close()
+    {
+        udpClient.Close();
+    }
+}
 /// <summary>
 /// MainWindow.xaml 的交互逻辑
 /// </summary>
 public partial class MainWindow
-{   
+{
+    public static UdpClientService udpchatrecive;
+   public static UdpClientService udpchatsend;
     /// <summary>
     /// 主窗口关闭委托
     /// </summary>
@@ -65,6 +98,9 @@ public partial class MainWindow
     public MainWindow()
     {
         InitializeComponent();
+        // 初始化 UDP 客户端
+        udpchatrecive = new UdpClientService("127.0.0.1", 52001);
+        udpchatsend = new UdpClientService("127.0.0.1", 51001);
     }
 
     private void Window_Main_Loaded(object sender, RoutedEventArgs e)
@@ -88,6 +124,7 @@ public partial class MainWindow
 
         // 获取当前时间，存储到对于变量中
         Origin_DateTime = DateTime.Now;
+      
 
         ////////////////////////////////////////////
 
@@ -98,6 +135,7 @@ public partial class MainWindow
         }.Start();
     }
 
+   
     private void Window_Main_Closing(object sender, CancelEventArgs e)
     {
         // 终止线程内循环
@@ -117,7 +155,9 @@ public partial class MainWindow
 
         SQLiteHelper.UnInitialize();
         LoggerHelper.Info("关闭数据库链接成功");
-
+        udpchatrecive.Close();
+        udpchatsend.Close();
+        LoggerHelper.Info("关闭udp客户端成功");
         Application.Current.Shutdown();
         LoggerHelper.Info("程序关闭\n\n");
     }
@@ -131,6 +171,7 @@ public partial class MainWindow
         {
             // 获取软件运行时间
             MainModel.AppRunTime = MiscUtil.ExecDateDiff(Origin_DateTime, DateTime.Now);
+           
 
             // 是否使用模式1
             MainModel.IsUseMode1 = Globals.IsUseMode1;

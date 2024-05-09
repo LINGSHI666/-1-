@@ -2,7 +2,7 @@
 using BF1ServerTools.SDK;
 using BF1ServerTools.SDK.Core;
 using BF1ServerTools.Utils;
-
+using BF1ServerTools.Views;
 using CommunityToolkit.Mvvm.Input;
 
 namespace BF1ServerTools.Windows;
@@ -202,26 +202,35 @@ public partial class ChatInputWindow : Window
     }
     public void SendMessage(string message)
     {
-        TextBox_InputMessage.Clear();
+        if (ScoreView.zhangapi)
+        { MainWindow.udpchatsend.SendMessage($"#Chat.Send#{ChsUtil.ToTraditional(message)}"); }
+        else
+        {
+            TextBox_InputMessage.Clear();
 
-        ChsUtil.SetInputLanguageENUS();
-        Memory.SetBF1WindowForeground();
+            ChsUtil.SetInputLanguageENUS();
+            Memory.SetBF1WindowForeground();
 
-        //////////////////////////////////////////////////////
+            //////////////////////////////////////////////////////
 
-        Chat.SendChsToBF1Chat(ChsUtil.ToTraditional(message));
+            Chat.SendChsToBF1Chat(ChsUtil.ToTraditional(message));
+        }
     }
     public static void SendChsToBF1Chat(string message)
-    {
-       ChsUtil.SetInputLanguageENUS();
-        Memory.SetBF1WindowForeground();
+    { if (ScoreView.zhangapi)
+        { MainWindow.udpchatsend.SendMessage($"#Chat.Send#{ChsUtil.ToTraditional(message)}"); }
+        else
+        {
+            ChsUtil.SetInputLanguageENUS();
+            Memory.SetBF1WindowForeground();
 
-        //////////////////////////////////////////////////////
-        Thread.Sleep(500);
-        Memory.KeyPress(WinVK.J, 50);
-        Thread.Sleep(500);
+            //////////////////////////////////////////////////////
+            Thread.Sleep(500);
+            Memory.KeyPress(WinVK.J, 50);
+            Thread.Sleep(500);
 
-        Chat.SendChsToBF1Chat(ChsUtil.ToTraditional(message));
+            Chat.SendChsToBF1Chat(ChsUtil.ToTraditional(message));
+        }
     }
     /// <summary>
     /// 取消发送消息命令

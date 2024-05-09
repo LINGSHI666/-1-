@@ -44,6 +44,7 @@ public partial class ScoreView : UserControl
     public static string mapmode = "";
     public static int Team1FlagScore = 0;
     public static int Team2FlagScore = 0;
+    public static bool zhangapi = false;
 
     ///////////////////////////////////////////////////////
 
@@ -205,6 +206,28 @@ public partial class ScoreView : UserControl
         using (var httpClient = new HttpClient())
             while (MainWindow.IsAppRunning)
             {
+                // 创建 HttpClient 实例
+                using HttpClient client = new HttpClient();
+
+                try
+                {
+                    // 发送 GET 请求
+                    HttpResponseMessage response = await client.GetAsync("http://127.0.0.1:10086/Game/GetChatStatus");
+
+                    // 检查状态码是否为 200 OK
+                    if (response.StatusCode == System.Net.HttpStatusCode.OK)
+                    {
+                        zhangapi = true;
+                    }
+                    else
+                    {
+                       zhangapi = false;
+                    }
+                }
+                catch (HttpRequestException e1)
+                {
+                    zhangapi = false;
+                }
                 Player.IsUseMode1 = Globals.IsUseMode1;
                 if (!Globals.IsUseMode1)
                 {
