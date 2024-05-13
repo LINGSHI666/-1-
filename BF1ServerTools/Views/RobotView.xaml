@@ -33,6 +33,21 @@
             Content="启动自动压家换边（人满重开）" Margin="0,10" HorizontalAlignment="Left"/>
                 <CheckBox x:Name="autooperationplayerchange" Content="为切图机开启行动模式换图后换边" Margin="0,5,0,5" />
                 <CheckBox x:Name="autooconquerplayerchange" Content="跳过压家全部换边，变为直接重开" Margin="0,5,0,5" />
+                <CheckBox x:Name="onepointmode" Content="变为只剩一个点即进行全部换边" Margin="0,5,0,5" />
+                <CheckBox x:Name="delayallchange" Content="变为延迟重开（一定时间后仍压家则重开）" Margin="0,5,0,5" />
+                <Slider
+    x:Name="delayallchangetime"
+    Minimum="15"
+    Maximum="300"
+    ValueChanged="Slider_Valuedelayallchange"
+    TickFrequency="5"
+    IsSnapToTickEnabled="True" />
+                <TextBlock
+    x:Name="labeldelayallchange"
+    Text="延迟15秒"
+    Margin="5"
+    TextWrapping="Wrap" />
+                <CheckBox x:Name="onlyscore" Content="自动换图仅检测分数(分数>995）" Margin="0,5,0,5" />
             </StackPanel>
 
 
@@ -84,7 +99,8 @@
                 <ui:UiLabelIcon Content="平衡参数调整" />
 
                 <DockPanel MinWidth="300" Margin="0,10,0,10">
-                    <CheckBox x:Name="ExcludeAdminsAndVIPsCheckBox" Content="排除VIP和管理员" DockPanel.Dock="Top" />
+                  
+                    <CheckBox x:Name="Excludesuperman" Content="自动平衡排除载具和精英兵" DockPanel.Dock="Top" />
                     <Slider
                         x:Name="sliderkdkpm"
                         Minimum="-1"
@@ -115,6 +131,7 @@
                     Margin="5"
                     TextWrapping="Wrap" />
                 <Button Content="播报当前投票信息" Click="Reportmapinfo_Click" Margin="0,10,0,0" />
+                
                 <Slider
     x:Name="slidervote"
     Minimum="0"
@@ -127,6 +144,7 @@
     Text="播报间隔为（） 0=永不自动播报"
     Margin="5"
     TextWrapping="Wrap" />
+                <CheckBox x:Name="ExcludeAdminsAndVIPsCheckBox" Content="自动平衡排除VIP和管理员" />
             </StackPanel>
 
             <!-- 右侧区域 -->
