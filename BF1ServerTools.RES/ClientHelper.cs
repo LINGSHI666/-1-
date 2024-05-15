@@ -343,10 +343,10 @@ public static class ClientHelper
             case "ID_M_FLAMETHROWER":
                 return "\\BF1ServerTools.RES;component\\Assets\\Images\\Kits2\\KitIconFlamethrowerLarge.png";
             // 入侵者
-            case "ID_M_INFILTRATOR":
+            case "ID_M_RUNNER":
                 return "\\BF1ServerTools.RES;component\\Assets\\Images\\Kits2\\KitIconInfiltratorLarge.png";
             // 战壕奇兵
-            case "ID_M_TRENCHRAIDER":
+            case "ID_M_RAIDER":
                 return "\\BF1ServerTools.RES;component\\Assets\\Images\\Kits2\\KitIconTrenchRaiderLarge.png";
             // 坦克猎手
             case "ID_M_ANTITANK":

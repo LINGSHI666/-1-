@@ -125,7 +125,10 @@ public static class Server
     /// <returns></returns>
     public static int GetTeam1FlagScore()
     {
-        return Memory.Read<int>(GetServerScorePtr() + 0x250);
+        int a = Memory.Read<int>(GetServerScorePtr() + 0x250);
+       if(a<2001&&a>=0)
+        { return a; }
+       else { return 0; }
     }
 
     /// <summary>
@@ -134,6 +137,9 @@ public static class Server
     /// <returns></returns>
     public static int GetTeam2FlagScore()
     {
-        return Memory.Read<int>(GetServerScorePtr() + 0x258);
+        int a = Memory.Read<int>(GetServerScorePtr() + 0x258);
+        if (a < 2001 && a >= 0)
+        { return a; }
+        else { return 0; }
     }
 }

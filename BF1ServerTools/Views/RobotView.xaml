@@ -111,7 +111,7 @@
                         DockPanel.Dock="Top" />
                     <TextBlock
                         x:Name="labelCurrentkdkpm"
-                        Text="平衡目标为进攻(队伍1)lifekd、lifekp高于防守(队伍2){}(+-0.5)"
+                        Text="平衡目标为进攻(队伍1)lifekd、lifekp高于防守(队伍2){}(+-0.05)"
                         Margin="5"
                         DockPanel.Dock="Top"
                         TextWrapping="Wrap" />

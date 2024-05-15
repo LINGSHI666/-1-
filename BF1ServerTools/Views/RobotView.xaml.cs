@@ -29,6 +29,7 @@ using System.ComponentModel;
 using BF1ServerTools.RES.Img;
 using System.Net.Sockets;
 using System.Net.Http;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace BF1ServerTools.Views;
 
@@ -72,8 +73,15 @@ public partial class RobotView : UserControl
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
+    private bool isTimerRunning = false;
     private void Button_RunGoCqHttpServer_Click(object sender, RoutedEventArgs e)
     {
+        // 检查定时器是否已经在运行，如果是则返回，防止重复执行
+        if (isTimerRunning)
+        {
+            MessageBox.Show("自动平衡已经运行了");
+            return;
+        }
 
         // 创建定时器实例
         timer = new DispatcherTimer();
@@ -92,6 +100,7 @@ public partial class RobotView : UserControl
 
         // 立即执行任务
         RunPeriodicTasks();
+        isTimerRunning = true;
         MessageBox.Show($"当前自动平衡间隔为{minutes}分钟");
 
 
@@ -130,7 +139,7 @@ public partial class RobotView : UserControl
         if (labelCurrentkdkpm != null) // 检查控件是否为null
         {
             double newValue = e.NewValue; // 获取滑块的当前值
-            labelCurrentkdkpm.Text = $"平衡目标为进攻(队伍1)lifekd、lifekp高于防守(队伍2){newValue:F2}(+-0.5)"; // 更新标签内容
+            labelCurrentkdkpm.Text = $"平衡目标为进攻(队伍1)lifekd、lifekp高于防守(队伍2){newValue:F2}(+-0.05)"; // 更新标签内容
         }
     }
     private void Slider_ValueChangedskill(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -672,14 +681,17 @@ public partial class RobotView : UserControl
             }
 
             playerList = playerList.Where(player => !excludeList.Select(e => e.PersonaId).Contains(player.PersonaId)).ToList();
-            if (!playerList.Any())
-            {
-                NotifierHelper.Show(NotifierType.Information, "所有玩家均在排除名单中。");
-                break;
-            }
+           
             playerList.RemoveAll(player => excludeList.Select(p => p.PersonaId).Contains(player.PersonaId));
-            //移除已经换过边的玩家
-            if (skillbalance.IsChecked ?? false)
+                if (!playerList.Any())
+                {
+                    NotifierHelper.Show(NotifierType.Information, "所有玩家均在排除名单中。");
+                    break;
+                }
+                //移除已经换过边的玩家
+                 team1Players = playerList.Where(p => p.TeamId == 1).ToList();
+                 team2Players = playerList.Where(p => p.TeamId == 2).ToList();
+                if (skillbalance.IsChecked ?? false)
             {
                 // 获取队伍1技巧值最高的玩家
                 var highestSkillPlayerTeam1 = team1Players.OrderByDescending(p => p.Skill).FirstOrDefault();
@@ -696,25 +708,13 @@ public partial class RobotView : UserControl
                 // 获取队伍2技巧值最低的玩家
                 var lowestSkillPlayerTeam2 = team2Players.OrderBy(p => p.Skill).FirstOrDefault();
                 var lowestSkillTeam2 = lowestSkillPlayerTeam2?.Skill ?? 0;
-                //队伍一过弱
-                if (avgSkillTeam1 < avgSkillTeam2 + skillflag - 30)
+                //平衡
+                if ((avgSkillTeam1 < avgSkillTeam2 + skillflag - 30) || (avgSkillTeam1 > avgSkillTeam2 + skillflag + 30))
                 {
-                    // 计算差值
-                    var team1SkillDiff = avgSkillTeam1 - lowestSkillTeam1;
-                    var team2SkillDiff = highestSkillTeam2 - avgSkillTeam2;
-
-                    // 创建差值和相应行动的映射
-                    var actions = new List<(double diff, Func<PlayerData> action)>
-                 {
-                  (team1SkillDiff, () => lowestSkillPlayerTeam1),
-                   (team2SkillDiff, () => highestSkillPlayerTeam2)
-                   };
-
-                    // 找出最大差值及对应的行动
-                    var maxAction = actions.OrderByDescending(a => a.diff).First().action;
+                    
 
                     // 执行行动，获取应该移动的玩家
-                    var playerToMove = maxAction();
+                    var playerToMove = BalanceTeam(team1Players,team2Players,avgSkillTeam1,avgSkillTeam2,skillflag);
 
                     // 根据playerToMove所在队伍决定移动方向
                     int targetTeam = playerToMove.TeamId == 1 ? 1 : 2;
@@ -729,7 +729,7 @@ public partial class RobotView : UserControl
                     if (movedPlayer != null && movedPlayer.TeamId == targetTeam)
                     {
                         // 如果排除名单已有三人，则移除最早添加的玩家
-                        if (excludeList.Count >= 3)
+                        if (excludeList.Count >= 5)
                         {
                             NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}成功");
                             excludeList.Dequeue(); // 移除队列前端的元素
@@ -743,53 +743,7 @@ public partial class RobotView : UserControl
                         //NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}失败");
                     }
                 }
-                //队伍2过弱
-                else if (avgSkillTeam1 > avgSkillTeam2 + skillflag + 30)
-                {
-                    // 计算差值
-                    var team1SkillDiff = highestSkillTeam1 - avgSkillTeam1;
-                    var team2SkillDiff = avgSkillTeam2 - lowestSkillTeam2;
-
-                    // 创建差值和相应行动的映射
-                    var actions = new List<(double diff, Func<PlayerData> action)>
-                 {
-                   (team1SkillDiff, () => highestSkillPlayerTeam1),
-                   (team2SkillDiff, () => lowestSkillPlayerTeam2)
-                  };
-
-                    // 找出最大差值及对应的行动
-                    var maxAction = actions.OrderByDescending(a => a.diff).First().action;
-
-                    // 执行行动，获取应该移动的玩家
-                    var playerToMove = maxAction();
-
-                    // 根据playerToMove所在队伍决定移动方向
-                    int targetTeam = playerToMove.TeamId == 1 ? 1 : 2;
-
-                    // 执行移动
-                    var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, targetTeam);
-                        await Task.Delay(1000);
-                        // 重新获取玩家列表以验证换边是否成功
-                        var updatedPlayerList = Player.GetPlayerList();
-                    var movedPlayer = updatedPlayerList.FirstOrDefault(p => p.PersonaId == playerToMove.PersonaId);
-                    targetTeam = playerToMove.TeamId == 1 ? 2 : 1;
-                    if (movedPlayer != null && movedPlayer.TeamId == targetTeam)
-                    {
-                        // 如果排除名单已有三人，则移除最早添加的玩家
-                        if (excludeList.Count >= 3)
-                        {
-                            NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}成功");
-                            excludeList.Dequeue(); // 移除队列前端的元素
-                        }
-                            NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}成功");
-                            // 将新的玩家添加到排除名单的队尾
-                            excludeList.Enqueue(movedPlayer);
-                    }
-                    else
-                    {
-                        //NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}失败");
-                    }
-                }
+              
 
                 else
                 {
@@ -801,159 +755,69 @@ public partial class RobotView : UserControl
 
             else
             {
-                // 获取队伍1生涯KPM最高的玩家
-                var highestLifeKpmPlayerTeam1 = team1Players.OrderByDescending(p => p.LifeKpm).FirstOrDefault();
-                var highestLifeKpmTeam1 = highestLifeKpmPlayerTeam1?.LifeKpm ?? 0;
-
-                // 获取队伍1生涯KPM最低的玩家
-                var lowestLifeKpmPlayerTeam1 = team1Players.OrderBy(p => p.LifeKpm).FirstOrDefault();
-                var lowestLifeKpmTeam1 = lowestLifeKpmPlayerTeam1?.LifeKpm ?? 0;
-
-                // 获取队伍1生涯KD最高的玩家
-                var highestLifeKdPlayerTeam1 = team1Players.OrderByDescending(p => p.LifeKd).FirstOrDefault();
-                var highestLifeKdTeam1 = highestLifeKdPlayerTeam1?.LifeKd ?? 0;
-
-                // 获取队伍1生涯KD最低的玩家
-                var lowestLifeKdPlayerTeam1 = team1Players.OrderBy(p => p.LifeKd).FirstOrDefault();
-                var lowestLifeKdTeam1 = lowestLifeKdPlayerTeam1?.LifeKd ?? 0;
-
-                // 获取队伍2生涯KPM最高的玩家
-                var highestLifeKpmPlayerTeam2 = team2Players.OrderByDescending(p => p.LifeKpm).FirstOrDefault();
-                var highestLifeKpmTeam2 = highestLifeKpmPlayerTeam2?.LifeKpm ?? 0;
-
-                // 获取队伍2生涯KPM最低的玩家
-                var lowestLifeKpmPlayerTeam2 = team2Players.OrderBy(p => p.LifeKpm).FirstOrDefault();
-                var lowestLifeKpmTeam2 = lowestLifeKpmPlayerTeam2?.LifeKpm ?? 0;
-
-                // 获取队伍2生涯KD最高的玩家
-                var highestLifeKdPlayerTeam2 = team2Players.OrderByDescending(p => p.LifeKd).FirstOrDefault();
-                var highestLifeKdTeam2 = highestLifeKdPlayerTeam2?.LifeKd ?? 0;
-
-                // 获取队伍2生涯KD最低的玩家
-                var lowestLifeKdPlayerTeam2 = team2Players.OrderBy(p => p.LifeKd).FirstOrDefault();
-                var lowestLifeKdTeam2 = lowestLifeKdPlayerTeam2?.LifeKd ?? 0;
-                // 判断是否需要调整玩家队伍
-                //队伍1过弱
-                if (avgLifeKdTeam1 < avgLifeKdTeam2 + kdkpmflag - 0.05 && avgLifeKpmTeam1 < avgLifeKpmTeam2 + kdkpmflag - 0.05)
-                {
-                    // 计算差值
-                    var team1KdDiff = avgLifeKdTeam1 - lowestLifeKdTeam1;
-                    var team1KpmDiff = avgLifeKpmTeam1 - lowestLifeKpmTeam1;
-                    var team2KdDiff = highestLifeKdTeam2 - avgLifeKdTeam2;
-                    var team2KpmDiff = highestLifeKpmTeam2 - avgLifeKpmTeam2;
-
-                    // 创建差值和相应行动的映射
-                    var actions = new List<(double diff, Func<PlayerData> action)>
-                    { 
-                 (team1KdDiff, () => lowestLifeKdPlayerTeam1),
-                 (team1KpmDiff, () => lowestLifeKpmPlayerTeam1),
-                 (team2KdDiff, () => highestLifeKdPlayerTeam2),
-                 (team2KpmDiff, () => highestLifeKpmPlayerTeam2)
-                    };
-
-                    // 找出最大差值及对应的行动
-                    var maxAction = actions.OrderByDescending(a => a.diff).First().action;
-
-                    // 执行行动，获取应该移动的玩家
-                    var playerToMove = maxAction();
-
-                    // 根据playerToMove所在队伍决定移动方向
-                    int targetTeam = playerToMove.TeamId == 1 ? 1 : 2;
-
-                    // 执行移动
-                    var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, targetTeam);
-                        // if (result.IsSuccess)由于管理反应展示过于频繁，不再提示
-                        //{
-                        // NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}成功");
-                        // }
-                        // else
-                        // {
-                        // NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}失败\n{result.Content}");
-                        // }
-                        // 重新获取玩家列表以验证换边是否成功
-                        await Task.Delay(1000);
-                        var updatedPlayerList = Player.GetPlayerList();
-                    var movedPlayer = updatedPlayerList.FirstOrDefault(p => p.PersonaId == playerToMove.PersonaId);
-                    targetTeam = playerToMove.TeamId == 1 ? 2 : 1;
-                    if (movedPlayer != null && movedPlayer.TeamId == targetTeam)
+            
+                    // 判断是否需要调整玩家队伍
+                   
+                    if ((avgLifeKdTeam1 < avgLifeKdTeam2 + kdkpmflag - 0.05 && avgLifeKpmTeam1 < avgLifeKpmTeam2 + kdkpmflag - 0.05)|| (avgLifeKdTeam1 > avgLifeKdTeam2 + kdkpmflag + 0.05 && avgLifeKpmTeam1 > avgLifeKpmTeam2 + kdkpmflag + 0.05))
                     {
-                        // 如果排除名单已有三人，则移除最早添加的玩家
-                        if (excludeList.Count >= 3)
+
+                        // 计算目标值
+                        double targetKdDifference = avgLifeKdTeam2 + kdkpmflag;
+                        double targetKpmDifference = avgLifeKpmTeam2 + kdkpmflag;
+
+                        // 查找最佳移动玩家
+                        var playerToMove = FindBestPlayerToMove(team1Players, team2Players, avgLifeKdTeam1, avgLifeKdTeam2, avgLifeKpmTeam1, avgLifeKpmTeam2, targetKdDifference, targetKpmDifference);
+
+                        if (playerToMove != null)
                         {
-                            NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}成功");
-                            excludeList.Dequeue(); // 移除队列前端的元素
+                            // 确定移动的目标队伍
+                            int targetTeam = playerToMove.TeamId == 1 ? 1 : 2;
+
+                            // 执行移动
+                            var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, targetTeam);
+
+                           
+
+
+
+                           
+                            // if (result.IsSuccess)由于管理反应展示过于频繁，不再提示
+                            //{
+                            // NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}成功");
+                            // }
+                            // else
+                            // {
+                            // NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}失败\n{result.Content}");
+                            // }
+                            // 重新获取玩家列表以验证换边是否成功
+                            await Task.Delay(1000);
+                            var updatedPlayerList = Player.GetPlayerList();
+                            var movedPlayer = updatedPlayerList.FirstOrDefault(p => p.PersonaId == playerToMove.PersonaId);
+                            targetTeam = playerToMove.TeamId == 1 ? 2 : 1;
+                            if (movedPlayer != null && movedPlayer.TeamId == targetTeam)
+                            {
+                                // 如果排除名单已有三人，则移除最早添加的玩家
+                                if (excludeList.Count >= 5)
+                                {
+                                    NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}成功");
+                                    excludeList.Dequeue(); // 移除队列前端的元素
+                                }
+                                NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}成功");
+                                // 将新的玩家添加到排除名单的队尾
+                                excludeList.Enqueue(movedPlayer);
+                            }
+                            else
+                            {
+                                //NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}失败");
+                            }
                         }
-                            NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}成功");
-                            // 将新的玩家添加到排除名单的队尾
-                            excludeList.Enqueue(movedPlayer);
                     }
+                
                     else
                     {
-                        //NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}失败");
+                        balanceAchieved = true;
+                        NotifierHelper.Show(NotifierType.Information, $"队伍已平衡，无需进一步操作\nteam1kd [{avgLifeKdTeam1:0.00}]kpm [{avgLifeKpmTeam1:0.00}] || team2kd [{avgLifeKdTeam2:0.00}]kpm [{avgLifeKpmTeam2:0.00}]");
                     }
-                }
-                //队伍2过弱
-                else if (avgLifeKdTeam1 > avgLifeKdTeam2 + kdkpmflag + 0.05 && avgLifeKpmTeam1 > avgLifeKpmTeam2 + kdkpmflag + 0.05)
-                {
-                    // 计算差值
-                    var team1KdDiff = highestLifeKdTeam1 - avgLifeKdTeam1;
-                    var team1KpmDiff = highestLifeKpmTeam1 - avgLifeKpmTeam1;
-                    var team2KdDiff = avgLifeKdTeam2 - highestLifeKdTeam2;
-                    var team2KpmDiff = avgLifeKpmTeam2 - highestLifeKpmTeam2;
-                    // 创建差值和相应行动的映射
-                    var actions = new List<(double diff, Func<PlayerData> action)>
-               {
-                 (team1KdDiff, () => highestLifeKdPlayerTeam1),
-                 (team1KpmDiff, () => highestLifeKpmPlayerTeam1),
-                 (team2KdDiff, () => lowestLifeKdPlayerTeam2),
-                 (team2KpmDiff, () => lowestLifeKpmPlayerTeam2)
-                 };
-                    // 找出最大差值及对应的行动
-                    var maxAction = actions.OrderByDescending(a => a.diff).First().action;
-
-                    // 执行行动，获取应该移动的玩家
-                    var playerToMove = maxAction();
-
-                    // 根据playerToMove所在队伍决定移动方向
-                    int targetTeam = playerToMove.TeamId == 1 ? 1 : 2;
-
-                    // 执行移动
-                    var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, targetTeam);
-                        //if (result.IsSuccess)
-                        //{
-                        //NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}成功");
-                        //}
-                        // else
-                        // {
-                        //   NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}失败\n{result.Content}");
-                        // }
-                        // 重新获取玩家列表以验证换边是否成功
-                        await Task.Delay(1000);
-                        var updatedPlayerList = Player.GetPlayerList();
-                    var movedPlayer = updatedPlayerList.FirstOrDefault(p => p.PersonaId == playerToMove.PersonaId);
-                    targetTeam = playerToMove.TeamId == 1 ? 2 : 1;
-                    if (movedPlayer != null && movedPlayer.TeamId == targetTeam)
-                    {
-                        // 如果排除名单已有三人，则移除最早添加的玩家
-                        if (excludeList.Count >= 3)
-                        {
-                            NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}成功");
-                            excludeList.Dequeue(); // 移除队列前端的元素
-                        }
-                            NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}成功");
-                            // 将新的玩家添加到排除名单的队尾
-                            excludeList.Enqueue(movedPlayer);
-                    }
-                    else
-                    {
-                        //NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}失败");
-                    }
-                }
-                else
-                {
-                    balanceAchieved = true;
-                    NotifierHelper.Show(NotifierType.Information, $"队伍已平衡，无需进一步操作\nteam1kd [{avgLifeKdTeam1:0.00}]kpm [{avgLifeKpmTeam1:0.00}] || team2kd [{avgLifeKdTeam2:0.00}]kpm [{avgLifeKpmTeam2:0.00}]");
-                }
 
             }
             if (!balanceAchieved)
@@ -969,8 +833,78 @@ public partial class RobotView : UserControl
             NotifierHelper.Show(NotifierType.Error, "An unexpected error occurred: " + ex.Message);
         }
     }
+    /// <summary>
+    /// 找出最适合移动的玩家
+    /// </summary>
+    /// <param name="team1Players"></param>
+    /// <param name="team2Players"></param>
+    /// <param name="avgKdTeam1"></param>
+    /// <param name="avgKdTeam2"></param>
+    /// <param name="avgKpmTeam1"></param>
+    /// <param name="avgKpmTeam2"></param>
+    /// <param name="targetKdDiff"></param>
+    /// <param name="targetKpmDiff"></param>
+    /// <returns></returns>
+    private PlayerData FindBestPlayerToMove(List<PlayerData> team1Players, List<PlayerData> team2Players, double avgKdTeam1, double avgKdTeam2, double avgKpmTeam1, double avgKpmTeam2, double targetKdDiff, double targetKpmDiff)
+    {
+        PlayerData bestPlayerToMove = null;
+        double smallestDiff = double.MaxValue;
 
+        foreach (var player in team1Players.Concat(team2Players))
+        {
+            // 计算移动后的新均值
+            var newAvgKdTeam1 = player.TeamId == 1 ? (team1Players.Sum(p => p.LifeKd) - player.LifeKd) / (team1Players.Count - 1) : (team1Players.Sum(p => p.LifeKd) + player.LifeKd) / (team1Players.Count + 1);
+            var newAvgKdTeam2 = player.TeamId == 2 ? (team2Players.Sum(p => p.LifeKd) - player.LifeKd) / (team2Players.Count - 1) : (team2Players.Sum(p => p.LifeKd) + player.LifeKd) / (team2Players.Count + 1);
 
+            var newAvgKpmTeam1 = player.TeamId == 1 ? (team1Players.Sum(p => p.LifeKpm) - player.LifeKpm) / (team1Players.Count - 1) : (team1Players.Sum(p => p.LifeKpm) + player.LifeKpm) / (team1Players.Count + 1);
+            var newAvgKpmTeam2 = player.TeamId == 2 ? (team2Players.Sum(p => p.LifeKpm) - player.LifeKpm) / (team2Players.Count - 1) : (team2Players.Sum(p => p.LifeKpm) + player.LifeKpm) / (team2Players.Count + 1);
+
+            // 计算新的差值
+            double newKdDiff = Math.Abs((newAvgKdTeam1 - newAvgKdTeam2) - targetKdDiff);
+            double newKpmDiff = Math.Abs((newAvgKpmTeam1 - newAvgKpmTeam2) - targetKpmDiff);
+
+            // 优先考虑KPM差值，如果相同则比较KD差值
+            if (newKpmDiff < smallestDiff || (newKpmDiff == smallestDiff && newKdDiff < smallestDiff))
+            {
+                smallestDiff = newKpmDiff;
+                bestPlayerToMove = player;
+            }
+        }
+
+        return bestPlayerToMove;
+    }
+    /// <summary>
+    /// 找出最适合移动的玩家
+    /// </summary>
+    /// <param name="team1Players"></param>
+    /// <param name="team2Players"></param>
+    /// <param name="avgSkillTeam1"></param>
+    /// <param name="avgSkillTeam2"></param>
+    /// <param name="isTeam1Weaker"></param>
+    /// <returns></returns>
+    private PlayerData BalanceTeam(List<PlayerData> team1Players, List<PlayerData> team2Players, double avgSkillTeam1, double avgSkillTeam2,double skillflag)
+    {
+        PlayerData bestPlayerToMove = null;
+        double smallestDiff = double.MaxValue;
+
+        foreach (var player in team1Players.Concat(team2Players))
+        {
+            // 计算移动后的新均值
+            double newAvgSkillTeam1 = player.TeamId == 1 ? (team1Players.Sum(p => p.Skill) - player.Skill) / (team1Players.Count - 1) : (team1Players.Sum(p => p.Skill) + player.Skill) / (team1Players.Count + 1);
+            double newAvgSkillTeam2 = player.TeamId == 2 ? (team2Players.Sum(p => p.Skill) - player.Skill) / (team2Players.Count - 1) : (team2Players.Sum(p => p.Skill) + player.Skill) / (team2Players.Count + 1);
+
+            // 计算新的差值
+            double newDiff = Math.Abs((newAvgSkillTeam1 - newAvgSkillTeam2) - skillflag);
+
+            // 优先考虑最小化差值
+            if (newDiff < smallestDiff)
+            {
+                smallestDiff = newDiff;
+                bestPlayerToMove = player;
+            }
+        }
+        return bestPlayerToMove;
+    }
     private DispatcherTimer timer;
     /// <summary>
     /// 启动投票换图服务
@@ -1009,10 +943,11 @@ public partial class RobotView : UserControl
         {
             timer.Stop();
             NotifierHelper.Show(NotifierType.Information, "已停止自动平衡");
+            isTimerRunning = false;
         }
-       
-        //测试用
 
+        //测试用
+        
         //ChatInputWindow.SendChsToBF1Chat("你好");
         // 执行移动
 
@@ -1040,7 +975,7 @@ public partial class RobotView : UserControl
         {
             Changerun = true;
             NotifierHelper.Show(NotifierType.Information, "已启动换图");
-            await XPFARM();
+             XPFARM();
         }
        
     }
@@ -1281,7 +1216,7 @@ public partial class RobotView : UserControl
                     if (array[0] != 0 && array[1] != 0)
                     {
                         //NotifierHelper.Show(NotifierType.Success, $" {currentGameCount}");
-                        return;
+                        break;
                     }
 
                 }
@@ -1637,7 +1572,7 @@ public partial class RobotView : UserControl
         {
             currentIndex = mapchoose.IndexOf(currentMap);
         }
-       await  Autochangegamemap();
+         Autochangegamemap();
 
 
     }
