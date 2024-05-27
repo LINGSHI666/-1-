@@ -247,7 +247,7 @@ public partial class LogView : UserControl
     /// <summary>
     /// UI添加换边日志
     /// </summary>
-    /// <param name="log"></param>
+    /// <param name="log"></param>  
     private void AppendChangeTeamLog(string log)
     {
         TextBox_ChangeTeamLog.AppendText($"{log}\n");
