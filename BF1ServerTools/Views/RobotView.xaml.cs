@@ -1148,7 +1148,7 @@ public partial class RobotView : UserControl
         {
             while (!cancellationToken.IsCancellationRequested || liveflag)
             {
-                if (ScoreView.mapmode == "征服" && (Server.GetTeam1Score() >= 995 || Server.GetTeam2Score() >= 995) && Server.GetTeam1Score()<2001 && Server.GetTeam2Score() <2001)
+                if (ScoreView.mapmode == "征服" && (Server.GetTeam1Score() >= 993 || Server.GetTeam2Score() >= 993) && Server.GetTeam1Score()<2001 && Server.GetTeam2Score() <2001)
                 {
                     //MessageBox.Show($"{Server.GetTeam1Score}+++{Server.GetTeam2Score()}");
                     if (cancellationToken.IsCancellationRequested)
@@ -1161,8 +1161,9 @@ public partial class RobotView : UserControl
                     return;
                     
                 }
+                await Task.Delay(checkInterval, cancellationToken);
             }
-            await Task.Delay(checkInterval, cancellationToken);
+            
         }
         var playerList = Player.GetPlayerList()
                                 .Where(player => (player.TeamId == 1 || player.TeamId == 2) && player.PersonaId != 0)
@@ -1235,7 +1236,7 @@ public partial class RobotView : UserControl
             }
             
             int playerCountThreshold = topPlayers.Count <= 3 ? 1 : topPlayers.Count - 3;
-            if(ScoreView.mapmode == "征服" && (Server.GetTeam1Score() >= 995 || Server.GetTeam2Score() >= 995) && isPlayerInTeam0 && Server.GetTeam1Score() < 2001 && Server.GetTeam2Score() < 2001)
+            if(ScoreView.mapmode == "征服" && (Server.GetTeam1Score() >= 993 || Server.GetTeam2Score() >= 993) && isPlayerInTeam0 && Server.GetTeam1Score() < 2001 && Server.GetTeam2Score() < 2001)
             {
                 if (cancellationToken.IsCancellationRequested)
                 { return; }
