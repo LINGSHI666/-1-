@@ -333,7 +333,7 @@
                     </ContextMenu>
                 </ListView.ContextMenu>
                 <ListView.View>
-                    <GridView AllowsColumnReorder="False" ColumnHeaderContainerStyle="{StaticResource GridViewColumnHeaderStyle_Team1}">
+                    <GridView x:Name="GridTeam1" AllowsColumnReorder="False" ColumnHeaderContainerStyle="{StaticResource GridViewColumnHeaderStyle_Team1}">
                         <GridViewColumn Header="序号">
                             <GridViewColumn.CellTemplate>
                                 <DataTemplate>
@@ -467,7 +467,7 @@
                     </ContextMenu>
                 </ListView.ContextMenu>
                 <ListView.View>
-                    <GridView AllowsColumnReorder="False" ColumnHeaderContainerStyle="{StaticResource GridViewColumnHeaderStyle_Team2}">
+                    <GridView x:Name="GridTeam2" AllowsColumnReorder="False" ColumnHeaderContainerStyle="{StaticResource GridViewColumnHeaderStyle_Team2}">
                         <GridViewColumn Header="序号">
                             <GridViewColumn.CellTemplate>
                                 <DataTemplate>

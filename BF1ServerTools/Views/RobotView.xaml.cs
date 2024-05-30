@@ -605,12 +605,13 @@ public partial class RobotView : UserControl
         try
         {
             bool balanceAchieved = false;
+            int movecount = 0;
             for (int i = 0; i < 99 && !balanceAchieved; i++)
             {
-
+                
                 List<PlayerData> playerListbegin = Player.GetPlayerList(); // 获取当前所有玩家的列表
                 List<PlayerData> playerList = playerListbegin.Where(p => p.Kill >= 1 || p.Dead >= 2).ToList(); //排除机器人
-                                                                                                               // 过滤掉特定兵种的玩家
+                                                                                                           
 
                 if (playerList == null || playerList.Count == 0)
                 {
@@ -621,10 +622,10 @@ public partial class RobotView : UserControl
                 int count = playerList.Count(p => p.PersonaId != 0);
 
                 double kdkpmflag = sliderkdkpm != null ? sliderkdkpm.Value : 0;
-                double skillflag = sliderskill != null ? sliderskill.Value : 100;
+                double skillflag = sliderskill != null ? sliderskill.Value : 0;
                 var team1Players = playerList.Where(p => p.TeamId == 1).ToList();
                 var team2Players = playerList.Where(p => p.TeamId == 2).ToList();
-                if (count < 10 || team1Players.Count == 0 || team2Players.Count == 0)
+                if (count < 15 || team1Players.Count == 0 || team2Players.Count == 0)
                 {
                     NotifierHelper.Show(NotifierType.Error, "人数不足,或游戏刚开始");
                     break;
@@ -655,7 +656,7 @@ public partial class RobotView : UserControl
                 }
 
 
-
+               
                 double avgLifeKdTeam1 = team1Players.Any() ? team1Players.Average(p => p.LifeKd) : 0;
                 double avgLifeKpmTeam1 = team1Players.Any() ? team1Players.Average(p => p.LifeKpm) : 0;
                 double avgSkillTeam1 = team1Players.Any() ? team1Players.Average(p => p.Skill) : 0;
@@ -663,39 +664,43 @@ public partial class RobotView : UserControl
                 double avgLifeKdTeam2 = team2Players.Any() ? team2Players.Average(p => p.LifeKd) : 0;
                 double avgLifeKpmTeam2 = team2Players.Any() ? team2Players.Average(p => p.LifeKpm) : 0;
                 double avgSkillTeam2 = team2Players.Any() ? team2Players.Average(p => p.Skill) : 0;
+                List<PlayerData> excludeplayer = new List<PlayerData>();
+
                 if (Excludesuperman.IsChecked ?? false)
                 {
-                    playerList = playerList.Where(item =>
+                    excludeplayer.AddRange(playerList.Where(item =>
                     {
                         string kitName = ClientHelper.GetPlayerKitName(item.Kit);
-                        return !(kitName == "12 坦克" ||
-                                 kitName == "11 飞机" ||
-                                 kitName == "10 骑兵" ||
-                                 kitName == "09 哨兵" ||
-                                 kitName == "08 喷火兵" ||
-                                 kitName == "07 入侵者" ||
-                                 kitName == "06 战壕奇兵" ||
-                                 kitName == "05 坦克猎手");
-                    }).ToList();
+                        return (kitName == "12 坦克" ||
+                                kitName == "11 飞机" ||
+                                kitName == "10 骑兵" ||
+                                kitName == "09 哨兵" ||
+                                kitName == "08 喷火兵" ||
+                                kitName == "07 入侵者" ||
+                                kitName == "06 战壕奇兵" ||
+                                kitName == "05 坦克猎手");
+                    }).ToList());
                 }
-                // 确保排除逻辑正确处理
+
                 if (ExcludeAdminsAndVIPsCheckBox.IsChecked ?? false)
                 {
                     List<long> adminAndVipIds = Globals.ServerAdmins_PID.Concat(Globals.ServerVIPs_PID).ToList();
-                    playerList = playerList.Where(player => !PlayerUtil.IsAdminVIP(player.PersonaId, adminAndVipIds)).ToList();
+                    excludeplayer.AddRange(playerList.Where(player => PlayerUtil.IsAdminVIP(player.PersonaId, adminAndVipIds)).ToList());
                 }
 
+                excludeplayer.AddRange(playerList.Where(player => excludeList.Select(p => p.PersonaId).Contains(player.PersonaId)).ToList());//移除已经换过边的玩家
 
-
-                playerList.RemoveAll(player => excludeList.Select(p => p.PersonaId).Contains(player.PersonaId));
                 if (!playerList.Any())
                 {
                     NotifierHelper.Show(NotifierType.Information, "所有玩家均在排除名单中。");
                     break;
                 }
-                //移除已经换过边的玩家
-                team1Players = playerList.Where(p => p.TeamId == 1).ToList();
-                team2Players = playerList.Where(p => p.TeamId == 2).ToList();
+                if (movecount == 5)
+                {
+                   MessageBox.Show($"平衡已移动5次仍未平衡\n当前team1kd [{avgLifeKdTeam1:0.00}]kpm [{avgLifeKpmTeam1:0.00}] || team2kd [{avgLifeKdTeam2:0.00}]kpm [{avgLifeKpmTeam2:0.00}]");
+                    return;
+                }
+              
                 if (skillbalance.IsChecked ?? false)
                 {
                     // 获取队伍1技巧值最高的玩家
@@ -719,7 +724,7 @@ public partial class RobotView : UserControl
 
 
                         // 执行行动，获取应该移动的玩家
-                        var playerToMove = BalanceTeam(team1Players, team2Players, avgSkillTeam1, avgSkillTeam2, skillflag);
+                        var playerToMove = BalanceTeam(team1Players, team2Players, avgSkillTeam1, avgSkillTeam2, skillflag, excludeplayer);
 
                         // 根据playerToMove所在队伍决定移动方向
                         int OriginTeam = playerToMove.TeamId == 1 ? 1 : 2;
@@ -736,9 +741,22 @@ public partial class RobotView : UserControl
                             // 如果排除名单已有三人，则移除最早添加的玩家
                             if (excludeList.Count >= 5)
                             {
-                                NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{OriginTeam}成功");
+                               
                                 excludeList.Dequeue(); // 移除队列前端的元素
                             }
+                            LogView.ActionAddChangeTeamInfoLog(new ChangeTeamInfo()
+                            {
+                                Rank = playerToMove.Rank,
+                                Name = playerToMove.Name,
+                                PersonaId = playerToMove.PersonaId,
+                                GameMode = ScoreView.mapmode,
+                                MapName = ScoreView.mapname,
+                                Team1Name = "队伍一",
+                                Team2Name = "队伍二",
+                                State = $" >>> 队伍{OriginTeam}",
+                                Time = DateTime.Now
+                            });
+                            movecount++;
                             NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{OriginTeam}成功");
                             // 将新的玩家添加到排除名单的队尾
                             excludeList.Enqueue(movedPlayer);
@@ -752,7 +770,7 @@ public partial class RobotView : UserControl
                     {
 
                         // 执行行动，获取应该移动的玩家
-                        var playerToMove = FindBestPlayerToMoveForSkill(team1Players, team2Players, avgSkillTeam1, avgSkillTeam2, skillflag);
+                        var playerToMove = FindBestPlayerToMoveForSkill(team1Players, team2Players, avgSkillTeam1, avgSkillTeam2, skillflag,excludeplayer);
 
                         // 根据playerToMove所在队伍决定移动方向
                         int OriginTeam = playerToMove.TeamId == 1 ? 1 : 2;
@@ -769,9 +787,22 @@ public partial class RobotView : UserControl
                             // 如果排除名单已有三人，则移除最早添加的玩家
                             if (excludeList.Count >= 5)
                             {
-                                NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{OriginTeam}成功");
+                                
                                 excludeList.Dequeue(); // 移除队列前端的元素
                             }
+                            LogView.ActionAddChangeTeamInfoLog(new ChangeTeamInfo()
+                            {
+                                Rank = playerToMove.Rank,
+                                Name = playerToMove.Name,
+                                PersonaId = playerToMove.PersonaId,
+                                GameMode = ScoreView.mapmode,
+                                MapName = ScoreView.mapname,
+                                Team1Name = "队伍一",
+                                Team2Name = "队伍二",
+                                State = $" >>> 队伍{OriginTeam}",
+                                Time = DateTime.Now
+                            });
+                            movecount++;
                             NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{OriginTeam}成功");
                             // 将新的玩家添加到排除名单的队尾
                             excludeList.Enqueue(movedPlayer);
@@ -803,7 +834,7 @@ public partial class RobotView : UserControl
                         double targetKpmDifference = avgLifeKpmTeam2 + kdkpmflag;
 
                         // 查找最佳移动玩家
-                        var playerToMove = FindBestPlayerToMove(team1Players, team2Players, avgLifeKdTeam1, avgLifeKdTeam2, avgLifeKpmTeam1, avgLifeKpmTeam2, targetKdDifference, targetKpmDifference);
+                        var playerToMove = FindBestPlayerToMove(team1Players, team2Players, avgLifeKdTeam1, avgLifeKdTeam2, avgLifeKpmTeam1, avgLifeKpmTeam2, targetKdDifference, targetKpmDifference, excludeplayer);
 
                         if (playerToMove != null)
                         {
@@ -843,6 +874,7 @@ public partial class RobotView : UserControl
                                     State = $" >>> 队伍{OriginTeam}",
                                     Time = DateTime.Now
                                 });
+                                movecount++;
                                 NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{OriginTeam}成功");
                                 // 将新的玩家添加到排除名单的队尾
                                 excludeList.Enqueue(movedPlayer);
@@ -861,7 +893,7 @@ public partial class RobotView : UserControl
                         double targetKpmDifference = avgLifeKpmTeam2 + kdkpmflag;
 
                         // 查找最佳移动玩家
-                        var playerToMove = FindBestPlayerToMoveOverPlayer(team1Players, team2Players, avgLifeKdTeam1, avgLifeKdTeam2, avgLifeKpmTeam1, avgLifeKpmTeam2, targetKdDifference, targetKpmDifference);
+                        var playerToMove = FindBestPlayerToMoveOverPlayer(team1Players, team2Players, avgLifeKdTeam1, avgLifeKdTeam2, avgLifeKpmTeam1, avgLifeKpmTeam2, targetKdDifference, targetKpmDifference, excludeplayer);
 
                         if (playerToMove != null)
                         {
@@ -901,7 +933,7 @@ public partial class RobotView : UserControl
                                     State = $" >>> 队伍{OriginTeam}",
                                     Time = DateTime.Now
                                 });
-                               
+                               movecount++;
                                 NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{OriginTeam}成功");
                                 // 将新的玩家添加到排除名单的队尾
                                 excludeList.Enqueue(movedPlayer);
@@ -912,6 +944,7 @@ public partial class RobotView : UserControl
                             }
                         }
                     }
+                   
                     else
                     {
                         balanceAchieved = true;
@@ -945,7 +978,7 @@ public partial class RobotView : UserControl
     /// <param name="targetKdDiff"></param>
     /// <param name="targetKpmDiff"></param>
     /// <returns></returns>
-    private PlayerData FindBestPlayerToMove(List<PlayerData> team1Players, List<PlayerData> team2Players, double avgKdTeam1, double avgKdTeam2, double avgKpmTeam1, double avgKpmTeam2, double targetKdDiff, double targetKpmDiff)
+    private PlayerData FindBestPlayerToMove(List<PlayerData> team1Players, List<PlayerData> team2Players, double avgKdTeam1, double avgKdTeam2, double avgKpmTeam1, double avgKpmTeam2, double targetKdDiff, double targetKpmDiff, List<PlayerData> excludeplayer)
     {
         PlayerData bestPlayerToMove = null;
         double smallestImpactScore = double.MaxValue;
@@ -971,7 +1004,10 @@ public partial class RobotView : UserControl
         }
 
         foreach (var player in team1Players.Concat(team2Players))
+
         {
+            if (excludeplayer.Any(player1 => player1.PersonaId == player.PersonaId))
+            { continue; }
             // 忽略将玩家移动到已满的队伍
             if ((player.TeamId == 1 && team2Players.Count >= 32) || (player.TeamId == 2 && team1Players.Count >= 32))
             {
@@ -1030,7 +1066,7 @@ public partial class RobotView : UserControl
 
         return bestPlayerToMove;
     }
-    private PlayerData FindBestPlayerToMoveOverPlayer(List<PlayerData> team1Players, List<PlayerData> team2Players, double avgKdTeam1, double avgKdTeam2, double avgKpmTeam1, double avgKpmTeam2, double targetKdDiff, double targetKpmDiff)
+    private PlayerData FindBestPlayerToMoveOverPlayer(List<PlayerData> team1Players, List<PlayerData> team2Players, double avgKdTeam1, double avgKdTeam2, double avgKpmTeam1, double avgKpmTeam2, double targetKdDiff, double targetKpmDiff, List<PlayerData> excludeplayer)
     {
         PlayerData bestPlayerToMove = null;
         double smallestImpactScore = double.MaxValue;
@@ -1051,6 +1087,8 @@ public partial class RobotView : UserControl
 
         foreach (var player in team1Players.Concat(team2Players))
         {
+            if (excludeplayer.Any(player1 => player1.PersonaId == player.PersonaId))
+            { continue; }
             // 忽略将玩家移动到已满的队伍
             if ((player.TeamId == 1 && team2Players.Count >= 32) || (player.TeamId == 2 && team1Players.Count >= 32))
             {
@@ -1115,7 +1153,7 @@ public partial class RobotView : UserControl
     /// <param name="avgSkillTeam2"></param>
     /// <param name="isTeam1Weaker"></param>
     /// <returns></returns>
-    private PlayerData BalanceTeam(List<PlayerData> team1Players, List<PlayerData> team2Players, double avgSkillTeam1, double avgSkillTeam2, double skillflag)
+    private PlayerData BalanceTeam(List<PlayerData> team1Players, List<PlayerData> team2Players, double avgSkillTeam1, double avgSkillTeam2, double skillflag, List<PlayerData> excludeplayer)
     {
         PlayerData bestPlayerToMove = null;
         double smallestImpactScore = double.MaxValue;
@@ -1142,6 +1180,8 @@ public partial class RobotView : UserControl
 
         foreach (var player in team1Players.Concat(team2Players))
         {
+            if (excludeplayer.Any(player1 => player1.PersonaId == player.PersonaId))
+            { continue; }
             // 忽略将玩家移动到已满的队伍
             if ((player.TeamId == 1 && team2Players.Count >= 32) || (player.TeamId == 2 && team1Players.Count >= 32))
             {
@@ -1193,7 +1233,7 @@ public partial class RobotView : UserControl
 
         return bestPlayerToMove;
     }
-    private PlayerData FindBestPlayerToMoveForSkill(List<PlayerData> team1Players, List<PlayerData> team2Players, double avgSkillTeam1, double avgSkillTeam2, double targetSkillDiff)
+    private PlayerData FindBestPlayerToMoveForSkill(List<PlayerData> team1Players, List<PlayerData> team2Players, double avgSkillTeam1, double avgSkillTeam2, double targetSkillDiff, List<PlayerData> excludeplayer)
     {
         PlayerData bestPlayerToMove = null;
         double smallestImpactScore = double.MaxValue;
@@ -1213,7 +1253,9 @@ public partial class RobotView : UserControl
         }
 
         foreach (var player in team1Players.Concat(team2Players))
-        {
+        {   
+            if (excludeplayer.Any(player1 => player1.PersonaId == player.PersonaId))
+            { continue; }
             // 忽略将玩家移动到已满的队伍
             if ((player.TeamId == 1 && team2Players.Count >= 32) || (player.TeamId == 2 && team1Players.Count >= 32))
             {

@@ -14,6 +14,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using static BF1ServerTools.Views.ScoreView;
 using System.IO.Pipes;
+using System.Windows.Controls;
 
 namespace BF1ServerTools.Views;
 
@@ -72,9 +73,10 @@ public partial class ScoreView : UserControl
     public ScoreView()
     {
         InitializeComponent();
+        InitializeGridViewColumnWidthTracking();
         this.DataContext = this;
         MainWindow.WindowClosingEvent += MainWindow_WindowClosingEvent;
-
+      
         new Thread(UpdateServerInfoThread)
         {
             Name = "UpdateServerInfoThread",
@@ -202,12 +204,17 @@ public partial class ScoreView : UserControl
     /// 更新服务器信息线程
     /// </summary>
     private async void UpdateServerInfoThread()
-    {// 初始化 HttpClient 实例
+    {
+            int apicount = 0;
+        // 初始化 HttpClient 实例
         using (var httpClient = new HttpClient())
             while (MainWindow.IsAppRunning)
             {
-                // 创建 HttpClient 实例
-                using HttpClient client = new HttpClient();
+            // 创建 HttpClient 实例
+            using HttpClient client = new HttpClient();
+            if (apicount >= 3)
+            {
+              
 
                 try
                 {
@@ -221,13 +228,19 @@ public partial class ScoreView : UserControl
                     }
                     else
                     {
-                       zhangapi = false;
+                        zhangapi = false;
                     }
                 }
                 catch (HttpRequestException e1)
                 {
                     zhangapi = false;
                 }
+                apicount = 0;
+            }
+            else
+            {
+                apicount++;
+            }
                 Player.IsUseMode1 = Globals.IsUseMode1;
                 if (!Globals.IsUseMode1)
                 {
@@ -844,8 +857,16 @@ public partial class ScoreView : UserControl
     /// </summary>
     private void UpdateListBoxTeam02()
     {
+        // 在清空ListBox之前保存数据
+        if (ListBox_PlayerList_Team02.Count != 0)
+        {
+            string json = Newtonsoft.Json.JsonConvert.SerializeObject(ListBox_PlayerList_Team02);
+            File.WriteAllText(AuthView.F_Auth_Path3, json);
+        }
         if (PlayerList_Team02.Count == 0 && ListBox_PlayerList_Team02.Count != 0)
+            
             ListBox_PlayerList_Team02.Clear();
+        
 
         if (PlayerList_Team02.Count != 0)
         {
@@ -1469,6 +1490,80 @@ public partial class ScoreView : UserControl
                 {
                     gvc.Width = 100;
                     gvc.Width = double.NaN;
+                }
+            }
+        }
+    }
+
+    public void InitializeGridViewColumnWidthTracking()
+    {
+        foreach (GridViewColumn column in GridTeam1.Columns)
+        {
+            DependencyPropertyDescriptor dpd = DependencyPropertyDescriptor.FromProperty(GridViewColumn.WidthProperty, typeof(GridViewColumn));
+            dpd.AddValueChanged(column, new EventHandler(ColumnWidthChanged));
+        }
+
+        // 加载现有宽度设置
+        LoadColumnWidths(GridTeam1, "Team1");
+        foreach (GridViewColumn column in GridTeam2.Columns)
+        {
+            DependencyPropertyDescriptor dpd = DependencyPropertyDescriptor.FromProperty(GridViewColumn.WidthProperty, typeof(GridViewColumn));
+            dpd.AddValueChanged(column, new EventHandler(ColumnWidthChanged));
+        }
+        // 加载现有宽度设置
+        LoadColumnWidths(GridTeam2, "Team2");
+    }
+
+        private void ColumnWidthChanged(object sender, EventArgs e)
+    {
+        GridViewColumn column = sender as GridViewColumn;
+        if (column != null)
+        {
+            // 保存所有列宽
+            SaveColumnWidths();
+        }
+    }
+
+    private void SaveColumnWidths()
+    {
+        var columnWidths = new Dictionary<string, double>();
+        foreach (GridViewColumn column in GridTeam1.Columns)
+        {
+            if (column.Header != null)
+            {
+
+                string key = "Team1_" + column.Header.ToString();
+                columnWidths[key] = double.IsNaN(column.Width) ? -1 : column.Width; // 如果NaN则设置为-1
+            }
+        }
+        foreach (GridViewColumn column in GridTeam2.Columns)
+        {
+            if (column.Header != null)
+            {
+                string key = "Team2_" + column.Header.ToString();
+                columnWidths[key] = double.IsNaN(column.Width) ? -1 : column.Width; // 如果NaN则设置为-1
+            }
+        }
+        File.WriteAllText(AuthView.F_Auth_Path2, JsonConvert.SerializeObject(columnWidths));
+    }
+
+    private void LoadColumnWidths(GridView gridView, string teamIdentifier)
+    {
+        string filePath = AuthView.F_Auth_Path2; // 配置文件路径
+        if (File.Exists(filePath))
+        {
+            var columnWidths = JsonConvert.DeserializeObject<Dictionary<string, double>>(File.ReadAllText(filePath));
+            foreach (GridViewColumn column in gridView.Columns)
+            {
+                string key = teamIdentifier + "_" + column.Header.ToString();
+                if (column.Header != null && columnWidths.ContainsKey(key))
+                {
+                    double width = columnWidths[key];
+                    if (width != -1) // 检查是否设置为默认值标识符
+                    {
+                        column.Width = width;
+                    }
+                    // 如果是-1，则不设置宽度，保持默认值
                 }
             }
         }

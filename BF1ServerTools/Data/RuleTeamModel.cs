@@ -69,4 +69,9 @@ public partial class RuleTeamModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     private int lifeMaxVehicleStar;
+    /// <summary>
+    /// 最多侦察数
+    /// </summary>
+    [ObservableProperty]
+    private int maxScout;
 }

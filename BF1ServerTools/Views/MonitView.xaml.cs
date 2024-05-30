@@ -17,7 +17,7 @@ public partial class MonitView : UserControl
 {
     private List<PlayerData> PlayerList_Team1 = new();
     private List<PlayerData> PlayerList_Team2 = new();
-
+    public Queue<PlayerData> ScoutList = new Queue<PlayerData>(); // 使用队列来管理排除名单 
     ///////////////////////////////////////////////////////
 
     /// <summary>
@@ -293,8 +293,22 @@ public partial class MonitView : UserControl
             //////////////////////////////// 队伍数据整理 ////////////////////////////////
 
             var time = PlayerUtil.SecondsToMinute(Server.GetServerTime());
+            List<PlayerData> playerList = Player.GetPlayerList();
+            // 将 List 转换为 HashSet 以优化查找效率
+            HashSet<long> playerIdSet = new HashSet<long>(playerList.Select(p => p.PersonaId));
 
-            foreach (var item in Player.GetPlayerList())
+            // 将队列转换为数组进行迭代
+            PlayerData[] scoutArray = ScoutList.ToArray();
+            ScoutList.Clear();  // 清空原队列
+
+            foreach (var player in scoutArray)
+            {
+                if (playerIdSet.Contains(player.PersonaId))
+                {
+                    ScoutList.Enqueue(player);  // 重新将符合条件的元素加回队列
+                }
+            }
+            foreach (var item in playerList)
             {
                 item.Kd = PlayerUtil.GetPlayerKD(item.Kill, item.Dead);
                 item.Kpm = PlayerUtil.GetPlayerKPM(item.Kill, time);
@@ -472,6 +486,7 @@ public partial class MonitView : UserControl
     {
         // 先判断这个玩家是否在玩家生涯缓存数据中
         var lifeIndex = Globals.LifePlayerCacheDatas.FindIndex(var => var.PersonaId == playerData.PersonaId);
+
         if (lifeIndex != -1)
         {
             // 限制玩家生涯KD
@@ -637,6 +652,22 @@ public partial class MonitView : UserControl
                 playerData.WeaponS7 == item)
             {
                 AddBreakRulePlayerInfo(playerData, BreakType.Weapon, $"Weapon Limit {ClientHelper.GetWeaponShortTxt(item)}");
+            }
+        }
+        //限制侦察数
+        if (serverRule.MaxScout != 0 && playerData.Kit == "ID_M_SCOUT")
+        {
+            if(ScoutList.Count < serverRule.MaxScout || playerData.White)
+            {
+                if(ScoutList.Count == serverRule.MaxScout)
+                {
+                    ScoutList.Dequeue(); // 移除队列前端的元素
+                }
+                ScoutList.Enqueue(playerData);
+            }
+            else
+            {
+                AddBreakRulePlayerInfo(playerData, BreakType.Scout, $"Scout Max {serverRule.MaxScout:0}");
             }
         }
     }
@@ -1098,7 +1129,7 @@ public partial class MonitView : UserControl
         }
 
         AddRuleLog("👉 正在检查 玩家是否为当前服务器管理...");
-        if (!Globals.LoginPlayerIsAdmin)
+        if (!Globals.LoginPlayerIsAdmin)//测试时改为true
         {
             AddRuleLog("❌ 玩家不是当前服务器管理");
             NotifierHelper.Show(NotifierType.Warning, "环境检查未通过，操作取消");

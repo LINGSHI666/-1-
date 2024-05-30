@@ -59,5 +59,6 @@ public enum BreakType
     KD,
     KPM,
     Rank,
-    Weapon
+    Weapon,
+    Scout
 }

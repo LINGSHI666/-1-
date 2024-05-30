@@ -35,6 +35,8 @@ public class RuleConfig
             public float LifeMaxKPM { get; set; }
             public int LifeMaxWeaponStar { get; set; }
             public int LifeMaxVehicleStar { get; set; }
+
+            public int MaxScout { get; set; }
         }
     }
 }

@@ -38,7 +38,9 @@ public partial class AuthView : UserControl
     /// </summary>
     private AuthConfig AuthConfig = new();
 
-    private readonly string F_Auth_Path2 = FileUtil.D_Config_Path + @"\AuthConfig2.json";
+   public static readonly string F_Auth_Path2 = FileUtil.D_Config_Path + @"\Scorelist.json";
+
+    public static readonly string F_Auth_Path3 = FileUtil.D_Config_Path + @"\Loadlist.json";
 
     private void TextBox_MessageContent_TextChanged(object sender, TextChangedEventArgs e)
     {

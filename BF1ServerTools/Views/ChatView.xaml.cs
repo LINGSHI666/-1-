@@ -384,6 +384,10 @@ public partial class ChatView : UserControl
         // 如果不在服务器，则跳过
         if (Globals.GameId == 0)
             return;
+        if (ScoreView.zhangapi)
+        { MainWindow.udpchatsend.SendMessage($"#Chat.Send#{ChsUtil.ToTraditional(message)}"); }
+        else
+        { 
 
         // 切换输入法到英文状态
         ChsUtil.SetInputLanguageENUS();
@@ -398,6 +402,7 @@ public partial class ChatView : UserControl
         Thread.Sleep(ChatModel.KeyPressDelay);
 
         Chat.SendChsToBF1Chat(ChsUtil.ToTraditional(message));
+         }
     }
     
     /// <summary>

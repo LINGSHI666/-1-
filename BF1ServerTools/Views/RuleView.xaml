@@ -95,6 +95,14 @@
                                 Maximum="150"
                                 Minimum="0"
                                 Value="{Binding RuleTeam1Model.MaxRank, Mode=TwoWay}" />
+                            <DockPanel>
+                                <TextBlock Text="最多侦察" />
+                                <TextBlock HorizontalAlignment="Right" Text="{Binding RuleTeam1Model.MaxScout, StringFormat={}{0:0}}" />
+                            </DockPanel>
+                            <Slider
+Maximum="32"
+Minimum="0"
+Value="{Binding RuleTeam1Model.MaxScout, Mode=TwoWay}" />
 
                             <TextBlock Style="{StaticResource TextBlockStyle_Hint}">
                                 说明：设置为0代表忽略该规则
@@ -173,6 +181,14 @@
                                 Maximum="150"
                                 Minimum="0"
                                 Value="{Binding RuleTeam2Model.MaxRank, Mode=TwoWay}" />
+                            <DockPanel>
+                                <TextBlock Text="最多侦察" />
+                                <TextBlock HorizontalAlignment="Right" Text="{Binding RuleTeam2Model.MaxScout, StringFormat={}{0:0}}" />
+                            </DockPanel>
+                            <Slider
+    Maximum="32"
+    Minimum="0"
+    Value="{Binding RuleTeam2Model.MaxScout, Mode=TwoWay}" />
                         </StackPanel>
                     </StackPanel>
                 </UniformGrid>

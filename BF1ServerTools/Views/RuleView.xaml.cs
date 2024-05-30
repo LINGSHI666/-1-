@@ -95,7 +95,8 @@ public partial class RuleView : UserControl
                     Team1Weapon = new(),
                     Team2Weapon = new(),
                     BlackList = new(),
-                    WhiteList = new()
+                    WhiteList = new(),
+                   
                 });
             }
             // 保存配置文件
@@ -150,6 +151,7 @@ public partial class RuleView : UserControl
             rule.Team1Rule.MaxKPM = RuleTeam1Model.MaxKPM;
             rule.Team1Rule.MinRank = RuleTeam1Model.MinRank;
             rule.Team1Rule.MaxRank = RuleTeam1Model.MaxRank;
+            rule.Team1Rule.MaxScout = RuleTeam1Model.MaxScout;
             rule.Team1Rule.LifeMaxKD = RuleTeam1Model.LifeMaxKD;
             rule.Team1Rule.LifeMaxKPM = RuleTeam1Model.LifeMaxKPM;
             rule.Team1Rule.LifeMaxWeaponStar = RuleTeam1Model.LifeMaxWeaponStar;
@@ -162,6 +164,7 @@ public partial class RuleView : UserControl
             rule.Team2Rule.MaxKPM = RuleTeam2Model.MaxKPM;
             rule.Team2Rule.MinRank = RuleTeam2Model.MinRank;
             rule.Team2Rule.MaxRank = RuleTeam2Model.MaxRank;
+            rule.Team2Rule.MaxScout = RuleTeam2Model.MaxScout;
             rule.Team2Rule.LifeMaxKD = RuleTeam2Model.LifeMaxKD;
             rule.Team2Rule.LifeMaxKPM = RuleTeam2Model.LifeMaxKPM;
             rule.Team2Rule.LifeMaxWeaponStar = RuleTeam2Model.LifeMaxWeaponStar;
@@ -225,10 +228,12 @@ public partial class RuleView : UserControl
         RuleTeam1Model.MaxKPM = rule.Team1Rule.MaxKPM;
         RuleTeam1Model.MinRank = rule.Team1Rule.MinRank;
         RuleTeam1Model.MaxRank = rule.Team1Rule.MaxRank;
+        RuleTeam1Model.MaxScout = rule.Team1Rule.MaxScout;
         RuleTeam1Model.LifeMaxKD = rule.Team1Rule.LifeMaxKD;
         RuleTeam1Model.LifeMaxKPM = rule.Team1Rule.LifeMaxKPM;
         RuleTeam1Model.LifeMaxWeaponStar = rule.Team1Rule.LifeMaxWeaponStar;
         RuleTeam1Model.LifeMaxVehicleStar = rule.Team1Rule.LifeMaxVehicleStar;
+        RuleTeam1Model.MaxScout = rule.Team1Rule.MaxScout;
         // 应用队伍2规则
         RuleTeam2Model.MaxKill = rule.Team2Rule.MaxKill;
         RuleTeam2Model.FlagKD = rule.Team2Rule.FlagKD;
@@ -237,6 +242,7 @@ public partial class RuleView : UserControl
         RuleTeam2Model.MaxKPM = rule.Team2Rule.MaxKPM;
         RuleTeam2Model.MinRank = rule.Team2Rule.MinRank;
         RuleTeam2Model.MaxRank = rule.Team2Rule.MaxRank;
+        RuleTeam2Model.MaxScout = rule.Team2Rule.MaxScout;
         RuleTeam2Model.LifeMaxKD = rule.Team2Rule.LifeMaxKD;
         RuleTeam2Model.LifeMaxKPM = rule.Team2Rule.LifeMaxKPM;
         RuleTeam2Model.LifeMaxWeaponStar = rule.Team2Rule.LifeMaxWeaponStar;
@@ -373,6 +379,7 @@ public partial class RuleView : UserControl
         Globals.ServerRule_Team1.MaxKPM = RuleTeam1Model.MaxKPM;
         Globals.ServerRule_Team1.MinRank = RuleTeam1Model.MinRank;
         Globals.ServerRule_Team1.MaxRank = RuleTeam1Model.MaxRank;
+        Globals.ServerRule_Team1.MaxScout = RuleTeam1Model.MaxScout;
 
         Globals.ServerRule_Team1.LifeMaxKD = RuleTeam1Model.LifeMaxKD;
         Globals.ServerRule_Team1.LifeMaxKPM = RuleTeam1Model.LifeMaxKPM;
@@ -386,6 +393,8 @@ public partial class RuleView : UserControl
         Globals.ServerRule_Team2.MaxKPM = RuleTeam2Model.MaxKPM;
         Globals.ServerRule_Team2.MinRank = RuleTeam2Model.MinRank;
         Globals.ServerRule_Team2.MaxRank = RuleTeam2Model.MaxRank;
+        Globals.ServerRule_Team2.MaxScout = RuleTeam2Model.MaxScout;
+
 
         Globals.ServerRule_Team2.LifeMaxKD = RuleTeam2Model.LifeMaxKD;
         Globals.ServerRule_Team2.LifeMaxKPM = RuleTeam2Model.LifeMaxKPM;
@@ -457,6 +466,7 @@ public partial class RuleView : UserControl
         AddRuleLog("最低等级", $"{Globals.ServerRule_Team1.MinRank}", $"{Globals.ServerRule_Team2.MinRank}");
         AddRuleLog("最高等级", $"{Globals.ServerRule_Team1.MaxRank}", $"{Globals.ServerRule_Team2.MaxRank}");
 
+        AddRuleLog("最多侦察", $"{Globals.ServerRule_Team1.MaxScout}", $"{Globals.ServerRule_Team2.MaxScout}");
         AddRuleLog("【生涯规则】");
         AddRuleLog("生涯KD", $"{Globals.ServerRule_Team1.LifeMaxKD}", $"{Globals.ServerRule_Team2.LifeMaxKD}");
         AddRuleLog("生涯KPM", $"{Globals.ServerRule_Team1.LifeMaxKPM}", $"{Globals.ServerRule_Team2.LifeMaxKPM}");
