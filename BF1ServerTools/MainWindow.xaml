@@ -139,8 +139,13 @@
                 <ui:UiRadioButtonIcon
                     Command="{Binding NavigateCommand}"
                     CommandParameter="RobotView"
-                    Content="机器人"
+                    Content="自动化"
                     Icon="&#xe63b;" />
+                <ui:UiRadioButtonIcon
+     Command="{Binding NavigateCommand}"
+     CommandParameter="Autobalance"
+     Content="自动平衡/观战"
+     Icon="&#xe63b;" />
                 <ui:UiRadioButtonIcon
                     Command="{Binding NavigateCommand}"
                     CommandParameter="MoreView"

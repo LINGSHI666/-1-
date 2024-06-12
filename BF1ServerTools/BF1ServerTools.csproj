@@ -7,8 +7,8 @@
 		<UseWPF>true</UseWPF>
 		<Platforms>x64;ARM64;x86</Platforms>
 		<StartupObject>BF1ServerTools.App</StartupObject>
-		<AssemblyVersion>1.9.1</AssemblyVersion>
-		<FileVersion>1.9.1</FileVersion>
+		<AssemblyVersion>1.9.6</AssemblyVersion>
+		<FileVersion>1.9.6</FileVersion>
 		<ApplicationManifest>Properties\app.manifest</ApplicationManifest>
 		<ApplicationIcon>Assets\Images\Favicon.ico</ApplicationIcon>
 		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
@@ -73,6 +73,7 @@
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="NLog" Version="5.1.0" />
 		<PackageReference Include="Notification.Wpf" Version="6.1.0.5" />
+		<PackageReference Include="SharpAvi" Version="3.0.1" />
 		<PackageReference Include="Websocket.Client" Version="4.4.43" />
 	</ItemGroup>
 

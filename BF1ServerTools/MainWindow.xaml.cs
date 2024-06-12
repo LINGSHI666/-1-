@@ -81,6 +81,8 @@ public partial class MainWindow
     private RobotView RobotView { get; set; } = new();
     private MoreView MoreView { get; set; } = new();
 
+    private Autobalance Autobalance { get; set; } = new();
+
     ///////////////////////////////////////////////////////
 
     /// <summary>
@@ -240,6 +242,10 @@ public partial class MainWindow
             case "MoreView":
                 if (ContentControl_Main.Content != MoreView)
                     ContentControl_Main.Content = MoreView;
+                break;
+            case "Autobalance":
+                if (ContentControl_Main.Content != Autobalance)
+                    ContentControl_Main.Content = Autobalance;
                 break;
         }
     }

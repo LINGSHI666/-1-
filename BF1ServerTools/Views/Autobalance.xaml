@@ -1,0 +1,161 @@
+﻿<UserControl x:Class="BF1ServerTools.Views.Autobalance"
+     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+xmlns:ui="http://battlefield.vip/ui/2022/xaml"
+d:DesignHeight="720"
+d:DesignWidth="1280"
+mc:Ignorable="d">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="400" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="400" />
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧区域 -->
+            <StackPanel Grid.Column="0" Margin="5">
+            <ui:UiLabelIcon Grid.Row="0" Content="排除名单" Margin="0,10" />
+            </StackPanel>
+
+
+            <!-- 中间区域 -->
+            <StackPanel Grid.Column="1" Margin="5">
+                <ui:UiLabelIcon Content="功能开关" />
+
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
+                    <Button
+                        x:Name="Button_RunGoCqHttpServer"
+                        Click="Button_RunGoCqHttpServer_Click"
+                        Content="启动自动平衡"
+                        Width="191" />
+                    <Button
+                        x:Name="Button_Balance"
+                        Click="Button_Balance_Click"
+                        Content="立刻启动平衡"
+                        Width="190" />
+                </StackPanel>
+
+                <Slider
+                    x:Name="slider"
+                    Minimum="1"
+                    Maximum="60"
+                    ValueChanged="Slider_ValueChanged"
+                    TickFrequency="1"
+                    IsSnapToTickEnabled="True" />
+                <Label
+                    x:Name="labelCurrentMinutes"
+                    Content="当前自动平衡间隔为0分钟"
+                    Margin="5" />
+                <Slider
+    x:Name="sliderscore"
+    Minimum="0"
+    Maximum="800"
+    ValueChanged="Slider_ScoreValueChanged"
+    TickFrequency="10"
+    IsSnapToTickEnabled="True" />
+                <Label
+    x:Name="labelCurrentScore"
+    Content="当前启动自动平衡所需分差为0（0代表忽略该条件）"
+    Margin="5" />
+
+
+
+                <Button
+                        x:Name="Button_StopWebsocketServer"
+                        Margin="2,0,5,5"
+                        Click="Button_StopWebsocketServer_Click"
+                        Content="关闭自动平衡" />
+                
+               
+                <ui:UiLabelIcon Content="平衡参数调整" />
+
+                <DockPanel MinWidth="300" Margin="0,10,0,10">
+
+                    <CheckBox x:Name="Excludesuperman" Content="自动平衡排除载具和精英兵" DockPanel.Dock="Top" />
+                    <Slider
+                        x:Name="sliderkdkpm"
+                        Minimum="-0.5"
+                        Maximum="0.5"
+                        ValueChanged="Slider_ValueChangedkdkpm"
+                        TickFrequency="0.01"
+                        IsSnapToTickEnabled="True"
+                        DockPanel.Dock="Top" />
+                    <TextBlock
+                        x:Name="labelCurrentkdkpm"
+                        Text="平衡目标为进攻(队伍1)lifekd、lifekp高于防守(队伍2){}(+-0.05)"
+                        Margin="5"
+                        DockPanel.Dock="Top"
+                        TextWrapping="Wrap" />
+                </DockPanel>
+
+                <CheckBox x:Name="skillbalance" Content="切换至技巧值平衡，这会在导致平衡时忽略lifekp和lifekpm" Margin="0,5,0,5" />
+                <Slider
+                    x:Name="sliderskill"
+                    Minimum="-300"
+                    Maximum="300"
+                    ValueChanged="Slider_ValueChangedskill"
+                    TickFrequency="10"
+                    IsSnapToTickEnabled="True" />
+                <TextBlock
+                    x:Name="labelCurrentdskill"
+                    Text="平衡目标为进攻(队伍1)技巧值高于防守(队伍2){}(+-30)"
+                    Margin="5"
+                    TextWrapping="Wrap" />
+                
+                <CheckBox x:Name="ExcludeAdminsCheckBox" Content="自动平衡排除管理员" />
+                <CheckBox x:Name="ExcludeVIPsCheckBox" Content="自动平衡排除VIP" />
+                <CheckBox x:Name="ExcludeWhitelistCheckBox" Content="自动平衡排除白名单" />
+            </StackPanel>
+
+            <!-- 右侧区域 -->
+            <StackPanel Grid.Column="2" Margin="5">
+                <ui:UiLabelIcon Content="自动观战" />
+                <Button
+        x:Name="Button_ActiveAutoWatch"
+        Margin="2,0,5,5"
+        Click="Button_ActiveAutoWatch_Click"
+        Content="启动自动观战" />
+                <Slider
+x:Name="sliderwatchtime"
+Minimum="1"
+Maximum="30"
+ValueChanged="Slider_ValueChangedwatchtime"
+TickFrequency="1"
+IsSnapToTickEnabled="True" />
+                <TextBlock
+x:Name="labelCurrentdwatchtime"
+Text="开始观战后录制时长为（）分钟"
+Margin="5"
+TextWrapping="Wrap" />
+                <Button Content="播报自动观战提示" Click="Reportmapinfo_Click" Margin="0,10,0,0" />
+
+                <Slider
+x:Name="sliderwatchreport"
+Minimum="0"
+Maximum="15"
+ValueChanged="Slider_ValueChangedwatchreport"
+TickFrequency="1"
+IsSnapToTickEnabled="True" />
+                <TextBlock
+x:Name="labelCurrentdwatchreport"
+Text="播报间隔为（） 0=永不自动播报"
+Margin="5"
+TextWrapping="Wrap" />
+            </StackPanel>
+            <DataGrid x:Name="dataGridPlayers" AutoGenerateColumns="False" Margin="10,52,10,10" ItemsSource="{Binding playerDataQueue}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="战队" Binding="{Binding Clan}"  IsReadOnly="True" />
+                    <DataGridTextColumn Header="名称" Binding="{Binding Name}"  IsReadOnly="True"/>
+                    <DataGridTextColumn Header="等级" Binding="{Binding Rank}"  IsReadOnly="True"/>
+                    <DataGridTextColumn Header="生涯 K/D" Binding="{Binding LifeKd, StringFormat=F2}" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="生涯 KPM" Binding="{Binding LifeKpm, StringFormat=F2}" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="技巧值" Binding="{Binding Skill, StringFormat=F2}" IsReadOnly="True"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

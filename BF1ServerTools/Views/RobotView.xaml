@@ -23,7 +23,7 @@
             <Button Grid.Row="1" x:Name="Button_Allchange" Click="Button_Allchange_Click"
             Content="立刻启动全部换边" Margin="0,10" HorizontalAlignment="Left"/>
             <Slider Grid.Row="2" x:Name="sliderAllchange"
-            Minimum="0" Maximum="1000" TickFrequency="10" IsSnapToTickEnabled="True"
+            Minimum="0" Maximum="2000" TickFrequency="10" IsSnapToTickEnabled="True"
             ValueChanged="Slider_ValueChangedAllchange" Margin="0,10"/>
             <TextBlock Grid.Row="3" x:Name="labelAllchange"
                Text="启动压家换边的分数上限[0]（仅征服）（高于该分数不启动全部换边）"
@@ -47,7 +47,7 @@
     Text="延迟15秒"
     Margin="5"
     TextWrapping="Wrap" />
-                <CheckBox x:Name="onlyscore" Content="自动换图仅检测分数(分数>995）" Margin="0,5,0,5" />
+               
             </StackPanel>
 
 
@@ -55,81 +55,24 @@
             <StackPanel Grid.Column="1" Margin="5">
                 <ui:UiLabelIcon Content="功能开关" />
 
-                <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
-                    <Button
-                        x:Name="Button_RunGoCqHttpServer"
-                        Click="Button_RunGoCqHttpServer_Click"
-                        Content="启动自动平衡"
-                        Width="191" />
-                    <Button
-                        x:Name="Button_Balance"
-                        Click="Button_Balance_Click"
-                        Content="立刻启动平衡"
-                        Width="190" />
-                </StackPanel>
+               
 
-                <Slider
-                    x:Name="slider"
-                    Minimum="1"
-                    Maximum="60"
-                    ValueChanged="Slider_ValueChanged"
-                    TickFrequency="1"
-                    IsSnapToTickEnabled="True" />
-                <Label
-                    x:Name="labelCurrentMinutes"
-                    Content="当前自动平衡间隔为0分钟"
-                    Margin="5" />
+               
 
-                <UniformGrid Columns="2" Margin="0,10,0,10">
+               
                     <Button
                         x:Name="Button_RunWebsocketServer"
                         Margin="5,0,2,5"
                         Click="Button_RunWebsocketServer_Click"
                         Content="启动投票选图" />
-                    <Button
-                        x:Name="Button_StopWebsocketServer"
-                        Margin="2,0,5,5"
-                        Click="Button_StopWebsocketServer_Click"
-                        Content="关闭自动平衡" />
-                </UniformGrid>
+                   
 
                 <TextBlock Style="{StaticResource TextBlockStyle_Hint}">
                     提示：想关闭投票选图关闭程序即可
                 </TextBlock>
-                <ui:UiLabelIcon Content="平衡参数调整" />
+                <ui:UiLabelIcon Content="参数调整" />
 
-                <DockPanel MinWidth="300" Margin="0,10,0,10">
-                  
-                    <CheckBox x:Name="Excludesuperman" Content="自动平衡排除载具和精英兵" DockPanel.Dock="Top" />
-                    <Slider
-                        x:Name="sliderkdkpm"
-                        Minimum="-1"
-                        Maximum="1"
-                        ValueChanged="Slider_ValueChangedkdkpm"
-                        TickFrequency="0.01"
-                        IsSnapToTickEnabled="True"
-                        DockPanel.Dock="Top" />
-                    <TextBlock
-                        x:Name="labelCurrentkdkpm"
-                        Text="平衡目标为进攻(队伍1)lifekd、lifekp高于防守(队伍2){}(+-0.05)"
-                        Margin="5"
-                        DockPanel.Dock="Top"
-                        TextWrapping="Wrap" />
-                </DockPanel>
-
-                <CheckBox x:Name="skillbalance" Content="切换至技巧值平衡，这会在导致平衡时忽略lifekp和lifekpm" Margin="0,5,0,5" />
-                <Slider
-                    x:Name="sliderskill"
-                    Minimum="-300"
-                    Maximum="300"
-                    ValueChanged="Slider_ValueChangedskill"
-                    TickFrequency="10"
-                    IsSnapToTickEnabled="True" />
-                <TextBlock
-                    x:Name="labelCurrentdskill"
-                    Text="平衡目标为进攻(队伍1)技巧值高于防守(队伍2){}(+-30)"
-                    Margin="5"
-                    TextWrapping="Wrap" />
+               
                 <Button Content="播报当前投票信息" Click="Reportmapinfo_Click" Margin="0,10,0,0" />
                 
                 <Slider
@@ -144,7 +87,7 @@
     Text="播报间隔为（） 0=永不自动播报"
     Margin="5"
     TextWrapping="Wrap" />
-                <CheckBox x:Name="ExcludeAdminsAndVIPsCheckBox" Content="自动平衡排除VIP和管理员" />
+                <CheckBox x:Name="onlyscore" Content="自动换图仅检测分数(分数>993）" Margin="0,5,0,5" />
             </StackPanel>
 
             <!-- 右侧区域 -->

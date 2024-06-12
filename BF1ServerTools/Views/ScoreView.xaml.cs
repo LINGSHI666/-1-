@@ -860,8 +860,40 @@ public partial class ScoreView : UserControl
         // 在清空ListBox之前保存数据
         if (ListBox_PlayerList_Team02.Count != 0)
         {
-            string json = Newtonsoft.Json.JsonConvert.SerializeObject(ListBox_PlayerList_Team02);
-            File.WriteAllText(AuthView.F_Auth_Path3, json);
+            // 读取现有数据或初始化新的列表
+            List<dynamic> records;
+            string filePath = AuthView.F_Auth_Path3;
+
+            if (File.Exists(filePath))
+            {
+                string existingData = File.ReadAllText(filePath);
+                records = JsonConvert.DeserializeObject<List<dynamic>>(existingData) ?? new List<dynamic>();
+            }
+            else
+            {
+                records = new List<dynamic>();
+            }
+
+            // 创建新记录，包含时间戳
+            var newRecord = new
+            {
+                Timestamp = DateTime.Now,
+                Players = ListBox_PlayerList_Team02.Select(player => new { player.Name, player.PersonaId }).ToList()
+            };
+
+            // 确保列表不超过20个元素
+            if (records.Count >= 20)
+            {
+                // 移除最老的记录并添加新记录
+                records.RemoveAt(0);
+            }
+
+            // 添加新记录
+            records.Add(newRecord);
+
+            // 序列化整个记录列表并保存
+            string json = JsonConvert.SerializeObject(records, Formatting.Indented);
+            File.WriteAllText(filePath, json);
         }
         if (PlayerList_Team02.Count == 0 && ListBox_PlayerList_Team02.Count != 0)
             
@@ -1148,6 +1180,17 @@ public partial class ScoreView : UserControl
             NotifierHelper.Show(NotifierType.Warning, "T1 当前未选中任何玩家，操作取消");
         }
     }
+    private async void MenuItem_Team1_AutoWatch_Click(object sender, RoutedEventArgs e)
+    {
+         if (ListView_Team1.SelectedItem is PlayerDataModel item)
+        {
+          await  Autobalance.Autowatch(item.Name);    
+        }
+        else
+        {
+            NotifierHelper.Show(NotifierType.Warning, "T1 当前未选中任何玩家，操作取消");
+        }
+    }
     #endregion
 
     #region 队伍2 右键菜单事件
@@ -1288,6 +1331,17 @@ public partial class ScoreView : UserControl
 
             var queryRecordWindow = new QueryRecordWindow(item.Name, item.PersonaId, item.Rank);
             queryRecordWindow.Show();
+        }
+        else
+        {
+            NotifierHelper.Show(NotifierType.Warning, "T2 当前未选中任何玩家，操作取消");
+        }
+    }
+    private async void MenuItem_Team2_AutoWatch_Click(object sender, RoutedEventArgs e)
+    {
+        if (ListView_Team2.SelectedItem is PlayerDataModel item)
+        {
+          await  Autobalance.Autowatch(item.Name);    
         }
         else
         {

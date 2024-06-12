@@ -14,6 +14,7 @@ using BF1ServerTools.API;
 using BF1ServerTools.Data;
 using BF1ServerTools.Views;
 using System.Drawing;
+using BF1ServerTools.UI.Controls;
 
 
 namespace BF1ServerTools;
@@ -22,7 +23,7 @@ namespace BF1ServerTools;
 /// <summary>
 /// LoadWindow.xaml 的交互逻辑
 /// </summary>
-public partial class LoadWindow
+public partial class LoadWindow : UiWindow
 {
     /// <summary>
     /// Load的数据模型绑定

@@ -553,7 +553,7 @@ public partial class MonitView : UserControl
         if (playerData.Kill > serverRule.MaxKill &&
             serverRule.MaxKill != 0)
         {
-            AddBreakRulePlayerInfo(playerData, BreakType.Kill, $"Kill Limit {serverRule.MaxKill:0}");
+            AddBreakRulePlayerInfo(playerData, BreakType.Kill, $"击杀限制{serverRule.MaxKill:0}");
         }
 
         // 计算玩家KD最低击杀数
@@ -564,7 +564,7 @@ public partial class MonitView : UserControl
             if (playerData.Kd > serverRule.MaxKD &&
                 serverRule.MaxKD != 0.00f)
             {
-                AddBreakRulePlayerInfo(playerData, BreakType.KD, $"KD Limit {serverRule.MaxKD:0.00}");
+                AddBreakRulePlayerInfo(playerData, BreakType.KD, $"KD限制{serverRule.MaxKD:0.00}");
             }
         }
 
@@ -576,7 +576,7 @@ public partial class MonitView : UserControl
             if (playerData.Kpm > serverRule.MaxKPM &&
                 serverRule.MaxKPM != 0.00f)
             {
-                AddBreakRulePlayerInfo(playerData, BreakType.KPM, $"KPM Limit {serverRule.MaxKPM:0.00}");
+                AddBreakRulePlayerInfo(playerData, BreakType.KPM, $"KPM限制{serverRule.MaxKPM:0.00}");
             }
         }
 
@@ -585,7 +585,7 @@ public partial class MonitView : UserControl
             serverRule.MinRank != 0 &&
             playerData.Rank != 0)
         {
-            AddBreakRulePlayerInfo(playerData, BreakType.Rank, $"Min Rank Limit {serverRule.MinRank:0}");
+            AddBreakRulePlayerInfo(playerData, BreakType.Rank, $"最低等级限制{serverRule.MinRank:0}");
         }
 
         // 限制玩家最高等级
@@ -593,7 +593,7 @@ public partial class MonitView : UserControl
             serverRule.MaxRank != 0 &&
             playerData.Rank != 0)
         {
-            AddBreakRulePlayerInfo(playerData, BreakType.Rank, $"Max Rank Limit {serverRule.MaxRank:0}");
+            AddBreakRulePlayerInfo(playerData, BreakType.Rank, $"最高等级限制{serverRule.MaxRank:0}");
         }
 
         // 从武器规则里遍历限制武器名称
@@ -607,7 +607,7 @@ public partial class MonitView : UserControl
                 if (playerData.WeaponS2.Contains("_KBullet") ||
                     playerData.WeaponS5.Contains("_KBullet"))
                 {
-                    AddBreakRulePlayerInfo(playerData, BreakType.Weapon, "Weapon Limit K Bullet");
+                    AddBreakRulePlayerInfo(playerData, BreakType.Weapon, "限制武器K弹");
                 }
             }
 
@@ -617,7 +617,7 @@ public partial class MonitView : UserControl
                 if (playerData.WeaponS2.Contains("_RGL_Frag") ||
                     playerData.WeaponS5.Contains("_RGL_Frag"))
                 {
-                    AddBreakRulePlayerInfo(playerData, BreakType.Weapon, "Weapon Limit RGL Frag");
+                    AddBreakRulePlayerInfo(playerData, BreakType.Weapon, "限制步枪手榴弹 破片");
                 }
             }
 
@@ -627,7 +627,7 @@ public partial class MonitView : UserControl
                 if (playerData.WeaponS2.Contains("_RGL_Smoke") ||
                     playerData.WeaponS5.Contains("_RGL_Smoke"))
                 {
-                    AddBreakRulePlayerInfo(playerData, BreakType.Weapon, "Weapon Limit RGL Smoke");
+                    AddBreakRulePlayerInfo(playerData, BreakType.Weapon, "限制步枪手榴弹 烟雾");
                 }
             }
 
@@ -637,7 +637,7 @@ public partial class MonitView : UserControl
                 if (playerData.WeaponS2.Contains("_RGL_HE") ||
                     playerData.WeaponS5.Contains("_RGL_HE"))
                 {
-                    AddBreakRulePlayerInfo(playerData, BreakType.Weapon, "Weapon Limit RGL HE");
+                    AddBreakRulePlayerInfo(playerData, BreakType.Weapon, "限制步枪手榴弹 高爆");
                 }
             }
 
@@ -651,7 +651,7 @@ public partial class MonitView : UserControl
                 playerData.WeaponS6 == item ||
                 playerData.WeaponS7 == item)
             {
-                AddBreakRulePlayerInfo(playerData, BreakType.Weapon, $"Weapon Limit {ClientHelper.GetWeaponShortTxt(item)}");
+                AddBreakRulePlayerInfo(playerData, BreakType.Weapon, $"武器限制{ClientHelper.GetWeaponShortTxt(item)}");
             }
         }
         //限制侦察数
@@ -667,7 +667,7 @@ public partial class MonitView : UserControl
             }
             else
             {
-                AddBreakRulePlayerInfo(playerData, BreakType.Scout, $"Scout Max {serverRule.MaxScout:0}");
+                AddBreakRulePlayerInfo(playerData, BreakType.Scout, $"最多侦察{serverRule.MaxScout:0}");
             }
         }
     }
@@ -825,7 +825,7 @@ public partial class MonitView : UserControl
         info.State = "正在踢人中...";
         info.Time = DateTime.Now;
 
-        var result = await BF1API.RSPKickPlayer(Globals.SessionId, Globals.GameId, info.PersonaId, info.Reason);
+        var result = await BF1API.RSPKickPlayer(Globals.SessionId, Globals.GameId, info.PersonaId, ChsUtil.ToTraditional(info.Reason));
         if (result.IsSuccess)
         {
             info.Flag = KickFlag.Success;

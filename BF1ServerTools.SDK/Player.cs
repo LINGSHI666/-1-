@@ -259,8 +259,8 @@ public static class Player
                     _weaponSlot[j] = string.Empty;
 
                 var _pClientVehicleEntity = Memory.Read<long>(_baseAddress + 0x1D38);
-                if (Memory.IsValid(_pClientVehicleEntity))
-                {
+                if (Memory.IsValid(_pClientVehicleEntity))//测试时改为true
+                    {
                     var _pVehicleHealthComponent = Memory.Read<long>(_pClientVehicleEntity + 0x1D0);
                     if (!Memory.IsValid(_pVehicleHealthComponent))
                         goto NOWEAPON;

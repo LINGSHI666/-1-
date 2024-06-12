@@ -89,7 +89,10 @@ public static class Server
     /// <returns></returns>
     public static int GetTeam1Score()
     {
-        return Memory.Read<int>(GetServerScorePtr() + 0xE8);
+        int a=Memory.Read<int>(GetServerScorePtr() + 0xE8);
+        if (a < 2001 && a >= 0)
+        { return a; }
+        else { return 0; }
     }
 
     /// <summary>
@@ -98,7 +101,10 @@ public static class Server
     /// <returns></returns>
     public static int GetTeam2Score()
     {
-        return Memory.Read<int>(GetServerScorePtr() + 0x118);
+        int a=Memory.Read<int>(GetServerScorePtr() + 0x118);
+        if (a < 2001 && a >= 0)
+        { return a; }
+        else { return 0; }
     }
 
     /// <summary>
@@ -107,7 +113,10 @@ public static class Server
     /// <returns></returns>
     public static int GetTeam1KillScore()
     {
-        return Memory.Read<int>(GetServerScorePtr() + 0x230);
+        int a = Memory.Read<int>(GetServerScorePtr() + 0x230);
+        if (a < 2001 && a >= 0)
+        { return a; }
+        else { return 0; }
     }
 
     /// <summary>
@@ -116,7 +125,10 @@ public static class Server
     /// <returns></returns>
     public static int GetTeam2KillScore()
     {
-        return Memory.Read<int>(GetServerScorePtr() + 0x238);
+        int a= Memory.Read<int>(GetServerScorePtr() + 0x238);
+        if (a < 2001 && a >= 0)
+        { return a; }
+        else { return 0; }
     }
 
     /// <summary>

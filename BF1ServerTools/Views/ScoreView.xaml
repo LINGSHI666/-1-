@@ -330,6 +330,10 @@
                             Name="MenuItem_Team1_QueryPlayerData"
                             Click="MenuItem_Team1_QueryPlayerData_Click"
                             Header="查询玩家数据" />
+                        <MenuItem
+Name="MenuItem_Team1_AutoWatch"
+Click="MenuItem_Team1_AutoWatch_Click"
+Header="观战" />
                     </ContextMenu>
                 </ListView.ContextMenu>
                 <ListView.View>
@@ -464,6 +468,10 @@
                             Name="MenuItem_Team2_QueryPlayerData"
                             Click="MenuItem_Team2_QueryPlayerData_Click"
                             Header="查询玩家数据" />
+                        <MenuItem
+    Name="MenuItem_Team2_AutoWatch"
+    Click="MenuItem_Team2_AutoWatch_Click"
+    Header="观战" />
                     </ContextMenu>
                 </ListView.ContextMenu>
                 <ListView.View>
