@@ -108,7 +108,7 @@ public static class Globals
             return IsUseMode1 ? SessionId1 : SessionId2;
         }
     }
-
+    public static int userteamid = -1;
     /// <summary>
     /// 当前服务器游戏Id
     /// </summary>
@@ -220,6 +220,10 @@ public static class Globals
     /// 是否启用踢出非白名单玩家
     /// </summary>
     public static bool IsEnableKickNoWhites = false;
+    /// <summary>
+    /// 是否启用踢出偷家玩家
+    /// </summary>
+    public static bool IsEnableKickInfiltration = false;
 
     ///////////////////////////////////////////////////////
 

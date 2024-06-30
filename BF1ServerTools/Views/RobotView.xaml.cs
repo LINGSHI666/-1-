@@ -31,6 +31,9 @@ using System.Net.Sockets;
 using System.Net.Http;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 using System.Numerics;
+using System.Collections.Concurrent;
+using System.Windows.Shapes;
+using System.Xml;
 
 namespace BF1ServerTools.Views;
 
@@ -62,12 +65,56 @@ public partial class RobotView : UserControl
 
         InitializeComponent();
         InitializeVoteTimer();
+        _logUpdateTimer = new Timer(200); // 每200毫秒更新一次UI
+        _logUpdateTimer.Elapsed += ProcessLogQueue;
+        _logUpdateTimer.Start();
 
     }
     private void Reportmapinfo_Click(object sender, RoutedEventArgs e)
     {
         // 调用播报信息方法
         showflag = true;
+        _ = Task.Run(async () =>
+        {
+            
+                //await Xyz();
+            
+        });
+    }
+    public async Task Xyz()
+    {
+        List<PointXZ> polygon = new List<PointXZ>
+        {
+      
+        };
+        while (true)
+        {
+            try
+            {
+                var apiResponse = await GetPlayerListAsync();
+                AppendLog("Code: " + apiResponse.Code+"\n");
+
+                foreach (var player in apiResponse.Data)
+                {
+                   
+                    AppendLog("Name: " + player.Name);
+                        PointXZ point = new PointXZ(player.X, player.Z);
+                        bool isInside = Polygon.IsPointInPolygon(point, polygon);
+                        AppendLog($"x:{player.X} y:{player.Y} z:{player.Z}{isInside}\n");
+                        
+                        Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        NotifierHelper.Show(NotifierType.Success, $"x:{player.X} y:{player.Y} z:{player.Z}{isInside}");
+                    });
+                    
+                }
+            }
+            catch (Exception e)
+            {
+                AppendLog("Request failed: " + e.Message+"\n");
+            }
+            await Task.Delay(1000);
+        }
     }
     /// <summary>
     /// 启动定时平衡
@@ -296,26 +343,36 @@ public partial class RobotView : UserControl
             string lastSender = Chat.GetLastChatSender(out _);
             string lastContent = Chat.GetLastChatContent(out _).ToLower();
 
+           
             if (!string.IsNullOrEmpty(lastContent) && lastContent.StartsWith("vote "))
             {
-                // 原始内容分割并尝试获取投票名称
-                string voteName = lastContent.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).ElementAtOrDefault(1)?.ToLower();
+                // 去除开头的 "vote " 并获取投票名称部分
+                string voteContent = lastContent.Substring(5).Trim().ToLower();
 
-                // 如果存在，去除所有空格
+                // 去除所有空格
+                string voteName = voteContent.Replace(" ", "");
+
+                // 遍历mapNamesToId，忽略投票名称中的空格进行匹配
                 if (!string.IsNullOrEmpty(voteName))
                 {
-                    voteName = voteName.Replace(" ", "");
-
-                    if (mapNamesToId.TryGetValue(voteName, out var localMapId))
+                    foreach (var entry in mapNamesToId)
                     {
-                        if (!userHasVoted.ContainsKey(lastSender))
+                        string keyWithoutSpaces = entry.Key.Replace(" ", "").ToLower();
+                        if (keyWithoutSpaces == voteName)
                         {
-                            votes[localMapId] = votes.TryGetValue(localMapId, out var currentCount) ? currentCount + 1 : 1;
-                            userHasVoted[lastSender] = true;
+                            var localMapId = entry.Value;
+
+                            if (!userHasVoted.ContainsKey(lastSender))
+                            {
+                                votes[localMapId] = votes.TryGetValue(localMapId, out var currentCount) ? currentCount + 1 : 1;
+                                userHasVoted[lastSender] = true;
+                            }
+                            break;
                         }
                     }
                 }
             }
+
             
 
             if (votes.Count > 0 && showflag)
@@ -400,16 +457,194 @@ public partial class RobotView : UserControl
 
         // 计算最后一个元素和第一个元素的差值
         int scoreIncrease = scoresArray[scoresArray.Length - 1] - scoresArray[scoresArray.Length - 11];
-        return scoreIncrease / 1;  
+        return scoreIncrease ;  
     }
     //压家
     private async void AutoAllchange()
     {
         NotifierHelper.Show(NotifierType.Information, "压家检测已启动");
+        if (monitoringcount < 2)
+        {
+            Task.Run(() => MonitorFlags());
+            await Task.Delay(6000);
+            Task.Run(() => MonitorFlags());
+        }
+
         bool delayallchangeflag = delayallchange.IsChecked ?? false;
         double delaytimeflag = delayallchangetime != null ? delayallchangetime.Value : 0;
         double scoreflag = sliderAllchange != null ? sliderAllchange.Value : 700;
         var maptopoint = new Dictionary<string, int>
+{
+
+    {"决裂", 5},
+    {"勃鲁西洛夫关口", 4},
+    {"加利西亚", 5},
+    {"庞然暗影", 6},
+    {"法乌克斯要塞", 5},
+    {"亚眠", 6},
+    {"阿奇巴巴", 5},
+    {"凡尔登高地", 5},
+
+    {"察里津", 3},
+    {"苏伊士", 5},
+    {"阿尔贡森林", 5},
+
+    {"武普库夫山口", 7},
+    {"苏瓦松", 5},
+    {"窝瓦河", 7},
+    {"西奈沙漠", 7},
+    {"流血宴厅", 5},
+    {"圣康坦的伤痕", 6},
+    {"法欧堡", 7},
+    {"帝国边境", 7},
+    {"攻占托尔", 5},
+    {"格拉巴山", 5},
+    {"尼维尔之夜", 6},
+    {"阿尔比恩", 7},
+     
+
+    {"帕斯尚尔", 5},
+
+};
+        //获取地图列表，便于重开
+        //NotifierHelper.Show(NotifierType.Information, "正在尝试获取地图列表");
+        //var mapItems = await GetServerMapList();
+        int team1Score = 0;
+        int team2Score = 0;
+        int time = 495;
+        int countflag = 0;
+    BEGIN:     do
+        { // 开始计时
+          // 创建一个Stopwatch实例
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
+            int point = 0;
+           
+            do
+            {
+                if (maptopoint.TryGetValue(ScoreView.mapname, out point))
+                {
+                    break;
+                }
+                else
+                {
+                    originpoint = 0;
+                    await Task.Delay(10000);
+
+                }
+            } while (true);
+            originpoint = point;
+            if ((onepointmode.IsChecked ?? false) && ScoreView.mapname != "察里津")
+            {
+                point--;
+               
+            }
+          
+           
+         
+           
+           
+                delayallchangeflag = delayallchange.IsChecked ?? false;
+                if (Server.GetTeam1Score() > scoreflag || Server.GetTeam2Score() > scoreflag)
+                { 
+                    goto END; 
+                }
+              
+
+
+               
+                    
+
+               
+                if ((point == team1Flags || point == team2Flags) && autoallchange)
+                {
+                    if (delayallchangeflag)
+                    {
+                        await Task.Delay((int)((delaytimeflag - 14) * 1000));
+                        delayallchangeflag = false;
+                        goto BEGIN;
+                    }
+                    delayallchangeflag = delayallchange.IsChecked ?? false;
+                    break;
+                }
+                delayallchangeflag = delayallchange.IsChecked ?? false;
+            
+            await Task.Delay(time);
+            // 停止计时
+            stopwatch.Stop();
+            //NotifierHelper.Show(NotifierType.Information, $"{stopwatch.ElapsedMilliseconds}");
+            if (time >= 510)
+            {
+                time = time - 3;
+            }
+           //NotifierHelper.Show(NotifierType.Information, $"{team1Flags}||{team2Flags}");
+        } while (true);
+        List<PlayerData> playerList = Player.GetPlayerList(); // 获取当前所有玩家的列表
+        int count = playerList.Count(p => p.PersonaId != 0);
+        if (count < 60 && count > 0 && !(autooconquerplayerchange.IsChecked ?? false))
+        { await ChangeAllPlayers(); }
+        else
+        {
+            NotifierHelper.Show(NotifierType.Information, "人数过多，正在重开");
+            int? mapid = await FindMapId(ScoreView.mapname, ScoreView.mapmode);
+            if (mapid.HasValue)
+            {
+
+                var result = await BF1API.RSPChooseLevel(Globals.SessionId, Globals.PersistedGameId, (int)mapid);
+                if (result.IsSuccess)
+                {
+                    NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换服务器 {Globals.GameId} 地图 成功");
+
+                }
+                else
+                {
+                    NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换服务器 {Globals.GameId} 地图 失败");
+                    MessageBox.Show("重开失败");
+                }
+            }
+            else
+            {
+                MessageBox.Show("程序出错");
+            }
+        }
+
+    END: team1Score = Server.GetTeam1FlagScore();
+        team2Score = Server.GetTeam2FlagScore();
+        team1Scores.Enqueue(team1Score);
+        team2Scores.Enqueue(team2Score);
+        while (true)
+        {   await Task.Delay(6000);
+            team1Score = Server.GetTeam1FlagScore();
+            team2Score = Server.GetTeam2FlagScore();
+            if(team1Score < team1Scores.Peek() || team2Score< team2Scores.Peek())
+            {
+                goto BEGIN;
+            }
+        }
+    }
+    public static int team1Flags = 0;
+    public static int team2Flags = 0;
+    static bool monitoring = true;
+    static int originpoint = 0;
+    public static int monitoringcount = 0;
+
+    public static async Task MonitorFlags()
+    {   
+        double intervalSeconds = 0.1;
+        int intervalMilliseconds = (int)(intervalSeconds * 1000);
+        double monitoringPeriodSeconds = 12.0; // 总监测时间
+
+        monitoringcount++;
+
+
+
+        List<ScoreEntry> scoreTimelineTeam1 = new List<ScoreEntry>();
+        List<ScoreEntry> scoreTimelineTeam2 = new List<ScoreEntry>();
+
+        while (monitoring)
+        {
+            var maptopoint = new Dictionary<string, int>
 {
 
     {"决裂", 5},
@@ -442,21 +677,8 @@ public partial class RobotView : UserControl
     {"帕斯尚尔", 5},
 
 };
-        //获取地图列表，便于重开
-        //NotifierHelper.Show(NotifierType.Information, "正在尝试获取地图列表");
-        //var mapItems = await GetServerMapList();
-        int team1Score = 0;
-        int team2Score = 0;
-        int time = 495;
-    BEGIN:     do
-        { // 开始计时
-          // 创建一个Stopwatch实例
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-
             int point = 0;
-            team1Score = Server.GetTeam1FlagScore();
-            team2Score = Server.GetTeam2FlagScore();
+
             do
             {
                 if (maptopoint.TryGetValue(ScoreView.mapname, out point))
@@ -465,105 +687,195 @@ public partial class RobotView : UserControl
                 }
                 else
                 {
+                    originpoint = 0;
                     await Task.Delay(10000);
 
                 }
             } while (true);
-            if ((onepointmode.IsChecked ?? false) && ScoreView.mapname != "察里津")
-            {
-                point--;
-            }
-            else
-            {
-                point = point * 2 - 1;
-            }
-            // 维护队列长度为30
-            if (team1Scores.Count >= 30)
-                team1Scores.Dequeue();
-            if (team2Scores.Count >= 30)
-                team2Scores.Dequeue();
+            originpoint = point;
+            Dictionary<double, int> scoring = new Dictionary<double, int>();
+            switch (originpoint) {
+            case 3: scoring.Add(5, 1);
+                    scoring.Add(2.75, 2);
+                    scoring.Add(0.5, 3);
+                    break;
+            case 4:scoring.Add(5, 1);
+                   scoring.Add(3.5, 2);
+                    scoring.Add(2, 3);
+                    scoring.Add(0.5, 4);
+                    break;
+                case 5: scoring.Add(5, 1);
+                    scoring.Add(3.875, 2);
+                    scoring.Add(2.75,3);
+                    scoring.Add(1.625, 4);
+                    scoring.Add(0.5, 5);
+                    break;
+                case 6:scoring.Add(5, 1);
+                       scoring.Add(4.1,2);
+                    scoring.Add(3.2, 3);
+                    scoring.Add(2.3,4);
+                    scoring.Add(1.4,5);
+                    scoring.Add(0.5, 6);
+                    break;
+                case 7:scoring.Add(5, 1);
+                    scoring.Add(4.25, 2);
+                    scoring.Add(3.5, 3);
+                    scoring.Add(2.75, 4);
+                    scoring.Add(2, 5);
+                    scoring.Add(1.25, 6);
+                    scoring.Add(0.5, 7);
+                    break;
+                default:
+                    await Task.Delay(3000);
+                    continue;             
+                };
+            // 清空历史记录
+            scoreTimelineTeam1.Clear();
+            scoreTimelineTeam2.Clear();
 
-            team1Scores.Enqueue(team1Score);
-            team2Scores.Enqueue(team2Score);
-            // 只有当队列满时才进行估算
-            if (team1Scores.Count == 30 && team2Scores.Count == 30)
-            {   
-                delayallchangeflag = delayallchange.IsChecked ?? false;
-                if (Server.GetTeam1Score() > scoreflag || Server.GetTeam2Score() > scoreflag)
-                { 
-                    goto END; 
-                }
-                int team1Points = EstimateNumberOfPoints(team1Scores);
-                int team2Points = EstimateNumberOfPoints(team2Scores);
-                int team1Points2 = EstimateNumberOfPointsquick(team1Scores);
-                int team2Points2 = EstimateNumberOfPointsquick(team2Scores);
-                NotifierHelper.Show(NotifierType.Information, $"{team1Points}||{team2Points}||{team1Points2}||{team2Points2}");
-                if(team1Points<0||team2Points<0||team1Points2<0||team2Points2<0)
-                {
-                    team1Scores.Clear();
-                    team2Scores.Clear();
-                    goto BEGIN;
-                }
-                if (point <= team1Points || point <= team2Points || point <= team1Points2 || point <= team1Points2)
-                {
-                    if (delayallchangeflag)
-                    {
-                        await Task.Delay((int)((delaytimeflag - 14) * 1000));
-                        delayallchangeflag = false;
-                        team1Scores.Clear();
-                        team2Scores.Clear();
-                        goto BEGIN;
-                    }
-                    delayallchangeflag = delayallchange.IsChecked ?? false;
-                    break; }
-                delayallchangeflag = delayallchange.IsChecked ?? false;
-            }
-            await Task.Delay(time);
-            // 停止计时
-            stopwatch.Stop();
-            //NotifierHelper.Show(NotifierType.Information, $"{stopwatch.ElapsedMilliseconds}");
-            if (time >= 510)
+            // 记录初始得分
+            int initialScoreTeam1 = Server.GetTeam1FlagScore();
+            int initialScoreTeam2 = Server.GetTeam2FlagScore();
+            scoreTimelineTeam1.Add(new ScoreEntry { Score = 0, Time = DateTime.Now });
+            scoreTimelineTeam2.Add(new ScoreEntry { Score = 0, Time = DateTime.Now });
+
+            DateTime startTime = DateTime.Now;
+
+            while ((DateTime.Now - startTime).TotalSeconds < monitoringPeriodSeconds)
             {
-                time = time - 3;
+                await Task.Delay(intervalMilliseconds);
+
+                int currentScoreTeam1 = Server.GetTeam1FlagScore();
+                int currentScoreTeam2 = Server.GetTeam2FlagScore();
+                scoreTimelineTeam1.Add(new ScoreEntry { Score = currentScoreTeam1 - initialScoreTeam1, Time = DateTime.Now });
+                scoreTimelineTeam2.Add(new ScoreEntry { Score = currentScoreTeam2 - initialScoreTeam2, Time = DateTime.Now });
+                initialScoreTeam1 = currentScoreTeam1;
+                initialScoreTeam2 = currentScoreTeam2;
             }
-        } while (true);
-        List<PlayerData> playerList = Player.GetPlayerList(); // 获取当前所有玩家的列表
-        int count = playerList.Count(p => p.PersonaId != 0);
-        if (count < 60 && count > 0 && !(autooconquerplayerchange.IsChecked ?? false))
-        { await ChangeAllPlayers(); }
-        else
+            int flagsCapturedTeam1 = -1;
+            int flagsCapturedTeam2 = -1;
+            foreach (KeyValuePair<double, int> kvp in scoring)
+            {
+                var newline = DeepCopyList(scoreTimelineTeam1);
+                int a = CalculateFlags(newline, kvp.Key);
+                if (a == 1)
+                {
+                    flagsCapturedTeam1 = kvp.Value;
+                }
+                else if (a == 0)
+                { flagsCapturedTeam1 = 0;
+
+                }
+                newline = DeepCopyList(scoreTimelineTeam2);
+                a = CalculateFlags(newline, kvp.Key);
+                if (a == 1)
+                {
+                    flagsCapturedTeam2 = kvp.Value;
+                }
+                else if (a == 0)
+                {
+                    flagsCapturedTeam2 = 0;
+
+                }
+
+            }
+            
+
+
+                // 更新全局变量
+                if (flagsCapturedTeam1 != -1)
+                {
+                    Interlocked.Exchange(ref team1Flags, flagsCapturedTeam1);
+                }
+                if (flagsCapturedTeam2 != -1)
+                {
+                    Interlocked.Exchange(ref team2Flags, flagsCapturedTeam2);
+                }
+            
+        }
+    }
+
+    public class ScoreEntry
+    {
+        public int Score { get; set; }
+        public DateTime Time { get; set; }
+        public ScoreEntry DeepCopy()
         {
-            NotifierHelper.Show(NotifierType.Information, "人数过多，正在重开");
-            int? mapid = await FindMapId(ScoreView.mapname, ScoreView.mapmode);
-            if (mapid.HasValue)
-            {
+            return new ScoreEntry { Score = this.Score, Time = this.Time };
+        }
+    }
+    public static List<ScoreEntry> DeepCopyList(List<ScoreEntry> originalList)
+    {
+        List<ScoreEntry> newList = new List<ScoreEntry>();
+        foreach (var item in originalList)
+        {
+            newList.Add(item.DeepCopy());
+        }
+        return newList;
+    }
 
-                var result = await BF1API.RSPChooseLevel(Globals.SessionId, Globals.PersistedGameId, (int)mapid);
-                if (result.IsSuccess)
-                {
-                    NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换服务器 {Globals.GameId} 地图 成功");
+    public static int CalculateFlags(List<ScoreEntry> scoreTimeline,double time)
+    {
+        int flags = 0;
 
-                }
-                else
-                {
-                    NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换服务器 {Globals.GameId} 地图 失败");
-                    MessageBox.Show("重开失败");
-                }
-            }
-            else
+        for (int index = 0; index < scoreTimeline.Count - 1; index++)
+        {
+            while (scoreTimeline[index].Score > 0)
             {
-                MessageBox.Show("程序出错");
+                // 获取分钟、秒和毫秒
+                int minutes = scoreTimeline[index].Time.Minute;
+                int seconds = scoreTimeline[index].Time.Second;
+                int milliseconds = scoreTimeline[index].Time.Millisecond;
+
+                // 格式化并显示分钟、秒和毫秒
+                string formattedTime = string.Format("{0:D2}:{1:D2}.{2:D3}", minutes, seconds, milliseconds);
+                //AppendLog($"最初{index}{formattedTime}当前使用间隔{time}");
+                flags++;
+                scoreTimeline[index].Score--;
+                scoreTimeline = ClearScore(scoreTimeline, index,time);
+                //AppendLog("\n");
             }
         }
-    END: while (true)
-        {   await Task.Delay(5000);
-            team1Score = Server.GetTeam1FlagScore();
-            team2Score = Server.GetTeam2FlagScore();
-            if(team1Score < team1Scores.Peek() || team2Score< team2Scores.Peek())
+
+        return flags;
+    }
+
+    public static List<ScoreEntry> ClearScore(List<ScoreEntry> scoreTimeline, int index,double time)
+    {
+        if (index + 1 >= scoreTimeline.Count)
+        {
+            return scoreTimeline;
+        }
+
+        var startTime = scoreTimeline[index].Time;
+        double timeDiff = 1000;
+        int nextIndex = -1;
+
+        for (int i = index + 1; i < scoreTimeline.Count; i++)
+        {
+            double timeDiff2 = Math.Abs((scoreTimeline[i].Time - startTime).TotalSeconds);
+            if (scoreTimeline[i].Score > 0 && timeDiff2 >= time - 0.3 && timeDiff2 <= time + 0.3 && timeDiff2 < timeDiff)
             {
-                goto BEGIN;
+                timeDiff = timeDiff2;
+                nextIndex = i;
             }
         }
+
+        if (nextIndex != -1)
+        {
+            // 获取分钟、秒和毫秒
+            int minutes = scoreTimeline[nextIndex].Time.Minute;
+            int seconds = scoreTimeline[nextIndex].Time.Second;
+            int milliseconds = scoreTimeline[nextIndex].Time.Millisecond;
+
+            // 格式化并显示分钟、秒和毫秒
+            string formattedTime = string.Format("{0:D2}:{1:D2}.{2:D3}", minutes, seconds, milliseconds);
+            //AppendLog($"递归{nextIndex} {formattedTime}当前使用间隔{time}");
+            scoreTimeline[nextIndex].Score--;
+            scoreTimeline = ClearScore(scoreTimeline, nextIndex, time);
+        }
+
+        return scoreTimeline;
     }
     // 查找地图 ID 的方法
     public async Task<int?> FindMapId(string mapName, string mapMode)
@@ -859,7 +1171,12 @@ public partial class RobotView : UserControl
         var topPlayers = playerList.GroupBy(p => p.TeamId)
                                    .SelectMany(g => g.OrderByDescending(p => p.Rank).Take(3))
                                    .ToList();
-
+        AppendLog("参照玩家名单为");
+        foreach (var player in topPlayers)
+        {
+            AppendLog($"{player.Name}" );
+        }
+        AppendLog("\n");
         var initialGameCounts = new Dictionary<long, int>();
         var initialWinGameCounts = new Dictionary<long, int>();
         var initialPlayKill = new Dictionary<long, int>();
@@ -869,10 +1186,17 @@ public partial class RobotView : UserControl
             for (int i = 0; i < 5; i++)
             {
                 int[] array = await DetailedStats(player.PersonaId);
+                if (cancellationToken.IsCancellationRequested)
+                { return; }
+                if (!liveflag)
+                {
+                    return;
+                }
                 initialGameCounts[player.PersonaId] = array[0];
                 initialWinGameCounts[player.PersonaId] = array[1];
                 initialPlayKill[player.PersonaId] = array[2];
                 initialPlayDeaths[player.PersonaId] = array[3];
+                AddChangeMapLog(player, array);
                 if (array[0] != 0 && array[1] != 0 && array[2] !=0 && array[3] != 0)
                 { break; }
                 if (i == 4)
@@ -898,10 +1222,17 @@ public partial class RobotView : UserControl
                 for (int i = 0; i < 3; i++)
                 {
                     int[] array = await DetailedStats(player.PersonaId);
+                    if (cancellationToken.IsCancellationRequested)
+                    { return; }
+                    if (!liveflag)
+                    {
+                        return;
+                    }
                     currentGameCount = array[0];
                     currentWinGameCount = array[1];
                     currentKill = array[2];
                     currentDeaths = array[3];
+                    AddChangeMapLog(player, array);
                     if (array[0] != 0 && array[1] != 0)
                     {
                         //NotifierHelper.Show(NotifierType.Success, $" {currentPlayTime}");
@@ -913,14 +1244,18 @@ public partial class RobotView : UserControl
                 if (initialGameCounts[player.PersonaId] < currentGameCount && (initialPlayKill[player.PersonaId] + initialPlayDeaths[player.PersonaId]) < (currentKill + currentDeaths))
                 {
                     increasedCount++;
-                }
+
                     if (player.TeamId == 1 && initialWinGameCounts[player.PersonaId] < currentWinGameCount)
-                {
-                    increasedWinCount++;
-                }
-                if (player.TeamId == 2 && initialWinGameCounts[player.PersonaId] < currentWinGameCount)
-                {
-                    increasedWinCount--;
+                    {
+                        increasedWinCount++;
+                        AppendLog("进攻胜利+1\n");
+
+                    }
+                    if (player.TeamId == 2 && initialWinGameCounts[player.PersonaId] < currentWinGameCount)
+                    {
+                        increasedWinCount--;
+                        AppendLog("防守胜利+1\n");
+                    }
                 }
             }
 
@@ -935,9 +1270,17 @@ public partial class RobotView : UserControl
                 {
                     return;
                 }
-                jiankongflag = 1;
                 if (increasedWinCount > 0)
-                { attackwinflag = true; }
+                {
+                    attackwinflag = true;
+                    AppendLog("队伍一胜利\n");
+                }
+                else
+                {
+                    AppendLog("队伍二胜利\n");
+                }
+                jiankongflag = 1;
+                
                 return; // 至少比玩家数少3的玩家游戏场数加1，或在少于4人时一个人场数加1
             }
 
@@ -1279,10 +1622,147 @@ public partial class RobotView : UserControl
 
 
     }
+    /// <summary>
+    /// 追加日志
+    /// </summary>
+    /// <param name="info"></param>
+    private readonly ConcurrentQueue<string> _logQueue = new ConcurrentQueue<string>();
+    private const int MaxLogLines = 1000;
+    private const int MaxQueueSize = 5000; // 最大队列大小
+    private static Timer _logUpdateTimer;
+
+    public void YourClassConstructor()
+    {
+        // 初始化定时器
+        _logUpdateTimer = new Timer(200); // 每200毫秒更新一次UI
+        _logUpdateTimer.Elapsed += ProcessLogQueue;
+        _logUpdateTimer.Start();
+    }
+
+    private void AddChangeMapLog(PlayerData player, int[] array)
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine($"玩家:{player.Name}");
+        if (array[0] != 0 && array[1] != 0 && array[2] != 0 && array[3] != 0)
+        {
+            sb.AppendLine($"游戏总场数{array[0]}");
+            sb.AppendLine($"胜利场数{array[1]}");
+            sb.AppendLine($"总击杀{array[2]}");
+            sb.AppendLine($"总死亡{array[3]}");
+        }
+        else
+        {
+            sb.AppendLine("网络错误");
+        }
+
+        AppendLog(sb.ToString());
+    }
+
+    private  void AppendLog(string log)
+    {
+        if (_logQueue.Count < MaxQueueSize)
+        {
+            _logQueue.Enqueue(log);
+        }
+        else
+        {
+            // 如果队列已满，可以选择丢弃新日志或移除旧日志
+            _logQueue.TryDequeue(out _);
+            _logQueue.Enqueue(log);
+        }
+    }
+
+    private void ProcessLogQueue(object sender, ElapsedEventArgs e)
+    {
+        // 只允许一个线程更新UI
+        if (Dispatcher.CheckAccess())
+        {
+            UpdateLogUI();
+        }
+        else
+        {
+            Dispatcher.Invoke(UpdateLogUI);
+        }
+    }
+
+    private void UpdateLogUI()
+    {
+        if (TextBox_ChangeMapLog.LineCount >= MaxLogLines)
+            TextBox_ChangeMapLog.Clear();
+
+        while (_logQueue.TryDequeue(out string queuedLog))
+        {
+            TextBox_ChangeMapLog.AppendText(queuedLog);
+        }
+    }
+    private void MenuItem_ChangeMap_Click(object sender, RoutedEventArgs e)
+    {
+        TextBox_ChangeMapLog.Clear();
+       // NotifierHelper.Show(NotifierType.Success, "清空换图日志成功");
+    }
+    private static readonly HttpClient client = new HttpClient();
+
+    public static async Task<ApiResponse> GetPlayerListAsync()
+    {
+        var url = "http://127.0.0.1:10086/Player/GetAllPlayerList";
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+
+        var response = await client.SendAsync(request);
+
+        response.EnsureSuccessStatusCode();
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+
+        var apiResponse = JsonSerializer.Deserialize<ApiResponse>(responseBody, options);
+
+        return apiResponse;
+    }
+    public static async Task<List<PlayerData>> GetPlayerListXYZ(List<PlayerData> oldplayerlist)
+    {
+        if (ScoreView.zhangapi)
+        {
+            try
+            {
+                var apiResponse = await GetPlayerListAsync();
+
+
+                foreach (var newPlayer in apiResponse.Data)
+                {
+                    var oldPlayer = oldplayerlist.FirstOrDefault(p => p.PersonaId == newPlayer.PersonaId);
+                    if (oldPlayer != null)
+                    {
+                        oldPlayer.X = newPlayer.X;
+                        oldPlayer.Y = newPlayer.Y;
+                        oldPlayer.Z = newPlayer.Z;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                //MessageBox.Show("Request failed: " + e.Message + "\n");
+            }
+            return oldplayerlist;
+        }
+        else
+        {
+           
+            return oldplayerlist;
+
+        }
 
     }
 
-    public static class VisualTreeExtensions
+
+}
+
+public static class VisualTreeExtensions
     {
         public static T FindAncestorOrSelf<T>(this DependencyObject obj) where T : DependencyObject
         {
@@ -1296,6 +1776,93 @@ public partial class RobotView : UserControl
             return null;
         }
     }
+public class ApiPlayer
+{
+    public int Index { get; set; }
+    public int Mark { get; set; }
+    public int TeamId { get; set; }
+    public bool IsSpectator { get; set; }
+    public string Clan { get; set; }
+    public string Name { get; set; }
+    public long PersonaId { get; set; }
+    public int SquadId { get; set; }
+    public string SquadName { get; set; }
+    public int Rank { get; set; }
+    public int Kill { get; set; }
+    public int Dead { get; set; }
+    public int Score { get; set; }
+    public string Kit { get; set; }
+    public string KitName { get; set; }
+    public double AuthorativeYaw { get; set; }
+    public int PoseType { get; set; }
+    public string PoseName { get; set; }
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Z { get; set; }
+    public bool IsAlive { get; set; }
+    public bool IsInVehicle { get; set; }
+    public ApiWeapon WeaponS0 { get; set; }
+    public ApiWeapon WeaponS1 { get; set; }
+    public ApiWeapon WeaponS2 { get; set; }
+    public ApiWeapon WeaponS3 { get; set; }
+    public ApiWeapon WeaponS4 { get; set; }
+    public ApiWeapon WeaponS5 { get; set; }
+    public ApiWeapon WeaponS6 { get; set; }
+    public ApiWeapon WeaponS7 { get; set; }
+}
+
+public class ApiWeapon
+{
+    public string Kind { get; set; }
+    public string Guid { get; set; }
+    public string Id { get; set; }
+    public string Name { get; set; }
+}
+
+public class ApiResponse
+{
+    public int Code { get; set; }
+    public string Message { get; set; }
+    public List<ApiPlayer> Data { get; set; }
+    public long Timestamp { get; set; }
+}
+public class PointXZ
+{
+    public double X { get; set; }
+    public double Z { get; set; }
+
+    public PointXZ(double x, double z)
+    {
+        X = x;
+        Z = z;
+    }
+}
+public class Polygon
+{
+    public static bool IsPointInPolygon(PointXZ point, List<PointXZ> polygon)
+    {
+        int polygonLength = polygon.Count, i = 0;
+        bool inside = false;
+        double pointX = point.X, pointZ = point.Z;
+        double startX, startZ, endX, endZ;
+        PointXZ endPoint = polygon[polygonLength - 1];
+        endX = endPoint.X;
+        endZ = endPoint.Z;
+
+        while (i < polygonLength)
+        {
+            startX = endX; startZ = endZ;
+            endPoint = polygon[i++];
+            endX = endPoint.X; endZ = endPoint.Z;
+
+            inside ^= (endZ > pointZ ^ startZ > pointZ) &&
+                      (pointX - endX < (pointZ - endZ) * (startX - endX) / (startZ - endZ));
+        }
+
+        return inside;
+    }
+}
+
 
 
 

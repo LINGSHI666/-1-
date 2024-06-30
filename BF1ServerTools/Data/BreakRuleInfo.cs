@@ -60,5 +60,6 @@ public enum BreakType
     KPM,
     Rank,
     Weapon,
-    Scout
+    Scout,
+    Infiltration
 }

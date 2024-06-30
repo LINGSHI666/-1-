@@ -12,6 +12,9 @@ public class PlayerData
     public string Clan { get; set; }
     public string Name { get; set; }
     public long PersonaId { get; set; }
+    public double X {  get; set; }
+    public double Y { get; set; }
+    public double Z { get; set; }
 
     public int SquadId { get; set; }
     public string SquadId2 { get; set; }

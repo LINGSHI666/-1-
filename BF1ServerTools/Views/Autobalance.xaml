@@ -41,7 +41,7 @@ mc:Ignorable="d">
 
                 <Slider
                     x:Name="slider"
-                    Minimum="1"
+                    Minimum="0"
                     Maximum="60"
                     ValueChanged="Slider_ValueChanged"
                     TickFrequency="1"
@@ -93,6 +93,11 @@ mc:Ignorable="d">
                 </DockPanel>
 
                 <CheckBox x:Name="skillbalance" Content="切换至技巧值平衡，这会在导致平衡时忽略lifekp和lifekpm" Margin="0,5,0,5" />
+                <TextBlock
+    x:Name="labelCurrentdskill"
+    Text="平衡目标为进攻(队伍1)技巧值高于防守(队伍2){}(+-30)"
+    Margin="5"
+    TextWrapping="Wrap" />
                 <Slider
                     x:Name="sliderskill"
                     Minimum="-300"
@@ -100,9 +105,17 @@ mc:Ignorable="d">
                     ValueChanged="Slider_ValueChangedskill"
                     TickFrequency="10"
                     IsSnapToTickEnabled="True" />
+                <CheckBox x:Name="scorebalance" Content="切换至移动得分靠前的玩家到弱势方（征服且分差大于上方定时平衡设定的值）" Margin="0,5,0,5"/>
+                <Slider
+    x:Name="sliderscorebalance"
+    Minimum="1"
+    Maximum="6"
+    ValueChanged="Slider_ValueChangedscore"
+    TickFrequency="1"
+    IsSnapToTickEnabled="True" />
                 <TextBlock
-                    x:Name="labelCurrentdskill"
-                    Text="平衡目标为进攻(队伍1)技巧值高于防守(队伍2){}(+-30)"
+                    x:Name="labelCurrentdscore"
+                    Text="平衡目标为移动优势前1名"
                     Margin="5"
                     TextWrapping="Wrap" />
                 

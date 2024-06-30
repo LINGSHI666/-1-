@@ -127,6 +127,26 @@
                     x:Name="CheckBox_IsEnableKickNoWhites"
                     Click="CheckBox_IsEnableKickNoWhites_Click"
                     Content="启用踢出非白名单玩家" />
+                <CheckBox
+    x:Name="CheckBox_IsEnableKickInfiltration"
+    Click="CheckBox_IsEnableKickInfiltration_Click"
+    Content="启用踢出偷家玩家" />
+                <Slider Grid.Row="2" x:Name="sliderKickInfiltration"
+Minimum="0" Maximum="200" TickFrequency="10" IsSnapToTickEnabled="True"
+ValueChanged="Slider_ValueChangedKickInfiltration" Margin="0,10"/>
+                <TextBlock Grid.Row="3" x:Name="labelKickInfiltration"
+   Text="分差高于0允许劣势方偷家（设置为0以忽略）"
+   TextWrapping="Wrap" Margin="0,10"/>
+                <CheckBox
+    x:Name="CheckBox_IsEnableDelaykick"
+    Click="CheckBox_IsEnableDelaykick_Click"
+    Content="启用播报后延时踢出(一段时间后仍违规）" />
+                <Slider Grid.Row="2" x:Name="sliderDelaykick"
+Minimum="1" Maximum="50" TickFrequency="1" IsSnapToTickEnabled="True"
+ValueChanged="Slider_ValueChangedDelaykick" Margin="0,10"/>
+                <TextBlock Grid.Row="3" x:Name="labelDelaykick"
+   Text="延时时间为1s（请考虑观战15s延时）"
+   TextWrapping="Wrap" Margin="0,10"/>
                 <ui:UiTextBoxHint
                     x:Name="TextBox_KickNoWhitesReason"
                     Hint="自定义踢出非白名单玩家理由"

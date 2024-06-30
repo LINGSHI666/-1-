@@ -41,6 +41,7 @@ using static CommunityToolkit.Mvvm.ComponentModel.__Internals.__TaskExtensions.T
 using static BF1ServerTools.RES.Data.ModeData;
 using Microsoft.VisualBasic.ApplicationServices;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using System.Numerics;
 
 
 
@@ -99,7 +100,7 @@ public partial class Autobalance : UserControl
         if (labelCurrentScore != null) // 检查控件是否为null
         {
             double newValue = e.NewValue; // 获取滑块的当前值
-            labelCurrentScore.Content = $"当前启动自动平衡所需分差为{newValue}（0代表忽略该条件）"; // 更新标签内容
+            labelCurrentScore.Content = $"当前启动自动平衡所需分差为{newValue}（0代表忽略该条件）(一方分数大于900失效）"; // 更新标签内容
         }
     }
     private void Slider_ValueChangedkdkpm(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -118,6 +119,15 @@ public partial class Autobalance : UserControl
         {
             double newValue = e.NewValue; // 获取滑块的当前值
             labelCurrentdskill.Text = $"平衡目标为进攻(队伍1)技巧值高于防守(队伍2){newValue}(+-30)"; // 更新标签内容
+        }
+    }
+    private void Slider_ValueChangedscore(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+
+        if (labelCurrentdscore != null) // 检查控件是否为null
+        {
+            double newValue = e.NewValue; // 获取滑块的当前值
+            labelCurrentdscore.Text = $"平衡目标为移动优势前{newValue}名"; // 更新标签内容
         }
     }
     private void Slider_ValueChangedwatchreport(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -194,9 +204,9 @@ private DispatcherTimer timer;
             cts.Cancel();
             NotifierHelper.Show(NotifierType.Information, "已停止自动平衡");
         }
-        StartRecording("1");
-        await Task.Delay(5000);
-        StopRecording();
+        //StartRecording("1");
+        //await Task.Delay(5000);
+        //StopRecording();
         // await Autowatch("ZED234");
 
 
@@ -226,13 +236,31 @@ private DispatcherTimer timer;
             MessageBox.Show("自动平衡已经运行了");
             return;
         }
-
+        int score = (int)(sliderscore != null ? sliderscore.Value : 0);
+        // 创建一个 CancellationTokenSource 对象来控制任务的取消
+        CancellationTokenSource cts = new CancellationTokenSource();
+        if (score != 0)
+        {
+            isTimerRunning = true;
+            // 启动任务
+            Task balanceTask = AutoScoreBalance(score, cts.Token);
+        }
         // 创建定时器实例
         timer = new DispatcherTimer();
 
         // 获取滑块当前的值，如果slider为null，则使用默认的10分钟
         double minutes = slider != null ? slider.Value : 10;
-
+        if(minutes == 0 && score !=0)
+        {
+            MessageBox.Show($"当前自动平衡仅检测分差");
+            return;
+        }
+        if (minutes == 0 && score ==0)
+        {
+            MessageBox.Show($"参数错误，请检查设置");
+            return;
+        }
+     
         // 设置定时器的时间间隔为滑块的值
         timer.Interval = TimeSpan.FromMinutes(minutes);
 
@@ -246,15 +274,7 @@ private DispatcherTimer timer;
         RunPeriodicTasks();
         isTimerRunning = true;
         MessageBox.Show($"当前自动平衡间隔为{minutes}分钟");
-        int score = (int)(sliderscore != null ? sliderscore.Value : 0);
-        // 创建一个 CancellationTokenSource 对象来控制任务的取消
-        CancellationTokenSource cts = new CancellationTokenSource();
-        if (score != 0)
-        {
-
-            // 启动任务
-            Task balanceTask = AutoScoreBalance(score, cts.Token);
-        }
+       
 
 
     }
@@ -303,10 +323,10 @@ private DispatcherTimer timer;
         while (true)
         {
             string lastSender = Chat.GetLastChatSender(out _);
-            string lastContent = Chat.GetLastChatContent(out _).ToLower();
-            if(!string.IsNullOrEmpty(lastContent) && lastContent.StartsWith("report "))
+            string lastContent = Chat.GetLastChatContent(out long pContent);
+            if (!string.IsNullOrEmpty(lastContent) && lastContent.StartsWith("report "))
             {
-                string voteName = lastContent.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).ElementAtOrDefault(1)?.ToLower();
+                string voteName = lastContent.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).ElementAtOrDefault(1);
                 if (voteName != null )
                 {
                     int a = await Autowatch(voteName);
@@ -327,21 +347,30 @@ private DispatcherTimer timer;
                             StartRecording(voteName);
                             while (await Autowatch(voteName) != 2)
                             {
-                                BEGIN: List<PlayerData> playerList = Player.GetPlayerList(); // 获取当前所有玩家的列表
+                                BEGIN:
+                                if (stopRequested)
+                                {
+                                    break;
+                                }
+                                List<PlayerData> playerList = Player.GetPlayerList(); // 获取当前所有玩家的列表
                                 if (playerList == null)
                                 { break; }
                                 PlayerData player = playerList.FirstOrDefault(p => p.Name == voteName);
+                                if (player == null)
+                                { break; }
                                 if (player.Kit != "")
                                 {
                                     await Task.Delay(2000);
                                     goto BEGIN;
                                 }
+                                
+                                
                             } // 如果循环结束但定时器尚未停止录制，则手动停止
                             if (!stopRequested)
                             {
                                 StopRecording();
                             }
-                            StopRecording();
+                           // StopRecording();
                             break;
                             case 2:
                             ChatInputWindow.SendChsToBF1Chat("玩家ID错误"); 
@@ -372,7 +401,7 @@ private DispatcherTimer timer;
     private async Task AutoScoreBalance(int scoreflag, CancellationToken cancellationToken)
     {   while (!cancellationToken.IsCancellationRequested)
         {
-            if (Math.Abs(Server.GetTeam1Score() - Server.GetTeam2Score()) >= scoreflag)
+            if (Math.Abs(Server.GetTeam1Score() - Server.GetTeam2Score()) >= scoreflag&& Server.GetTeam1Score()<900 && Server.GetTeam2Score()<900)
             {
                 if (timer != null)
                 {
@@ -396,7 +425,7 @@ private DispatcherTimer timer;
                 }
                 RunPeriodicTasks();
                 int score = Server.GetTeam1FlagScore();
-                while (Server.GetTeam1FlagScore() >= score)
+                while (Server.GetTeam1FlagScore() >= score || Server.GetTeam2FlagScore() >= score)
                 {
                     try
                     {
@@ -520,21 +549,23 @@ private DispatcherTimer timer;
                 List<PlayerData> playerList = playerListbegin.Where(p => p.Kill >= 1 || p.Dead >= 2).ToList(); //排除机器人
 
 
-                if (playerList == null || playerList.Count == 0)
+                if (playerList == null || playerList.Count == 0 )
                 {
                     NotifierHelper.Show(NotifierType.Error, "没有足够的玩家数据进行操作");
                     await Task.Delay(1000); // 暂停一秒再继续，避免频繁操作
                     break;
                 }
                 int count = playerList.Count(p => p.PersonaId != 0);
-
+                int score = (int)(sliderscorebalance != null ? sliderscorebalance.Value : 0);
+                int flagscore = (int)(sliderscore != null ? sliderscore.Value : 0);
                 double kdkpmflag = sliderkdkpm != null ? sliderkdkpm.Value : 0;
                 double skillflag = sliderskill != null ? sliderskill.Value : 0;
                 var team1Players = playerList.Where(p => p.TeamId == 1).ToList();
                 var team2Players = playerList.Where(p => p.TeamId == 2).ToList();
-                if (count < 15 || team1Players.Count == 0 || team2Players.Count == 0)
+                if (count < 15 || team1Players.Count == 0 || team2Players.Count == 0 )
                 {
                     NotifierHelper.Show(NotifierType.Error, "人数不足,或游戏刚开始");
+                    await Task.Delay(1000); // 暂停一秒再继续，避免频繁操作
                     break;
                 }
 
@@ -592,6 +623,10 @@ private DispatcherTimer timer;
                 if (ExcludeAdminsCheckBox.IsChecked ?? false)//排除管理员
                 {
                     List<long> adminIds = Globals.ServerAdmins_PID.ToList();//list中admin属性不可信
+                    if (adminIds.Count == 0) {
+                        NotifierHelper.Show(NotifierType.Error, "加载管理名单时出错");
+                        break;
+                    }
                     excludeplayer.AddRange(playerList.Where(player => PlayerUtil.IsAdminVIP(player.PersonaId, adminIds)).ToList());
                 }
                 if (ExcludeVIPsCheckBox.IsChecked ?? false)//排除vip
@@ -626,7 +661,61 @@ private DispatcherTimer timer;
                     MessageBox.Show($"平衡已移动5次仍未平衡\n当前team1kd [{avgLifeKdTeam1:0.00}]kpm [{avgLifeKpmTeam1:0.00}] || team2kd [{avgLifeKdTeam2:0.00}]kpm [{avgLifeKpmTeam2:0.00}]");
                     return;
                 }
+                if (scorebalance.IsChecked ?? false )
+                {
+                    if (Math.Abs(Server.GetTeam1Score() - Server.GetTeam2Score()) >= flagscore)
+                    {
+                        // 获取要排除的玩家 PersonaId 列表
+                        var excludePlayerIds = excludeplayer.Select(p => p.PersonaId).ToHashSet();
 
+                        // 从 playerList 中移除存在于 excludePlayerIds 中的玩家
+                        // 现在 updatedPlayerList 是移除后的玩家列表
+                        int teamid = 0;
+                        var updatedPlayerList = playerList.Where(p => !excludePlayerIds.Contains(p.PersonaId)).ToList();
+                         teamid = Server.GetTeam1Score() - Server.GetTeam2Score() >= flagscore ? 1 : 2;// 决定移动方向
+                        var Players = playerList
+                                                .Where(p => p.TeamId == teamid) // 筛选指定 teamId 的玩家
+                                                  .OrderByDescending(p => p.Score) // 按 Score 降序排列
+                                                 .Take(score) // 取前 score 名玩家
+                                                  .ToList();
+                        // 移动玩家
+                        var tasks = Players.Select(player => new
+                        {
+                            Task = BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, player.PersonaId, teamid),
+                            Player = player
+                        }).ToList();
+
+                        var results = await Task.WhenAll(tasks.Select(x => x.Task));
+                        teamid = teamid == 1 ? 2 : 1;
+                        for (int o = 0; o < results.Length; o++)
+                        {
+                           
+                            var result = results[o];
+                            var player = tasks[o].Player;
+                            if (result.IsSuccess)
+                            {
+                                NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {player.Name} 到队伍{teamid}成功");
+                            }
+                            else
+                            {
+                                NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换玩家 {player.Name} 到队伍{teamid}失败");
+                            }
+                        }
+                        return;
+                    }
+                    else
+                    {
+                        NotifierHelper.Show(NotifierType.Notification, "分差过小，取消平衡");
+                        return;
+                    }
+
+
+
+
+
+
+
+                }
                 if (skillbalance.IsChecked ?? false)
                 {
                     // 获取队伍1技巧值最高的玩家
@@ -953,7 +1042,8 @@ private DispatcherTimer timer;
 
         {
             if (excludeplayer.Any(player1 => player1.PersonaId == player.PersonaId))
-            { continue; }
+            { 
+                continue; }
             // 忽略将玩家移动到已满的队伍
             if ((player.TeamId == 1 && team2Players.Count >= 32) || (player.TeamId == 2 && team1Players.Count >= 32))
             {
@@ -1034,7 +1124,9 @@ private DispatcherTimer timer;
         foreach (var player in team1Players.Concat(team2Players))
         {
             if (excludeplayer.Any(player1 => player1.PersonaId == player.PersonaId))
-            { continue; }
+            {
+                continue; 
+            }
             // 忽略将玩家移动到已满的队伍
             if ((player.TeamId == 1 && team2Players.Count >= 32) || (player.TeamId == 2 && team1Players.Count >= 32))
             {
@@ -1127,7 +1219,9 @@ private DispatcherTimer timer;
         foreach (var player in team1Players.Concat(team2Players))
         {
             if (excludeplayer.Any(player1 => player1.PersonaId == player.PersonaId))
-            { continue; }
+            { 
+                continue; 
+            }
             // 忽略将玩家移动到已满的队伍
             if ((player.TeamId == 1 && team2Players.Count >= 32) || (player.TeamId == 2 && team1Players.Count >= 32))
             {
@@ -1201,7 +1295,9 @@ private DispatcherTimer timer;
         foreach (var player in team1Players.Concat(team2Players))
         {
             if (excludeplayer.Any(player1 => player1.PersonaId == player.PersonaId))
-            { continue; }
+            { 
+                continue; 
+            }
             // 忽略将玩家移动到已满的队伍
             if ((player.TeamId == 1 && team2Players.Count >= 32) || (player.TeamId == 2 && team1Players.Count >= 32))
             {
@@ -1369,4 +1465,6 @@ private DispatcherTimer timer;
             System.Threading.Thread.Sleep(16); // 根据希望的帧率调整
         }
     }
+
+    
 }

@@ -88,8 +88,18 @@
     Margin="5"
     TextWrapping="Wrap" />
                 <CheckBox x:Name="onlyscore" Content="自动换图仅检测分数(分数>993）" Margin="0,5,0,5" />
+                <TextBox x:Name="TextBox_ChangeMapLog" Style="{StaticResource TextBoxStyle_Logger}" Height="444">
+                    <TextBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem
+                 x:Name="MenuItem_ChangeMapLog"
+                 Click="MenuItem_ChangeMap_Click"
+                 Header="清空换图日志" />
+                        </ContextMenu>
+                    </TextBox.ContextMenu>
+                </TextBox>
             </StackPanel>
-
+            
             <!-- 右侧区域 -->
             <StackPanel Grid.Column="2" Margin="5">
                 <ui:UiLabelIcon Content="自动换图" />
