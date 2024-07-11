@@ -8,6 +8,7 @@ using BF1ServerTools.Helper;
 
 using CommunityToolkit.Mvvm.Input;
 using System.Net.Sockets;
+using System.IO.Compression;
 
 namespace BF1ServerTools;
 public class UdpClientService
@@ -103,8 +104,55 @@ public partial class MainWindow
         // 初始化 UDP 客户端
         udpchatrecive = new UdpClientService("127.0.0.1", 52001);
         udpchatsend = new UdpClientService("127.0.0.1", 51001);
+        var path =  ExtractFFmpeg();
+        //MessageBox.Show($"{path}");
     }
+    public static string ExtractFFmpeg()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var resourceName = "BF1ServerTools.ffmpeg.zip"; // 确保这里的命名空间与实际一致
 
+        string baseDirectory = AppContext.BaseDirectory;
+
+        using (Stream stream = assembly.GetManifestResourceStream(resourceName))
+        {
+            if (stream == null)
+            {
+                throw new InvalidOperationException("Resource stream is null.");
+            }
+            using (ZipArchive archive = new ZipArchive(stream))
+            {
+                foreach (var entry in archive.Entries)
+                {
+                    var entryPath = Path.Combine(baseDirectory, entry.FullName);
+
+                    // 创建子目录（如果需要）
+                    if (entry.FullName.EndsWith("/"))
+                    {
+                        Directory.CreateDirectory(entryPath);
+                    }
+                    else
+                    {
+                        // 确保目标目录存在
+                        var directoryPath = Path.GetDirectoryName(entryPath);
+                        if (directoryPath != null && !Directory.Exists(directoryPath))
+                        {
+                            Directory.CreateDirectory(directoryPath);
+                        }
+
+                        // 解压文件
+                        using (var entryStream = entry.Open())
+                        using (var fileStream = new FileStream(entryPath, FileMode.Create, FileAccess.Write))
+                        {
+                            entryStream.CopyTo(fileStream);
+                        }
+                    }
+                }
+            }
+        }
+
+        return baseDirectory;
+    }
     private void Window_Main_Loaded(object sender, RoutedEventArgs e)
     {
         this.DataContext = this;

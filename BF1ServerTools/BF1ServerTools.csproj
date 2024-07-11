@@ -3,12 +3,13 @@
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
 		<TargetFramework>net6.0-windows</TargetFramework>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<Nullable>disable</Nullable>
 		<UseWPF>true</UseWPF>
 		<Platforms>x64;ARM64;x86</Platforms>
 		<StartupObject>BF1ServerTools.App</StartupObject>
-		<AssemblyVersion>2.0.4</AssemblyVersion>
-		<FileVersion>2.0.4</FileVersion>
+		<AssemblyVersion>2.1.0</AssemblyVersion>
+		<FileVersion>2.1.0</FileVersion>
 		<ApplicationManifest>Properties\app.manifest</ApplicationManifest>
 		<ApplicationIcon>Assets\Images\Favicon.ico</ApplicationIcon>
 		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
@@ -39,10 +40,20 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <None Remove="ffmpeg.zip" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="ffmpeg.zip" />
 		<EmbeddedResource Include="Files\config.yml" />
 		<EmbeddedResource Include="Files\go-cqhttp.exe" />
 	</ItemGroup>
-
+	<ItemGroup>
+		<None Update="ffmpeg\**\*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</None>
+	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\BF1ServerTools.API\BF1ServerTools.API.csproj" />
 		<ProjectReference Include="..\BF1ServerTools.QQ\BF1ServerTools.QQ.csproj" />
@@ -68,6 +79,7 @@
 	<ItemGroup>
 		<PackageReference Include="Chinese" Version="0.5.0" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.0.0" />
+		<PackageReference Include="FFmpeg.AutoGen" Version="7.0.0" />
 		<PackageReference Include="Microsoft.Data.Sqlite" Version="7.0.1" />
 		<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.1462.37" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />

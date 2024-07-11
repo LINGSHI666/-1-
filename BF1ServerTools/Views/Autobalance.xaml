@@ -122,6 +122,7 @@ mc:Ignorable="d">
                 <CheckBox x:Name="ExcludeAdminsCheckBox" Content="自动平衡排除管理员" />
                 <CheckBox x:Name="ExcludeVIPsCheckBox" Content="自动平衡排除VIP" />
                 <CheckBox x:Name="ExcludeWhitelistCheckBox" Content="自动平衡排除白名单" />
+                <CheckBox x:Name="Autobalanceshow" Content="自动平衡移动播报" />
             </StackPanel>
 
             <!-- 右侧区域 -->

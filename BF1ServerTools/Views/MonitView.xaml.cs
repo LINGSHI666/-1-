@@ -2229,7 +2229,7 @@ public static class PolygonStorage
     new PointXZ(-89.52676, 18.12625)
                 }
             },
-                 { "攻占托尔1", new List<PointXZ>
+                 { "攻占托尔1排除", new List<PointXZ>
                 {
     new PointXZ(617.9616, -201.1725),
     new PointXZ(617.9179, -190.0231),
@@ -2251,7 +2251,7 @@ public static class PolygonStorage
     new PointXZ(657.135, -201.5626)
                 }
             },
-                  { "攻占托尔2", new List<PointXZ>
+                  { "攻占托尔2排除", new List<PointXZ>
                 {
     new PointXZ(399.3151, -135.7858),
             new PointXZ(410.3532, -136.1517),

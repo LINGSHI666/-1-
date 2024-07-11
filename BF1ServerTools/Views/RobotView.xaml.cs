@@ -34,6 +34,7 @@ using System.Numerics;
 using System.Collections.Concurrent;
 using System.Windows.Shapes;
 using System.Xml;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace BF1ServerTools.Views;
 
@@ -557,7 +558,7 @@ public partial class RobotView : UserControl
                     
 
                
-                if ((point == team1Flags || point == team2Flags) && autoallchange)
+                if ((point == team1Flags || point == team2Flags) && autoallchange && Server.GetTeam1Score()!=0 && Server.GetTeam2Score()!=0)
                 {
                     if (delayallchangeflag)
                     {
@@ -578,7 +579,7 @@ public partial class RobotView : UserControl
             {
                 time = time - 3;
             }
-           //NotifierHelper.Show(NotifierType.Information, $"{team1Flags}||{team2Flags}");
+          // NotifierHelper.Show(NotifierType.Information, $"{team1Flags}||{team2Flags}");
         } while (true);
         List<PlayerData> playerList = Player.GetPlayerList(); // 获取当前所有玩家的列表
         int count = playerList.Count(p => p.PersonaId != 0);
@@ -609,10 +610,14 @@ public partial class RobotView : UserControl
             }
         }
 
-    END: team1Score = Server.GetTeam1FlagScore();
+    END: 
+        team1Score = Server.GetTeam1FlagScore();
         team2Score = Server.GetTeam2FlagScore();
         team1Scores.Enqueue(team1Score);
         team2Scores.Enqueue(team2Score);
+        await Task.Delay(13000);
+        team1Flags = 0;
+        team2Flags = 0;
         while (true)
         {   await Task.Delay(6000);
             team1Score = Server.GetTeam1FlagScore();
@@ -760,27 +765,44 @@ public partial class RobotView : UserControl
                 int a = CalculateFlags(newline, kvp.Key);
                 if (a == 1)
                 {
-                    flagsCapturedTeam1 = kvp.Value;
-                }
-                else if (a == 0)
-                { flagsCapturedTeam1 = 0;
-
+                    var newline2 = DeepCopyList(scoreTimelineTeam1);
+                    int b = 0;
+                    for (int index = 0; index < newline2.Count - 1; index++)
+                    {
+                        if (newline2[index].Score > 0)
+                        {
+                            b++;
+                        }
+                    }
+                    if (b >= (int)(12 / kvp.Key))
+                    {
+                        flagsCapturedTeam1 = kvp.Value;
+                    }
+                    
                 }
                 newline = DeepCopyList(scoreTimelineTeam2);
                 a = CalculateFlags(newline, kvp.Key);
-                if (a == 1)
+                if (a == 1 )
                 {
-                    flagsCapturedTeam2 = kvp.Value;
+                    var newline2 = DeepCopyList(scoreTimelineTeam2);
+                    int b = 0;
+                    for (int index = 0; index < newline2.Count - 1; index++)
+                    {
+                        if (newline2[index].Score > 0)
+                        {
+                            b++;
+                        }
+                    }
+                    if (b >= (int)(12 / kvp.Key))
+                    {
+                        flagsCapturedTeam2 = kvp.Value;
+                    }
                 }
-                else if (a == 0)
-                {
-                    flagsCapturedTeam2 = 0;
-
-                }
+               
 
             }
             
-
+               
 
                 // 更新全局变量
                 if (flagsCapturedTeam1 != -1)
@@ -1196,7 +1218,7 @@ public partial class RobotView : UserControl
                 initialWinGameCounts[player.PersonaId] = array[1];
                 initialPlayKill[player.PersonaId] = array[2];
                 initialPlayDeaths[player.PersonaId] = array[3];
-                AddChangeMapLog(player, array);
+                //AddChangeMapLog(player, array);
                 if (array[0] != 0 && array[1] != 0 && array[2] !=0 && array[3] != 0)
                 { break; }
                 if (i == 4)
@@ -1232,7 +1254,7 @@ public partial class RobotView : UserControl
                     currentWinGameCount = array[1];
                     currentKill = array[2];
                     currentDeaths = array[3];
-                    AddChangeMapLog(player, array);
+                   // AddChangeMapLog(player, array);
                     if (array[0] != 0 && array[1] != 0)
                     {
                         //NotifierHelper.Show(NotifierType.Success, $" {currentPlayTime}");
@@ -1862,7 +1884,6 @@ public class Polygon
         return inside;
     }
 }
-
 
 
 

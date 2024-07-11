@@ -42,6 +42,16 @@ using static BF1ServerTools.RES.Data.ModeData;
 using Microsoft.VisualBasic.ApplicationServices;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using System.Numerics;
+using FFmpeg.AutoGen;
+using System.Drawing.Imaging;
+using System.Xml;
+using Path = System.IO.Path;
+using Size = System.Drawing.Size;
+using Rectangle = System.Drawing.Rectangle;
+using PixelFormat = System.Drawing.Imaging.PixelFormat;
+using System.Collections.Concurrent;
+using NLog.MessageTemplates;
+
 
 
 
@@ -81,10 +91,10 @@ public partial class Autobalance : UserControl
         InitializeComponent();
         InitializeVoteTimer();
         playerDataQueue = new ObservableCollection<PlayerData>();
-        this.DataContext = this;  
+        this.DataContext = this;
     }
-   
-    
+
+
     private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
 
@@ -155,30 +165,30 @@ public partial class Autobalance : UserControl
         }
     }
 
-private DispatcherTimer voteTimer;
-private void InitializeVoteTimer()
-{
-    voteTimer = new DispatcherTimer();
-    voteTimer.Tick += VoteTimer_Tick;
-    // 默认不启动定时器
-    voteTimer.IsEnabled = false;
-}
-
-
-private void VoteTimer_Tick(object sender, EventArgs e)
-{
-    // 滑块的值不是0，则设置 showflag 为1
-    if (sliderwatchreport.Value > 0)
+    private DispatcherTimer voteTimer;
+    private void InitializeVoteTimer()
     {
-            ChatInputWindow.SendChsToBF1Chat("自动观战已启用，使用report 玩家ID 来使用");
+        voteTimer = new DispatcherTimer();
+        voteTimer.Tick += VoteTimer_Tick;
+        // 默认不启动定时器
+        voteTimer.IsEnabled = false;
     }
-}
-/// <summary>
-/// 启动定时平衡
-/// </summary>
-/// <param name="sender"></param>
-/// <param name="e"></param>
-private DispatcherTimer timer;
+
+
+    private void VoteTimer_Tick(object sender, EventArgs e)
+    {
+        // 滑块的值不是0，则设置 showflag 为1
+        if (sliderwatchreport.Value > 0)
+        {
+            ChatInputWindow.SendChsToBF1Chat("自动观战已启用，使用report 玩家ID 来使用");
+        }
+    }
+    /// <summary>
+    /// 启动定时平衡
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private DispatcherTimer timer;
     private bool isTimerRunning = false;
     private void Timer_Tick(object sender, EventArgs e)
     {
@@ -190,8 +200,10 @@ private DispatcherTimer timer;
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    private  async void Button_StopWebsocketServer_Click(object sender, RoutedEventArgs e)
+    private bool stopbalanceflag = false;
+    private async void Button_StopWebsocketServer_Click(object sender, RoutedEventArgs e)
     {
+        stopbalanceflag = true;
         if (timer != null)
         {
             timer.Stop();
@@ -203,10 +215,13 @@ private DispatcherTimer timer;
 
             cts.Cancel();
             NotifierHelper.Show(NotifierType.Information, "已停止自动平衡");
+            maxscore = 0;
         }
-        //StartRecording("1");
-        //await Task.Delay(5000);
-        //StopRecording();
+        await Task.Delay(3000);
+        stopbalanceflag = false;
+        //FFmpegBinariesHelper.RegisterFFmpegBinaries();
+        // DynamicallyLoadedBindings.Initialize();
+
         // await Autowatch("ZED234");
 
 
@@ -228,6 +243,7 @@ private DispatcherTimer timer;
 
         return redInRange && greenInRange && blueInRange;
     }
+    int maxscore = 0;
     private void Button_RunGoCqHttpServer_Click(object sender, RoutedEventArgs e)
     {
         // 检查定时器是否已经在运行，如果是则返回，防止重复执行
@@ -244,23 +260,25 @@ private DispatcherTimer timer;
             isTimerRunning = true;
             // 启动任务
             Task balanceTask = AutoScoreBalance(score, cts.Token);
+
+            maxscore = 900;
         }
         // 创建定时器实例
         timer = new DispatcherTimer();
 
         // 获取滑块当前的值，如果slider为null，则使用默认的10分钟
         double minutes = slider != null ? slider.Value : 10;
-        if(minutes == 0 && score !=0)
+        if (minutes == 0 && score != 0)
         {
             MessageBox.Show($"当前自动平衡仅检测分差");
             return;
         }
-        if (minutes == 0 && score ==0)
+        if (minutes == 0 && score == 0)
         {
             MessageBox.Show($"参数错误，请检查设置");
             return;
         }
-     
+
         // 设置定时器的时间间隔为滑块的值
         timer.Interval = TimeSpan.FromMinutes(minutes);
 
@@ -274,7 +292,7 @@ private DispatcherTimer timer;
         RunPeriodicTasks();
         isTimerRunning = true;
         MessageBox.Show($"当前自动平衡间隔为{minutes}分钟");
-       
+
 
 
     }
@@ -300,7 +318,7 @@ private DispatcherTimer timer;
         else { NotifierHelper.Show(NotifierType.Information, "自动观战已经运行了"); }
     }
     //自动观战
-    private async void Autorecord() 
+    private async void Autorecord()
     {
         List<PlayerData> playerListbegin = Player.GetPlayerList(); // 获取当前所有玩家的列表
         int minutes = 1;
@@ -308,7 +326,7 @@ private DispatcherTimer timer;
         {
             minutes = (int)sliderwatchtime.Value;
         });
-       
+
         bool isPlayerInTeam0 = playerListbegin.Any(player => player.PersonaId == Globals.PersonaId && player.TeamId == 0);
         if (!isPlayerInTeam0)//测试时忽略
         {
@@ -318,7 +336,7 @@ private DispatcherTimer timer;
                 NotifierHelper.Show(NotifierType.Error, "不处于观战状态下，操作取消");
             });
         }
-        
+
         ChatInputWindow.SendChsToBF1Chat("自动观战已启用，使用report 玩家ID 来使用");
         while (true)
         {
@@ -327,7 +345,7 @@ private DispatcherTimer timer;
             if (!string.IsNullOrEmpty(lastContent) && lastContent.StartsWith("report "))
             {
                 string voteName = lastContent.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).ElementAtOrDefault(1);
-                if (voteName != null )
+                if (voteName != null)
                 {
                     int a = await Autowatch(voteName);
                     switch (a)
@@ -337,9 +355,9 @@ private DispatcherTimer timer;
                             await Task.Delay(500);
                             while (await Autowatch(voteName) == 0) { }
                             goto case 1;
-                            
-                           
-                            case 1:
+
+
+                        case 1:
                             // 设置定时器来停止录制
                             timerrecord = new System.Threading.Timer(TimerCallback, null, minutes * 60 * 1000, Timeout.Infinite);
                             ChatInputWindow.SendChsToBF1Chat("开始观战");
@@ -347,7 +365,7 @@ private DispatcherTimer timer;
                             StartRecording(voteName);
                             while (await Autowatch(voteName) != 2)
                             {
-                                BEGIN:
+                            BEGIN:
                                 if (stopRequested)
                                 {
                                     break;
@@ -363,25 +381,25 @@ private DispatcherTimer timer;
                                     await Task.Delay(2000);
                                     goto BEGIN;
                                 }
-                                
-                                
+
+
                             } // 如果循环结束但定时器尚未停止录制，则手动停止
                             if (!stopRequested)
                             {
                                 StopRecording();
                             }
-                           // StopRecording();
+                            // StopRecording();
                             break;
-                            case 2:
-                            ChatInputWindow.SendChsToBF1Chat("玩家ID错误"); 
+                        case 2:
+                            ChatInputWindow.SendChsToBF1Chat("玩家ID错误");
                             ;
                             break;
                     }
                 }
-                
+
             }
         }
-        }
+    }
     private System.Threading.Timer timerrecord;
     private bool stopRequested = false;
     private void TimerCallback(object state)
@@ -399,9 +417,9 @@ private DispatcherTimer timer;
     private CancellationTokenSource cts;
     //分差自动平衡
     private async Task AutoScoreBalance(int scoreflag, CancellationToken cancellationToken)
-    {   while (!cancellationToken.IsCancellationRequested)
+    { while (!cancellationToken.IsCancellationRequested)
         {
-            if (Math.Abs(Server.GetTeam1Score() - Server.GetTeam2Score()) >= scoreflag&& Server.GetTeam1Score()<900 && Server.GetTeam2Score()<900)
+            if (Math.Abs(Server.GetTeam1Score() - Server.GetTeam2Score()) >= scoreflag && Server.GetTeam1Score() < 900 && Server.GetTeam2Score() < 900)
             {
                 if (timer != null)
                 {
@@ -413,14 +431,16 @@ private DispatcherTimer timer;
                     {
                         minutes = slider != null ? slider.Value : 10;
                     });
+                    if (minutes > 0)
+                    {
+                        // 设置定时器的时间间隔为滑块的值
+                        timer.Interval = TimeSpan.FromMinutes(minutes);
+                        // 设置定时器触发的事件
+                        timer.Tick += Timer_Tick;
 
-                    // 设置定时器的时间间隔为滑块的值
-                    timer.Interval = TimeSpan.FromMinutes(minutes);
-                    // 设置定时器触发的事件
-                    timer.Tick += Timer_Tick;
-
-                    // 启动定时器
-                    timer.Start();
+                        // 启动定时器
+                        timer.Start();
+                    }
 
                 }
                 RunPeriodicTasks();
@@ -429,8 +449,8 @@ private DispatcherTimer timer;
                 {
                     try
                     {
-                        await Task.Delay(2000, cancellationToken);
-                       
+                        await Task.Delay(5000, cancellationToken);
+
                     }
                     catch (TaskCanceledException)
                     {
@@ -449,10 +469,10 @@ private DispatcherTimer timer;
             }
         }
     }
-    public static async Task<int> Autowatch(string name )
+    public static async Task<int> Autowatch(string name)
     {
         List<PlayerData> playerList = Player.GetPlayerList(); // 获取当前所有玩家的列表
-        if( playerList == null )
+        if (playerList == null)
         { return 2; }
         PlayerData player = playerList.FirstOrDefault(p => p.Name == name);
         if (player != null)
@@ -479,7 +499,7 @@ private DispatcherTimer timer;
                 .ToList();
                 // 查找特定玩家在排序后队伍中的索引
                 int playerRank = teamPlayers.FindIndex(p => p.Name == name) + 1;
-                vertical = vertical + 0.016*(playerRank-1) ;
+                vertical = vertical + 0.016 * (playerRank - 1);
                 if (!Chat.GetWindowIsTop())
                 {
                     Memory.SetBF1WindowForeground();
@@ -504,7 +524,7 @@ private DispatcherTimer timer;
                     {
                         NotifierHelper.Show(NotifierType.Success, "成功观战");
                     });
-                   
+
                     return 1;
                 }
                 else
@@ -514,17 +534,17 @@ private DispatcherTimer timer;
                     {
                         NotifierHelper.Show(NotifierType.Error, $"玩家可能处于死亡状态，颜色 RGB: ({color.R}, {color.G}, {color.B})");
                     });
-                    
+
                     { return 0; } //观战失败,玩家处于死亡状态或其他
                 }
-                
+
 
             }
             else if (player.TeamId == 0)
             {
                 return 2;//玩家在观战
             }
-            
+
             else
             { return 0; } //观战失败,玩家处于死亡状态或其他
         }
@@ -540,8 +560,14 @@ private DispatcherTimer timer;
         {
             bool balanceAchieved = false;
             int movecount = 0;
-            
-            for (int i = 0; i < 99 && !balanceAchieved; i++)
+            if (maxscore != 0)
+            {
+                if (Server.GetTeam1Score() > maxscore || Server.GetTeam2Score() > maxscore)
+                {
+                    return;
+                }
+            }
+            for (int i = 0; i < 99 && !balanceAchieved && !stopbalanceflag ; i++)
             {
 
                 List<PlayerData> playerListbegin = Player.GetPlayerList(); // 获取当前所有玩家的列表
@@ -549,7 +575,7 @@ private DispatcherTimer timer;
                 List<PlayerData> playerList = playerListbegin.Where(p => p.Kill >= 1 || p.Dead >= 2).ToList(); //排除机器人
 
 
-                if (playerList == null || playerList.Count == 0 )
+                if (playerList == null || playerList.Count == 0)
                 {
                     NotifierHelper.Show(NotifierType.Error, "没有足够的玩家数据进行操作");
                     await Task.Delay(1000); // 暂停一秒再继续，避免频繁操作
@@ -562,7 +588,7 @@ private DispatcherTimer timer;
                 double skillflag = sliderskill != null ? sliderskill.Value : 0;
                 var team1Players = playerList.Where(p => p.TeamId == 1).ToList();
                 var team2Players = playerList.Where(p => p.TeamId == 2).ToList();
-                if (count < 15 || team1Players.Count == 0 || team2Players.Count == 0 )
+                if (count < 15 || team1Players.Count == 0 || team2Players.Count == 0)
                 {
                     NotifierHelper.Show(NotifierType.Error, "人数不足,或游戏刚开始");
                     await Task.Delay(1000); // 暂停一秒再继续，避免频繁操作
@@ -636,7 +662,7 @@ private DispatcherTimer timer;
                 }
                 if (ExcludeWhitelistCheckBox.IsChecked ?? false)//排除白名单
                 {
-                  excludeplayer.AddRange(playerList.Where(player => PlayerUtil.IsWhite(player.Name, Globals.CustomWhites_Name)).ToList());
+                    excludeplayer.AddRange(playerList.Where(player => PlayerUtil.IsWhite(player.Name, Globals.CustomWhites_Name)).ToList());
                 }
                 excludeplayer.AddRange(playerList.Where(player => excludeList.Select(p => p.PersonaId).Contains(player.PersonaId)).ToList());//移除已经换过边的玩家
                                                                                                                                              // 使用 Dispatcher.Invoke 在 UI 线程上访问 slider
@@ -649,7 +675,7 @@ private DispatcherTimer timer;
                     {
                         playerDataQueue.Add(player);
                     }
-                  
+
                 });                                                                                                                           // 清空现有数据
                 if (!playerList.Any())
                 {
@@ -658,10 +684,10 @@ private DispatcherTimer timer;
                 }
                 if (movecount == 5)
                 {
-                    MessageBox.Show($"平衡已移动5次仍未平衡\n当前team1kd [{avgLifeKdTeam1:0.00}]kpm [{avgLifeKpmTeam1:0.00}] || team2kd [{avgLifeKdTeam2:0.00}]kpm [{avgLifeKpmTeam2:0.00}]");
+                    NotifierHelper.Show(NotifierType.Error, "移动玩家超过5人仍未平衡");
                     return;
                 }
-                if (scorebalance.IsChecked ?? false )
+                if (scorebalance.IsChecked ?? false)
                 {
                     if (Math.Abs(Server.GetTeam1Score() - Server.GetTeam2Score()) >= flagscore)
                     {
@@ -672,8 +698,8 @@ private DispatcherTimer timer;
                         // 现在 updatedPlayerList 是移除后的玩家列表
                         int teamid = 0;
                         var updatedPlayerList = playerList.Where(p => !excludePlayerIds.Contains(p.PersonaId)).ToList();
-                         teamid = Server.GetTeam1Score() - Server.GetTeam2Score() >= flagscore ? 1 : 2;// 决定移动方向
-                        var Players = playerList
+                        teamid = Server.GetTeam1Score() - Server.GetTeam2Score() >= flagscore ? 1 : 2;// 决定移动方向
+                        var Players = updatedPlayerList
                                                 .Where(p => p.TeamId == teamid) // 筛选指定 teamId 的玩家
                                                   .OrderByDescending(p => p.Score) // 按 Score 降序排列
                                                  .Take(score) // 取前 score 名玩家
@@ -689,7 +715,7 @@ private DispatcherTimer timer;
                         teamid = teamid == 1 ? 2 : 1;
                         for (int o = 0; o < results.Length; o++)
                         {
-                           
+
                             var result = results[o];
                             var player = tasks[o].Player;
                             if (result.IsSuccess)
@@ -777,6 +803,10 @@ private DispatcherTimer timer;
                                 Time = DateTime.Now
                             });
                             movecount++;
+                            if (Autobalanceshow.IsChecked ?? false)
+                            {
+                                ChatInputWindow.SendChsToBF1Chat($"自动平衡:更换玩家 {playerToMove.Name} 到队伍{OriginTeam}成功");
+                            }
                             NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{OriginTeam}成功");
                             // 将新的玩家添加到排除名单的队尾
                             excludeList.Enqueue(movedPlayer);
@@ -798,7 +828,7 @@ private DispatcherTimer timer;
                         // 执行移动
                         var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, OriginTeam);
                         // 重新获取玩家列表以验证换边是否成功
-                        if (isPlayerInTeam3) 
+                        if (isPlayerInTeam3)
                         { await Task.Delay(15500); }
                         else
                         {
@@ -828,6 +858,10 @@ private DispatcherTimer timer;
                                 Time = DateTime.Now
                             });
                             movecount++;
+                            if (Autobalanceshow.IsChecked ?? false)
+                            {
+                                ChatInputWindow.SendChsToBF1Chat($"自动平衡:更换玩家 {playerToMove.Name} 到队伍{OriginTeam}成功");
+                            }
                             NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{OriginTeam}成功");
                             // 将新的玩家添加到排除名单的队尾
                             excludeList.Enqueue(movedPlayer);
@@ -905,6 +939,10 @@ private DispatcherTimer timer;
                                     Time = DateTime.Now
                                 });
                                 movecount++;
+                                if (Autobalanceshow.IsChecked ?? false)
+                                {
+                                    ChatInputWindow.SendChsToBF1Chat($"自动平衡:更换玩家 {playerToMove.Name} 到队伍{OriginTeam}成功");
+                                }
                                 NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{OriginTeam}成功");
                                 // 将新的玩家添加到排除名单的队尾
                                 excludeList.Enqueue(movedPlayer);
@@ -969,6 +1007,10 @@ private DispatcherTimer timer;
                                     Time = DateTime.Now
                                 });
                                 movecount++;
+                                if (Autobalanceshow.IsChecked ?? false)
+                                {
+                                    ChatInputWindow.SendChsToBF1Chat($"自动平衡:更换玩家 {playerToMove.Name} 到队伍{OriginTeam}成功");
+                                }
                                 NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{OriginTeam}成功");
                                 // 将新的玩家添加到排除名单的队尾
                                 excludeList.Enqueue(movedPlayer);
@@ -1042,7 +1084,7 @@ private DispatcherTimer timer;
 
         {
             if (excludeplayer.Any(player1 => player1.PersonaId == player.PersonaId))
-            { 
+            {
                 continue; }
             // 忽略将玩家移动到已满的队伍
             if ((player.TeamId == 1 && team2Players.Count >= 32) || (player.TeamId == 2 && team1Players.Count >= 32))
@@ -1125,7 +1167,7 @@ private DispatcherTimer timer;
         {
             if (excludeplayer.Any(player1 => player1.PersonaId == player.PersonaId))
             {
-                continue; 
+                continue;
             }
             // 忽略将玩家移动到已满的队伍
             if ((player.TeamId == 1 && team2Players.Count >= 32) || (player.TeamId == 2 && team1Players.Count >= 32))
@@ -1219,8 +1261,8 @@ private DispatcherTimer timer;
         foreach (var player in team1Players.Concat(team2Players))
         {
             if (excludeplayer.Any(player1 => player1.PersonaId == player.PersonaId))
-            { 
-                continue; 
+            {
+                continue;
             }
             // 忽略将玩家移动到已满的队伍
             if ((player.TeamId == 1 && team2Players.Count >= 32) || (player.TeamId == 2 && team1Players.Count >= 32))
@@ -1295,8 +1337,8 @@ private DispatcherTimer timer;
         foreach (var player in team1Players.Concat(team2Players))
         {
             if (excludeplayer.Any(player1 => player1.PersonaId == player.PersonaId))
-            { 
-                continue; 
+            {
+                continue;
             }
             // 忽略将玩家移动到已满的队伍
             if ((player.TeamId == 1 && team2Players.Count >= 32) || (player.TeamId == 2 && team1Players.Count >= 32))
@@ -1393,78 +1435,461 @@ private DispatcherTimer timer;
     private int screenWidth;
     private int screenHeight;
     private Task recordingTask;
-    private bool isRecording = false;
-    private Process _ffmpegProcess;
+    private volatile bool isRecording;
+
+    public sealed unsafe class H264VideoStreamEncoder : IDisposable
+    {
+        private readonly Size _frameSize;
+        private readonly AVCodec* _pCodec;
+        private readonly AVCodecContext* _pCodecContext;
+        private readonly AVFormatContext* _pFormatContext;
+        private readonly AVStream* _pStream;
+        private readonly int _fps;
+        private readonly Stream _stream;
+
+        public H264VideoStreamEncoder(string outputFilePath, int fps, Size frameSize)
+        {
+            _fps = fps;
+            _frameSize = frameSize;
+
+            // 初始化编解码器
+            _pCodec = ffmpeg.avcodec_find_encoder(AVCodecID.AV_CODEC_ID_H264);
+            if (_pCodec == null)
+                throw new InvalidOperationException("Codec not found.");
+
+            _pCodecContext = ffmpeg.avcodec_alloc_context3(_pCodec);
+            _pCodecContext->width = frameSize.Width;
+            _pCodecContext->height = frameSize.Height;
+            _pCodecContext->time_base = new AVRational { num = 1, den = fps };
+            _pCodecContext->pix_fmt = AVPixelFormat.AV_PIX_FMT_YUV420P;
+            _pCodecContext->bit_rate = 8000000;
+            ffmpeg.av_opt_set(_pCodecContext->priv_data, "preset", "medium", 0);
+
+            int ret = ffmpeg.avcodec_open2(_pCodecContext, _pCodec, null);
+            if (ret < 0)
+                throw new ApplicationException($"Could not open codec: {ret}");
+
+            // 初始化格式上下文和流
+            AVFormatContext* formatContext = null;
+            ret = ffmpeg.avformat_alloc_output_context2(&formatContext, null, null, outputFilePath);
+            if (ret < 0)
+                throw new ApplicationException($"Could not allocate format context: {ret}");
+            _pFormatContext = formatContext;
+
+            _pStream = ffmpeg.avformat_new_stream(_pFormatContext, _pCodec);
+            if (_pStream == null)
+                throw new ApplicationException("Could not create stream.");
+
+            ret = ffmpeg.avcodec_parameters_from_context(_pStream->codecpar, _pCodecContext);
+            if (ret < 0)
+                throw new ApplicationException($"Could not set codec parameters: {ret}");
+            _pStream->time_base = new AVRational { num = 1, den = fps };
+
+            ret = ffmpeg.avio_open(&_pFormatContext->pb, outputFilePath, ffmpeg.AVIO_FLAG_WRITE);
+            if (ret < 0)
+                throw new ApplicationException($"Could not open output file: {ret}");
+
+            ret = ffmpeg.avformat_write_header(_pFormatContext, null);
+            if (ret < 0)
+                throw new ApplicationException($"Error writing header: {ret}");
+        }
+
+        public void Dispose()
+        {
+            ffmpeg.avcodec_close(_pCodecContext);
+            ffmpeg.av_free(_pCodecContext);
+            ffmpeg.av_write_trailer(_pFormatContext);
+            ffmpeg.avio_close(_pFormatContext->pb);
+            ffmpeg.avformat_free_context(_pFormatContext);
+        }
+
+        public void Encode(AVFrame* frame)
+        {
+            int ret = ffmpeg.avcodec_send_frame(_pCodecContext, frame);
+            if (ret < 0)
+            {
+                Console.WriteLine($"Error sending frame to codec: {ret}");
+                return;
+            }
+
+            var pPacket = ffmpeg.av_packet_alloc();
+            try
+            {
+                while (true)
+                {
+                    ret = ffmpeg.avcodec_receive_packet(_pCodecContext, pPacket);
+                    if (ret == ffmpeg.AVERROR(ffmpeg.EAGAIN) || ret == ffmpeg.AVERROR_EOF)
+                        break;
+                    else if (ret < 0)
+                    {
+                        Console.WriteLine($"Error receiving packet from codec: {ret}");
+                        break;
+                    }
+
+                    pPacket->stream_index = _pStream->index;
+                    ffmpeg.av_packet_rescale_ts(pPacket, _pCodecContext->time_base, _pStream->time_base);
+                    ret = ffmpeg.av_interleaved_write_frame(_pFormatContext, pPacket);
+                    if (ret < 0)
+                    {
+                        Console.WriteLine($"Error writing frame: {ret}");
+                        break;
+                    }
+
+                    ffmpeg.av_packet_unref(pPacket);
+                }
+            }
+            finally
+            {
+                ffmpeg.av_packet_free(&pPacket);
+            }
+        }
+
+        public void Drain()
+        {
+            int ret = ffmpeg.avcodec_send_frame(_pCodecContext, null);
+            if (ret < 0)
+            {
+                Console.WriteLine($"Error sending frame to codec: {ret}");
+                return;
+            }
+
+            var pPacket = ffmpeg.av_packet_alloc();
+            try
+            {
+                while (true)
+                {
+                    ret = ffmpeg.avcodec_receive_packet(_pCodecContext, pPacket);
+                    if (ret == ffmpeg.AVERROR(ffmpeg.EAGAIN) || ret == ffmpeg.AVERROR_EOF)
+                        break;
+                    else if (ret < 0)
+                    {
+                        Console.WriteLine($"Error receiving packet from codec: {ret}");
+                        break;
+                    }
+
+                    pPacket->stream_index = _pStream->index;
+                    ffmpeg.av_packet_rescale_ts(pPacket, _pCodecContext->time_base, _pStream->time_base);
+                    ret = ffmpeg.av_interleaved_write_frame(_pFormatContext, pPacket);
+                    if (ret < 0)
+                    {
+                        Console.WriteLine($"Error writing frame: {ret}");
+                        break;
+                    }
+
+                    ffmpeg.av_packet_unref(pPacket);
+                }
+            }
+            finally
+            {
+                ffmpeg.av_packet_free(&pPacket);
+            }
+        }
+    }
+
+
+
+
+
+
+    private static ConcurrentQueue<Bitmap> bitQueue = new ConcurrentQueue<Bitmap>();
+    private static DateTime lastCaptureTime = DateTime.MinValue;
+    private H264VideoStreamEncoder _encoder;
+        private Thread _recordingThread;
+    private Thread _recordingThread2;
+   private Thread _recordingThread3;
+    private Thread _recordingThread4;
+    private Thread _recordingThread5;
+    private Thread _recordingThread6;
+    private FileStream _outputStream;
+
     public void StartRecording(string fileName)
     {
         try
         {
-            fileName = fileName + ".mp4";
-            // 获取程序的当前工作目录
-            string outputPath = System.IO.Path.Combine(Directory.GetCurrentDirectory(), fileName);
+            // 注册 FFmpeg 二进制文件
+            FFmpegBinariesHelper.RegisterFFmpegBinaries();
 
-            // 构建 FFmpeg 命令行
-            string arguments = $"-f gdigrab -framerate 30 -i desktop -c:v libx264 -preset ultrafast -pix_fmt yuv420p \"{outputPath}\"";
+            // 初始化动态加载绑定
+            FFmpeg.AutoGen.DynamicallyLoadedBindings.Initialize();
 
-            // 创建并配置 ProcessStartInfo
-            ProcessStartInfo processStartInfo = new ProcessStartInfo
-            {
-                FileName = "ffmpeg",
-                Arguments = arguments,
-                UseShellExecute = false,
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = false
-            };
+           
+            var outputPath = Path.Combine(Directory.GetCurrentDirectory(), fileName);
 
-            // 创建并启动进程
-            _ffmpegProcess = new Process();
-            _ffmpegProcess.StartInfo = processStartInfo;
-            _ffmpegProcess.Start();
-            _ffmpegProcess.BeginErrorReadLine();
-        }  // 开始异步读取标准错误输出
+            var frameSize = new Size(System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width, System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height); // 设置屏幕宽度和高度
+            _encoder = new H264VideoStreamEncoder(outputPath, 30, frameSize);
+
+            isRecording = true;
+            Thread Writebmpthread = new Thread(() => Writebmp(frameSize));
+            Writebmpthread.Start();
+            Writebmpthread.IsBackground = true;
+           _recordingThread = new Thread(() => RecordScreen(frameSize));
+            _recordingThread.Start();
+            Thread.Sleep(100);
+           // _recordingThread2= new Thread(() => RecordScreen(outputPath, 5, frameSize));
+            //_recordingThread2.Start();
+        }
         catch (Exception ex)
         {
-            // 使用 MessageBox 显示异常信息
-            MessageBox.Show("Failed to start recording: ");
+            MessageBox.Show($"Failed to start recording: {ex.Message}\n{ex.StackTrace}");
         }
     }
 
     public void StopRecording()
     {
-        if (_ffmpegProcess != null && !_ffmpegProcess.HasExited)
-        {
-            // 发送 'q' 字符来结束 FFmpeg 录制
-            _ffmpegProcess.StandardInput.WriteLine("q");
-            _ffmpegProcess.WaitForExit();
-            _ffmpegProcess.Close();
-        }
+        isRecording = false;
+        _frameReadyEvent.Set(); // Signal the recording thread to stop
+        _recordingThread?.Join(); // Wait for the recording thread to finish
+        _encoder?.Drain();
+        _encoder?.Dispose();
     }
+    private readonly AutoResetEvent _frameReadyEvent = new AutoResetEvent(false);
 
-    private void CaptureScreen(int width, int height)
+    private  void Writebmp(Size frameSize)
     {
-        var buffer = new byte[width * height * 4];
-
         while (isRecording)
         {
-            using (var bmp = new Bitmap(width, height))
-            {
-                using (var g = Graphics.FromImage(bmp))
+            
+                Thread thread = new Thread(() =>
                 {
-                    g.CopyFromScreen(Point.Empty, Point.Empty, new System.Drawing.Size(width, height));
+                    
+                       
+
+                       
+
+                        var bmp = ScreenCapture.CaptureScreen(frameSize); 
+
+                       
+                        
+                        bitQueue.Enqueue(bmp);
+                        
+                    
+                });
+                thread.Start();
+                thread.IsBackground = true;
+                Thread.Sleep(30); // 等待33毫秒后启动下一个线程
+            
+
+        }
+
+
+    }
+    private unsafe void RecordScreen(Size frameSize)
+    {
+        var frameNumber = 0;
+
+
+        // 创建一个线程用于编码数据
+        Thread encodeThread = new Thread(() =>
+        {
+            while (isRecording)
+            {
+                var stopwatch = Stopwatch.StartNew();
+                _frameReadyEvent.WaitOne(); // 等待新帧准备好
+
+                var startFrameTime = stopwatch.ElapsedMilliseconds;
+
+
+
+                // 获取队列中的第一个捕获图像
+                Bitmap bmp;
+                if(!bitQueue.TryDequeue(out bmp))
+                { 
+                    // 队列中没有可用的图像，等待一段时间后继续
+                    Thread.Sleep(10);
+                    continue;
+                };
+               
+
+                // 创建 AVFrame 并设置属性
+                var frame = ffmpeg.av_frame_alloc();
+                if (frame == null)
+                {
+                    throw new ApplicationException("Could not allocate AVFrame.");
                 }
-                var bits = bmp.LockBits(new System.Drawing.Rectangle(0, 0, width, height), System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-                System.Runtime.InteropServices.Marshal.Copy(bits.Scan0, buffer, 0, buffer.Length);
-                bmp.UnlockBits(bits);
+
+                frame->format = (int)AVPixelFormat.AV_PIX_FMT_YUV420P;
+                frame->width = frameSize.Width;
+                frame->height = frameSize.Height;
+                frame->pts = frameNumber++;
+
+                int ret = ffmpeg.av_frame_get_buffer(frame, 32);
+                if (ret < 0)
+                {
+                    ffmpeg.av_frame_free(&frame);
+                    throw new ApplicationException($"Could not allocate frame buffer: {ret}");
+                }
+
+                // 锁定位图数据并复制到 AVFrame 中
+                var bits = bmp.LockBits(new Rectangle(0, 0, frameSize.Width, frameSize.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                try
+                {
+                    var srcData = bits.Scan0;
+                    var srcStride = bits.Stride;
+
+                    byte_ptrArray4 dstData = new byte_ptrArray4();
+                    int_array4 dstLinesize = new int_array4();
+                    ffmpeg.av_image_fill_arrays(ref dstData, ref dstLinesize, (byte*)srcData, AVPixelFormat.AV_PIX_FMT_BGRA, frameSize.Width, frameSize.Height, 1);
+
+                    // 进行颜色空间转换
+                    var swsContext = ffmpeg.sws_getContext(
+                        frameSize.Width, frameSize.Height, AVPixelFormat.AV_PIX_FMT_BGRA,
+                        frameSize.Width, frameSize.Height, AVPixelFormat.AV_PIX_FMT_YUV420P,
+                        ffmpeg.SWS_BILINEAR, null, null, null);
+
+                    if (swsContext == null)
+                    {
+                        throw new ApplicationException("Could not initialize the conversion context.");
+                    }
+
+                    // 创建转换后的帧
+                    var convertedFrame = ffmpeg.av_frame_alloc();
+                    if (convertedFrame == null)
+                    {
+                        ffmpeg.av_frame_free(&frame);
+                        throw new ApplicationException("Could not allocate converted frame.");
+                    }
+
+                    convertedFrame->format = (int)AVPixelFormat.AV_PIX_FMT_YUV420P;
+                    convertedFrame->width = frameSize.Width;
+                    convertedFrame->height = frameSize.Height;
+                    convertedFrame->pts = frame->pts;
+
+                    ret = ffmpeg.av_frame_get_buffer(convertedFrame, 32);
+                    if (ret < 0)
+                    {
+                        ffmpeg.av_frame_free(&frame);
+                        ffmpeg.av_frame_free(&convertedFrame);
+                        throw new ApplicationException($"Could not allocate converted frame buffer: {ret}");
+                    }
+
+                    try
+                    {
+                        // 进行颜色空间转换
+                        ffmpeg.sws_scale(swsContext, dstData, dstLinesize, 0, frameSize.Height, convertedFrame->data, convertedFrame->linesize);
+                    }
+                    finally
+                    {
+                        ffmpeg.sws_freeContext(swsContext);
+                    }
+
+                    // 编码并写入帧
+                    _encoder.Encode(convertedFrame);
+
+                    // 释放转换后的帧
+                    ffmpeg.av_frame_free(&convertedFrame);
+                }
+                finally
+                {
+                    bmp.UnlockBits(bits);
+                }
+
+                // 释放 AVFrame
+                ffmpeg.av_frame_free(&frame);
+
+                // 计算帧处理时间
+                var endFrameTime = stopwatch.ElapsedMilliseconds;
+                //MessageBox.Show($"{endFrameTime}");
+                var frameProcessingTime = endFrameTime - startFrameTime;
+
+                //计算下一个帧应等待的时间，保证约 5 fps
+                var targetFrameInterval = 1000 / 30; // 5 fps 
+                var sleepTime = targetFrameInterval - frameProcessingTime;
+
+                if (sleepTime > 0)
+                    Thread.Sleep((int)sleepTime);
+                else
+                {
+                    //MessageBox.Show("视频录制遇到性能问题");
+                }
+
+            }
+        });
+
+        encodeThread.Start();
+        encodeThread.IsBackground = true; // 设置为后台线程
+        while (isRecording)
+        {
+            _frameReadyEvent.Set(); // Signal the encoding thread to process a frame
+        }
+
+        encodeThread.Join(); // Wait for the encoding thread to finish
+    }
+
+    public class ScreenCapture
+    {
+        // 引入 User32.dll 中的函数
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetDC(IntPtr hwnd);
+
+        [DllImport("user32.dll")]
+        public static extern int ReleaseDC(IntPtr hwnd, IntPtr hdc);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        private static extern bool BitBlt(IntPtr hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, IntPtr hdcSrc, int nXSrc, int nYSrc, int dwRop);
+
+        private const int SRCCOPY = 0x00CC0020;
+
+        public static Bitmap CaptureScreen(Size frameSize)
+        {
+            Bitmap bmp = new Bitmap(frameSize.Width, frameSize.Height);
+            using (Graphics g = Graphics.FromImage(bmp))
+            {
+                IntPtr hdcDest = g.GetHdc();
+                IntPtr hdcSrc = GetDC(IntPtr.Zero); // 获取整个屏幕的设备上下文
+
+                // 进行屏幕截图
+                BitBlt(hdcDest, 0, 0, frameSize.Width, frameSize.Height, hdcSrc, 0, 0, SRCCOPY);
+
+                // 释放设备上下文
+                ReleaseDC(IntPtr.Zero, hdcSrc);
+                g.ReleaseHdc(hdcDest);
             }
 
-           
-                videoStream.WriteFrame(true, buffer, 0, buffer.Length);
-            
-            System.Threading.Thread.Sleep(16); // 根据希望的帧率调整
+            return bmp;
         }
     }
 
-    
+
+
+
+
+
+
+}
+
+
+
+
+public class FFmpegBinariesHelper
+{
+    public static void RegisterFFmpegBinaries()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            var current = Environment.CurrentDirectory;
+            var probe = Path.Combine("FFmpeg", "bin", Environment.Is64BitProcess ? "x64" : "x86");
+
+            while (current != null)
+            {
+                var ffmpegBinaryPath = Path.Combine(current, probe);
+
+                if (Directory.Exists(ffmpegBinaryPath))
+                {
+                    Console.WriteLine($"FFmpeg binaries found in: {ffmpegBinaryPath}");
+                    FFmpeg.AutoGen.Bindings.DynamicallyLoaded.DynamicallyLoadedBindings.LibrariesPath = ffmpegBinaryPath;
+                    ffmpeg.RootPath = ffmpegBinaryPath;
+                    return;
+                }
+
+                current = Directory.GetParent(current)?.FullName;
+            }
+        }
+        else
+        {
+            throw new NotSupportedException("This platform is not supported.");
+        }
+
+        throw new ApplicationException("FFmpeg binaries not found.");
+    }
+
 }
