@@ -84,7 +84,7 @@ public partial class Autobalance : UserControl
             playerDataQueue.RemoveAt(0);
             return item;
         }
-        return null; // 或其他适当的处理
+        return null; 
     }
     public Autobalance()
     {
@@ -246,7 +246,7 @@ public partial class Autobalance : UserControl
     int maxscore = 0;
     private void Button_RunGoCqHttpServer_Click(object sender, RoutedEventArgs e)
     {
-        // 检查定时器是否已经在运行，如果是则返回，防止重复执行
+         // 检查定时器是否已经在运行，如果是则返回，防止重复执行
         if (isTimerRunning)
         {
             MessageBox.Show("自动平衡已经运行了");
