@@ -36,35 +36,65 @@ public static class Player
     /// 获取玩家列表缓存
     /// </summary>
     /// <returns></returns>
-    public static List<CacheData> GetPlayerCache()
+    public static List<PlayerData> GetPlayerCache()
     {
-        List<CacheData> _playerCache = new();
+        List<PlayerData> _playerList = new List<PlayerData>();
 
-        for (int i = 0; i < MaxPlayer; i++)
+        if (!IsUseMode1) // 测试时为 false，使用网络请求
         {
-            var _baseAddress = Obfuscation.GetPlayerById(i);
-            if (!Memory.IsValid(_baseAddress))
-                continue;
-
-            var _personaId = Memory.Read<long>(_baseAddress + 0x38);
-            if (_personaId == 0)
-                continue;
-
-            var _name = Memory.ReadString(_baseAddress + 0x40, 64);
-            var _teamId = Memory.Read<int>(_baseAddress + 0x1C34);
-            var _spectator = Memory.Read<byte>(_baseAddress + 0x1C31);
-
-            _playerCache.Add(new()
+            try
             {
-                TeamId = _teamId,
-                Name = _name,
-                Spectator = _spectator,
-                PersonaId = _personaId
-            });
+                using (HttpClient httpClient = new HttpClient())
+                {
+                    // 发起同步网络请求
+                    var responseTask = httpClient.GetAsync(retrievedString);
+                    responseTask.Wait(); // 等待请求完成
+
+                    var response = responseTask.Result; // 获取请求结果
+
+                    // 如果请求成功，处理响应数据
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var responseString = response.Content.ReadAsStringAsync().Result; // 同步获取响应内容
+                        var serverInfo = JsonConvert.DeserializeObject<ServerInfoRoot>(responseString);
+
+                        // 解析服务器中的队伍和玩家信息
+                        foreach (var team in serverInfo.Teams)
+                        {
+                            foreach (var playerJson in team.Players)
+                            {
+                                var playerData = new PlayerData
+                                {
+                                    Clan = playerJson.Platoon,
+                                    Name = playerJson.Name,
+                                    PersonaId = playerJson.PlayerId,
+                                    Rank = playerJson.Rank,
+                                    // 根据队伍设置 TeamId
+                                    TeamId = team.TeamId == "teamOne" ? 1 : 2,
+                                };
+
+                                // 添加玩家数据到列表
+                                _playerList.Add(playerData);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (HttpRequestException httpEx)
+            {
+                // 处理HTTP请求异常（网络问题等）
+                Console.WriteLine($"HTTP 请求错误: {httpEx.Message}");
+            }
+            catch (Exception ex)
+            {
+                // 处理其他异常
+                Console.WriteLine($"发生错误: {ex.Message}");
+            }
         }
 
-        return _playerCache;
+        return _playerList;
     }
+
     /// <summary>
     /// 判断战地1程序是否运行
     /// </summary>

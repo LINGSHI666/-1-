@@ -558,7 +558,7 @@ public partial class RobotView : UserControl
                     
 
                
-                if ((point == team1Flags || point == team2Flags) && autoallchange && Server.GetTeam1FlagScore() != 0 && Server.GetTeam2FlagScore() != 0)
+                if ((point == team1Flags || point == team2Flags) && autoallchange )
                 {
                     if (delayallchangeflag)
                     {
@@ -625,6 +625,8 @@ public partial class RobotView : UserControl
             if(team1Score < team1Scores.Peek() || team2Score< team2Scores.Peek())
             {
                 await Task.Delay(60000);
+                team1Flags = 0;
+                team2Flags = 0;
                 goto BEGIN;
             }
         }

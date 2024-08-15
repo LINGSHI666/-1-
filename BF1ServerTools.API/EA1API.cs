@@ -1,6 +1,7 @@
 ﻿using BF1ServerTools.API.Resp;
 
 using RestSharp;
+using System.Text.RegularExpressions;
 
 namespace BF1ServerTools.API;
 
@@ -24,60 +25,89 @@ public static class EA1API
     }
 
     /// <summary>
-    /// 使用Cookies获取authcode，同时更新Cookies
+    /// 使用Cookiesq'a'Z获取authcode，同时更新Cookies
     /// </summary>
     /// <param name="remid"></param>
     /// <param name="sid"></param>
     /// <returns></returns>
-    public static async Task<RespAuth> GetAuthCode(string remid, string sid)
-    {
-        var sw = new Stopwatch();
-        sw.Start();
-        var respAuth = new RespAuth();
-
-        try
+        public static async Task<RespAuth> GetAuthCode(string remid, string sid)
         {
-            var request = new RestRequest(host)
-                .AddHeader("Cookie", $"remid={remid};sid={sid}");
+            var sw = new Stopwatch();
+            sw.Start();
+            var respAuth = new RespAuth();
 
-            var response = await client.ExecuteGetAsync(request);
-            if (response.StatusCode == HttpStatusCode.Redirect)
+            try
             {
-                string localtion = response.Headers.ToList()
-                    .Find(x => x.Name == "Location")
-                    .Value.ToString();
-
-                if (localtion.Contains("127.0.0.1/success?code="))
+                // 配置 RestClientOptions 以禁用自动重定向
+                var options = new RestClientOptions
                 {
-                    if (response.Cookies.Count == 2)
+                    BaseUrl = new Uri("https://accounts.ea.com"),
+                    FollowRedirects = false // 禁用自动重定向
+                };
+                var client = new RestClient(options);
+
+                // 设置获取 authCode 的请求 URL
+                var url = "/connect/auth?client_id=sparta-companion-web&response_type=code&display=web2/login&locale=zh_TW&redirect_uri=https%3A%2F%2Fcompanion.battlefield.com%2Fcompanion%2Fsso%3Fprotocol%3Dhttps";
+                var request = new RestRequest(url, Method.Get);
+
+                // 添加 Cookie 到请求头
+                request.AddHeader("Cookie", $"remid={remid};sid={sid}");
+
+                // 执行 GET 请求以获取 authCode
+                var response = await client.ExecuteAsync(request);
+
+                if (response.StatusCode == HttpStatusCode.Redirect)
+                {
+                    // 检查是否有 Location 头
+                    string location = response.Headers
+                        .FirstOrDefault(x => x.Name == "Location")?.Value?.ToString();
+
+                    if (!string.IsNullOrEmpty(location) && location.Contains("code="))
                     {
-                        respAuth.Remid = response.Cookies[0].Value;
-                        respAuth.Sid = response.Cookies[1].Value;
+                        // 提取 authCode
+                        respAuth.Code = ExtractAuthCodeFromLocation(location);
+
+                        // 更新 Cookies（如果有新的值）
+                        if (response.Cookies.Count > 0)
+                        {
+                            respAuth.Remid = response.Cookies.FirstOrDefault(c => c.Name == "remid")?.Value ?? remid;
+                            respAuth.Sid = response.Cookies.FirstOrDefault(c => c.Name == "sid")?.Value ?? sid;
+                        }
+
+                        respAuth.IsSuccess = true;
+                        respAuth.Content = location; // 保留原始重定向的 URL
                     }
                     else
                     {
-                        respAuth.Sid = response.Cookies[0].Value;
+                        respAuth.Content = "重定向中未包含 authCode";
                     }
-
-                    respAuth.IsSuccess = true;
-                    respAuth.Code = localtion.Replace("http://127.0.0.1/success?code=", "").Replace("https://127.0.0.1/success?code=", "");
                 }
-
-                respAuth.Content = localtion;
+                else if (response.StatusCode == HttpStatusCode.OK)
+                {
+                    respAuth.Content = "请求成功但无重定向。";
+                }
+                else
+                {
+                    respAuth.Content = $"请求失败，状态码: {(int)response.StatusCode} - {response.StatusDescription}";
+                }
             }
-            else
+            catch (Exception ex)
             {
-                respAuth.Content = response.Content;
+                respAuth.Content = ex.Message;
             }
+
+            sw.Stop();
+            respAuth.ExecTime = sw.Elapsed.TotalSeconds;
+
+            return respAuth;
         }
-        catch (Exception ex)
+
+        // 辅助方法：从 Location URL 中提取 authCode
+        private static string ExtractAuthCodeFromLocation(string locationUrl)
         {
-            respAuth.Content = ex.Message;
+            var match = Regex.Match(locationUrl, @"code=([^&]+)");
+            return match.Success ? match.Groups[1].Value : null;
         }
 
-        sw.Stop();
-        respAuth.ExecTime = sw.Elapsed.TotalSeconds;
 
-        return respAuth;
     }
-}

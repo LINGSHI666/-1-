@@ -570,9 +570,9 @@ public partial class Autobalance : UserControl
             for (int i = 0; i < 99 && !balanceAchieved && !stopbalanceflag ; i++)
             {
 
-                List<PlayerData> playerListbegin = Player.GetPlayerList(); // 获取当前所有玩家的列表
-                bool isPlayerInTeam3 = playerListbegin.Any(player => player.PersonaId == Globals.PersonaId && player.TeamId == 0);
-                List<PlayerData> playerList = playerListbegin.Where(p => p.Kill >= 1 || p.Dead >= 2).ToList(); //排除机器人
+                List<PlayerData> playerList = Player.GetPlayerList(); // 获取当前所有玩家的列表
+                bool isPlayerInTeam3 = true;// playerListbegin.Any(player => player.PersonaId == Globals.PersonaId && player.TeamId == 0);
+                //List<PlayerData> playerList = playerListbegin.Where(p => p.Kill >= 1 || p.Dead >= 2).ToList(); //排除机器人
 
 
                 if (playerList == null || playerList.Count == 0)
@@ -829,7 +829,7 @@ public partial class Autobalance : UserControl
                         var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, OriginTeam);
                         // 重新获取玩家列表以验证换边是否成功
                         if (isPlayerInTeam3)
-                        { await Task.Delay(15500); }
+                        { await Task.Delay(1500); }
                         else
                         {
                             await Task.Delay(1000);

@@ -2,6 +2,8 @@ using BF1ServerTools.API.Requ;
 using BF1ServerTools.API.Resp;
 
 using RestSharp;
+using System.IO;
+using System.Text.RegularExpressions;
 
 namespace BF1ServerTools.API;
 
@@ -29,7 +31,99 @@ public static class BF1API
     /// </summary>
     /// <param name="authCode">通过本地重定向获取</param>
     /// <returns></returns>
-    public static async Task<RespContent> GetEnvIdViaAuthCode(string authCode)
+ 
+
+public static async Task<RespContent> GetEnvIdViaAuthCode(string authCode)
+{
+    var sw = new Stopwatch();
+    sw.Start();
+    var respContent = new RespContent();
+
+    try
+    {
+        // 使用 RestClientOptions 来配置自动重定向
+        var options = new RestClientOptions
+        {
+            BaseUrl = new Uri("https://companion.battlefield.com"),
+            FollowRedirects = true
+        };
+        var client = new RestClient(options);
+
+        // 第一步：构造初始 GET 请求 URL
+        var url = $"/companion/sso?protocol=https&code={authCode}";
+        var request = new RestRequest(url, Method.Get);
+
+        // 执行 GET 请求并检查 Set-Cookie 头
+        var response = await client.ExecuteAsync(request);
+        SaveResponseToFile("Initial_Get_Response.txt", response.Content);  // 保存响应
+
+        var setCookieHeader = response.Headers.FirstOrDefault(h => h.Name.Equals("Set-Cookie"));
+        string sessionId = null;
+
+        if (setCookieHeader != null)
+        {
+            sessionId = ExtractSessionIdFromCookie(setCookieHeader.Value.ToString());
+        }
+
+        if (string.IsNullOrEmpty(sessionId))
+        {
+            respContent.Content = "未找到 sessionId";
+            return respContent;
+        }
+
+        // 第二步：构造 POST 请求验证登录状态
+        var postRequest = new RestRequest("/jsonrpc/web/api?Companion.isLoggedIn", Method.Post);
+        postRequest.AddHeader("X-GatewaySession", sessionId);
+        postRequest.AddHeader("Content-Type", "application/json");
+
+        var reqBody = new
+        {
+            jsonrpc = "2.0",
+            method = "Companion.isLoggedIn",
+            @params = new { },
+            id = Guid.NewGuid().ToString()
+        };
+        postRequest.AddJsonBody(reqBody);
+
+        // 执行 POST 请求
+        var postResponse = await client.ExecuteAsync(postRequest);
+        SaveResponseToFile("Post_LoginCheck_Response.txt", postResponse.Content);  // 保存响应
+
+        if (postResponse.StatusCode == HttpStatusCode.OK)
+        {
+            respContent.IsSuccess = true;
+            respContent.Content = "登录验证成功，sessionId: " + sessionId;
+        }
+        else
+        {
+            respContent.Content = $"登录验证失败，状态码: {(int)postResponse.StatusCode} - {postResponse.StatusDescription}";
+        }
+    }
+    catch (Exception ex)
+    {
+        respContent.Content = ex.Message;
+    }
+
+    sw.Stop();
+    respContent.ExecTime = sw.Elapsed.TotalSeconds;
+
+    return respContent;
+}
+
+// 辅助方法：从 Set-Cookie 头提取 sessionId
+private static string ExtractSessionIdFromCookie(string cookie)
+{
+    var match = Regex.Match(cookie, @"gatewaySessionId=([^;]+)");
+    return match.Success ? match.Groups[1].Value : null;
+}
+
+// 辅助方法：将响应保存到文本文件
+private static void SaveResponseToFile(string fileName, string content)
+{
+    //var filePath = Path.Combine(Directory.GetCurrentDirectory(), fileName);
+    //File.WriteAllText(filePath, content);
+}
+    public static async Task<RespContent> GetEnvIdViaAuthCode2(string authCode)
     {
         var sw = new Stopwatch();
         sw.Start();
@@ -74,6 +168,9 @@ public static class BF1API
 
         return respContent;
     }
+
+
+
 
     /// <summary>
     /// 设置战地1 API语言为 繁体中文

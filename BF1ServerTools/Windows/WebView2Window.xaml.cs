@@ -113,7 +113,7 @@ public partial class WebView2Window
         }
 
         // 获取SessionId
-        result = await BF1API.GetEnvIdViaAuthCode(code);
+        result = await BF1API.GetEnvIdViaAuthCode2(code);
         if (result.IsSuccess)
         {
             var envIdViaAuthCode = JsonHelper.JsonDese<EnvIdViaAuthCode>(result.Content);

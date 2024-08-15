@@ -12,6 +12,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using System.Xml.Linq;
 using System;
 using Newtonsoft.Json;
+using System.Reflection.Metadata;
 namespace BF1ServerTools.Views;
 public class Config
 {
@@ -307,13 +308,36 @@ public partial class AuthView : UserControl
                 AuthModel.AccessToken = Globals.AccessToken;
                 LoggerHelper.Info("刷新玩家access_token成功");
             }
-
+            
             result = await BF1API.GetEnvIdViaAuthCode(respAuth.Code);
             if (result.IsSuccess)
             {
-                var envIdViaAuthCode = JsonHelper.JsonDese<EnvIdViaAuthCode>(result.Content);
-                Globals.SessionId2 = envIdViaAuthCode.result.sessionId;
-                Globals.PersonaId2 = long.Parse(envIdViaAuthCode.result.personaId);
+                var content = result.Content;
+                // 使用正则表达式从字符串中提取 sessionId
+                var match = Regex.Match(result.Content, @"sessionId:\s*([a-f0-9-]+)", RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    // 提取并存储到 Globals.SessionId2
+                    Globals.SessionId2 = match.Groups[1].Value;
+                }
+                result = await EA2API.GetPlayerPersonaId(Globals.AccessToken, Globals.DisplayName2);
+                if (result.IsSuccess)
+                {
+                    var jNode = JsonNode.Parse(result.Content);
+                    if (jNode["personas"]!["persona"] != null)
+                    {
+                        Globals.PersonaId2 = jNode["personas"]!["persona"][0]["personaId"].GetValue<long>();
+                    }
+                    else
+                    {
+                        LoggerHelper.Info("personid获取失败");
+                    }
+                }
+                else
+                {
+                    LoggerHelper.Info("personid获取失败");
+                }
+               //Globals.PersonaId2 = long.Parse(envIdViaAuthCode.result.personaId);
 
                 result = await BF1API.GetPersonasByIds(Globals.SessionId2, Globals.PersonaId);
                 if (result.IsSuccess)
@@ -422,10 +446,32 @@ public partial class AuthView : UserControl
                 result = await BF1API.GetEnvIdViaAuthCode(respAuth.Code);
                 if (result.IsSuccess)
                 {
-                    var envIdViaAuthCode = JsonHelper.JsonDese<EnvIdViaAuthCode>(result.Content);
-                    Globals.SessionId2 = envIdViaAuthCode.result.sessionId;
-                    Globals.PersonaId2 = long.Parse(envIdViaAuthCode.result.personaId);
-
+                    var content = result.Content;
+                    // 使用正则表达式从字符串中提取 sessionId
+                    var match = Regex.Match(result.Content, @"sessionId:\s*([a-f0-9-]+)", RegexOptions.IgnoreCase);
+                    if (match.Success)
+                    {
+                        // 提取并存储到 Globals.SessionId2
+                        Globals.SessionId2 = match.Groups[1].Value;
+                        NotifierHelper.Show(NotifierType.Success, "SessionId获取成功");
+                    }
+                    result = await EA2API.GetPlayerPersonaId(Globals.AccessToken, Globals.DisplayName2);
+                    if (result.IsSuccess)
+                    {
+                        var jNode = JsonNode.Parse(result.Content);
+                        if (jNode["personas"]!["persona"] != null)
+                        {
+                            Globals.PersonaId2 = jNode["personas"]!["persona"][0]["personaId"].GetValue<long>();
+                        }
+                        else
+                        {
+                            NotifierHelper.Show(NotifierType.Error,"personid获取失败");
+                        }
+                    }
+                    else
+                    {
+                        NotifierHelper.Show(NotifierType.Error, "personid获取失败");
+                    }
                     result = await BF1API.GetPersonasByIds(Globals.SessionId2, Globals.PersonaId);
                     if (result.IsSuccess)
                     {

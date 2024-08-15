@@ -1680,7 +1680,7 @@ public partial class MonitView : UserControl
 }
 public static class PolygonStorage
 {
-    // 定义一个字典，并在静态构造函数中初始化
+    // 在静态构造函数中初始化
     public static readonly Dictionary<string, List<PointXZ>> Polygons;
 
     static PolygonStorage()
