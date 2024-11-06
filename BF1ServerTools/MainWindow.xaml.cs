@@ -105,6 +105,8 @@ public partial class MainWindow
         udpchatrecive = new UdpClientService("127.0.0.1", 52001);
         udpchatsend = new UdpClientService("127.0.0.1", 51001);
         var path =  ExtractFFmpeg();
+        string tessDataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tessdata");
+        ExtractTesseractData(tessDataPath);
         //MessageBox.Show($"{path}");
     }
     public static string ExtractFFmpeg()
@@ -152,6 +154,43 @@ public partial class MainWindow
         }
 
         return baseDirectory;
+    }
+    public static void ExtractTesseractData(string tessDataPath)
+    {
+        try
+        {
+            // 检查 tessdata 目录是否存在，不存在则创建
+            if (!Directory.Exists(tessDataPath))
+            {
+                Directory.CreateDirectory(tessDataPath);
+            }
+
+            // eng.traineddata 文件的资源路径
+            string resourceName = "BF1ServerTools.eng.traineddata";
+
+            // 获取嵌入的资源流
+            using (Stream resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+            {
+                if (resourceStream == null)
+                {
+                    throw new FileNotFoundException("eng.traineddata 文件未找到.");
+                }
+
+                // 目标路径（解压到 tessdata 目录）
+                string targetFilePath = Path.Combine(tessDataPath, "eng.traineddata");
+
+                // 解压文件
+                using (FileStream fileStream = new FileStream(targetFilePath, FileMode.Create, FileAccess.Write))
+                {
+                    resourceStream.CopyTo(fileStream);
+                    
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+           MessageBox.Show($"初始化 Tesseract 数据时出错: {ex.Message}");
+        }
     }
     private void Window_Main_Loaded(object sender, RoutedEventArgs e)
     {
@@ -208,8 +247,11 @@ public partial class MainWindow
         udpchatrecive.Close();
         udpchatsend.Close();
         LoggerHelper.Info("关闭udp客户端成功");
+        Autobalance.close();
+        LoggerHelper.Info("关闭键盘钩子成功");
         Application.Current.Shutdown();
         LoggerHelper.Info("程序关闭\n\n");
+        
     }
 
     /// <summary>

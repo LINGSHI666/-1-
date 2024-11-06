@@ -94,6 +94,7 @@ public partial class ScoreView : UserControl
     {
 
     }
+  
     //toolapi解析
     public class ServerInfoRoot
     {
@@ -212,12 +213,13 @@ public partial class ScoreView : UserControl
             {
             // 创建 HttpClient 实例
             using HttpClient client = new HttpClient();
+                /*
             if (apicount >= 3)
             {
               
 
                 try
-                {
+                {   
                     // 发送 GET 请求
                     HttpResponseMessage response = await client.GetAsync("http://127.0.0.1:10086/Game/GetChatStatus");
 
@@ -240,7 +242,7 @@ public partial class ScoreView : UserControl
             else
             {
                 apicount++;
-            }
+            }*/
                 Player.IsUseMode1 = Globals.IsUseMode1;
                 if (!Globals.IsUseMode1)
                 {
@@ -252,7 +254,7 @@ public partial class ScoreView : UserControl
                             serverUrl = AuthView.URL;
                             string globalString = serverUrl;
                             Player.retrievedString = globalString;
-
+                            Player.gameId = Globals.GameId;
                         }
                         else
                         {
@@ -481,8 +483,11 @@ public partial class ScoreView : UserControl
                         item.Kd = PlayerUtil.GetPlayerKD(item.Kill, item.Dead);
                         item.Kpm = PlayerUtil.GetPlayerKPM(item.Kill, time);
 
+                    if (item.LifeKd == 0 || item.LifeKpm == 0)
+                    {
                         item.LifeKd = PlayerUtil.GetLifeKD(item.PersonaId);
                         item.LifeKpm = PlayerUtil.GetLifeKPM(item.PersonaId);
+                    }
                         item.LifeTime = PlayerUtil.GetLifeTime(item.PersonaId);
 
                         item.Admin = PlayerUtil.IsAdminVIP(item.PersonaId, Globals.ServerAdmins_PID);

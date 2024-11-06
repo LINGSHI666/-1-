@@ -5,22 +5,7 @@ using BF1ServerTools.RES;
 using BF1ServerTools.SDK;
 using BF1ServerTools.SDK.Data;
 using BF1ServerTools.Utils;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Runtime.InteropServices;
 using BF1ServerTools.SDK.Core;
 using System.Drawing;
 using System.Windows.Media.Animation;
@@ -30,6 +15,12 @@ using System.Windows.Threading;
 using System.Xml.Linq;
 using SharpAvi;
 using SharpAvi.Output;
+//using SharpDX.WIC;
+using SharpDX;
+using SharpDX.Direct3D11;
+using SharpDX.DXGI;
+using System.Diagnostics;
+using Device = SharpDX.Direct3D11.Device;
 using System.Diagnostics;
 using SharpAvi.Codecs;
 
@@ -51,7 +42,8 @@ using Rectangle = System.Drawing.Rectangle;
 using PixelFormat = System.Drawing.Imaging.PixelFormat;
 using System.Collections.Concurrent;
 using NLog.MessageTemplates;
-
+using Tesseract;
+using drawcolor = System.Drawing.Color;
 
 
 
@@ -92,9 +84,21 @@ public partial class Autobalance : UserControl
         InitializeVoteTimer();
         playerDataQueue = new ObservableCollection<PlayerData>();
         this.DataContext = this;
+        _hookID = SetHook(_proc);
+    }
+    public void close()
+    {
+        UnhookWindowsHookEx(_hookID);
     }
 
-
+    private static IntPtr SetHook(LowLevelKeyboardProc proc)
+    {
+        using (Process curProcess = Process.GetCurrentProcess())
+        using (ProcessModule curModule = curProcess.MainModule)
+        {
+            return SetWindowsHookEx(WH_KEYBOARD_LL, proc, GetModuleHandle(curModule.ModuleName), 0);
+        }
+    }
     private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
 
@@ -164,6 +168,177 @@ public partial class Autobalance : UserControl
             labelCurrentdwatchtime.Text = $"开始观战后录制时长为{newValue}分钟"; // 更新标签内容
         }
     }
+    //tab检测
+    private const int WH_KEYBOARD_LL = 13;
+    private const int WM_KEYDOWN = 0x0100;
+
+    private static LowLevelKeyboardProc _proc = HookCallback;
+    private static IntPtr _hookID = IntPtr.Zero;
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    private static extern IntPtr GetModuleHandle(string lpModuleName);
+
+    private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+    private static readonly Mutex tabKeyMutex = new Mutex(); // 创建全局互斥锁
+    private static readonly Mutex captureMutex = new Mutex();
+    private static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+    {
+        if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
+        {
+            int vkCode = Marshal.ReadInt32(lParam);
+            if (vkCode == (int)System.Windows.Forms.Keys.F1)  // 检测f1键
+            {
+                if (tabKeyMutex.WaitOne())//获取
+                {
+                    try
+                    {
+                        //Thread.Sleep(1000);
+                        var bmp = Capture();
+                        if (bmp != null)
+                        {
+                            var ocrlist = new List<PlayerData>();
+                            if (Player.ocrflag)
+                            {
+                                Player.playerlistocr2.Clear();//真写入2
+                                ocrlist = Player.playerlistocr2;
+                            }
+                            else
+                            {
+                                Player.playerlistocr1.Clear();
+                                ocrlist = Player.playerlistocr1;
+
+                            }
+                            for (int i = 0; i <= 31; i++)
+                            {
+                                double begin = 0.12639;
+
+                                if (i >= 3 && i < 7)
+                                {
+                                    begin = 0.19074;
+                                }
+                                else if (i >= 7 && i < 11)
+                                {
+                                    begin = 0.25556;
+                                }
+                                else if (i >= 11 && i < 15)
+                                {
+                                    begin = 0.32037;
+                                }
+                                else if (i >= 15 && i < 19)
+                                {
+                                    begin = 0.38194;
+                                }
+                                else if (i >= 19 && i < 23)
+                                {
+                                    begin = 0.44815;
+                                }
+                                else if (i >= 23 && i < 27)
+                                {
+                                    begin = 0.50972;
+                                }
+                                else if (i >= 27 )
+                                {
+                                    begin = 0.57639;
+                                }
+                                if (i == 12 || i == 24)
+                                {
+                                    GC.Collect();
+                                    GC.WaitForPendingFinalizers();
+                                    GC.Collect();
+                                }
+                                double y1 = begin + 0.01647 * ((i+1)%4);
+                               
+                                double y2 = y1 + 0.01647;
+
+                                string team1name = TesseractOCR.PerformOcrspe(bmp, 0.2005, 0.3703, y1, y2,false);
+                                string team1kill = TesseractOCR.PerformOcrspe(bmp, 0.4146, 0.42865, y1, y2, true);
+                                string team1death = TesseractOCR.PerformOcrspe(bmp, 0.42865, 0.44661, y1, y2, true);
+                                string team1score = TesseractOCR.PerformOcrspe(bmp, 0.44661, 0.4688, y1, y2,true);
+                               
+
+                                
+                                    int kill, death, score;
+                                    // 使用 TryParse 来避免格式错误
+                                    if (int.TryParse(team1kill, out kill) && int.TryParse(team1death, out death) &&int.TryParse(team1score,out score))
+                                    {   
+                                        var playerData = new PlayerData
+                                        {
+                                            Kill = kill,
+                                            Dead = death,
+                                            Score = score,
+                                            Name = team1name,
+                                            TeamId = 1,
+                                        };
+                                        ocrlist.Add(playerData);
+                                    }
+                                    else
+                                    {
+                                        //NotifierHelper.Show(NotifierType.Information, team1kdscore);
+                                    }
+                                
+
+                                
+                                string team2name = TesseractOCR.PerformOcrspe(bmp, 0.5445, 0.7094, y1, y2,false);
+                                string team2kill = TesseractOCR.PerformOcrspe(bmp, 0.7570, 0.77240, y1, y2, true);
+                                string team2death = TesseractOCR.PerformOcrspe(bmp, 0.77240, 0.78906, y1, y2, true);
+                                string team2score = TesseractOCR.PerformOcrspe(bmp, 0.78906, 0.8133, y1, y2,true);
+                                
+                                
+                                 
+                                    // 使用 TryParse 来避免格式错误
+                                    if (int.TryParse(team2kill, out kill) && int.TryParse(team2death, out death) && int.TryParse(team2score, out score))
+                                    {
+                                        var playerData = new PlayerData
+                                        {
+                                            Kill = kill,
+                                            Dead = death,
+                                            Score = score,
+                                            Name = team2name,
+                                            TeamId = 2,
+                                        };
+                                        ocrlist.Add(playerData);
+                                    }
+                                    else
+                                    {
+                                       
+                                    }
+                                
+                            }
+                            //MessageBox.Show("ok");
+                        }
+                    }
+                    finally
+                    {
+                        // 释放
+                        tabKeyMutex.ReleaseMutex();
+                    }
+                    Player.ocrflag = !Player.ocrflag;
+                }
+                
+            }
+        }
+        return CallNextHookEx(_hookID, nCode, wParam, lParam);
+    }
+
+
+
+
+
+
+
+
+
 
     private DispatcherTimer voteTimer;
     private void InitializeVoteTimer()
@@ -195,6 +370,235 @@ public partial class Autobalance : UserControl
         // 定时器触发时执行的任务
         RunPeriodicTasks();
     }
+    public static Bitmap Capture()
+    {
+        System.Drawing.Bitmap bmp = null;
+        if (!captureMutex.WaitOne())//获取
+        { return bmp; }
+            
+        try
+        {
+            var factory = new Factory1();
+            var adapter = factory.GetAdapter1(0);
+            var device = new Device(adapter);
+
+            using (var output = adapter.GetOutput(0))
+            {
+                if (output == null)
+                {
+                    MessageBox.Show("Failed to get output from adapter.");
+                    return bmp;
+                }
+
+                using (var output1 = output.QueryInterface<Output1>())
+                {
+                    if (output1 == null)
+                    {
+                        MessageBox.Show("Failed to query Output1.");
+                        return bmp;
+                    }
+
+                    OutputDuplication duplication = null;
+
+                    try
+                    {
+                        duplication = InitializeDuplicationWithRetry(output1, device, 3);
+                        if (duplication == null)
+                        {
+                            MessageBox.Show("Failed to create duplicate output after retries.");
+                            return bmp;
+                        }
+
+                        Stopwatch stopwatch = new Stopwatch();
+                        stopwatch.Start();
+
+                        int frameCount = 0;
+
+                            Thread.Sleep(40);
+                        for (int i = 0; i < 1; i++) // 测试截取1帧的时间
+                        {
+                            try
+                            {
+                                OutputDuplicateFrameInformation frameInfo;
+                                var result = duplication.TryAcquireNextFrame(100, out frameInfo, out SharpDX.DXGI.Resource resource);
+                                
+                                if (result.Failure || resource == null)
+                                {
+                                    MessageBox.Show($"Frame acquisition failed or resource is null: {result.Code}");
+
+                                    if (result.Code == unchecked((int)0xC0262501)) // DXGI_ERROR_ACCESS_LOST
+                                    {
+                                        MessageBox.Show("Access lost, attempting to reinitialize output duplication...");
+
+                                        duplication.ReleaseFrame(); // 释放当前帧
+
+                                        // 重新创建 DuplicateOutput
+                                        duplication.Dispose(); // 释放旧的复制接口
+                                        duplication = InitializeDuplicationWithRetry(output1, device, 3);
+                                        if (duplication == null)
+                                        {
+                                            MessageBox.Show("Failed to reinitialize duplicate output after retries.");
+                                            break; // 退出循环，无法恢复
+                                        }
+                                    }
+                                    continue;
+                                }
+
+                                // 检查资源是否为空
+                                if (resource == null)
+                                {
+                                    MessageBox.Show("Acquired resource is null.");
+                                    continue;
+                                }
+
+                                // 将 frame 或 resource 转换为 Texture2D 用于进一步处理
+                                var screenTexture = resource.QueryInterface<Texture2D>();
+                                if (screenTexture == null)
+                                {
+                                    MessageBox.Show("Failed to query Texture2D.");
+                                    continue;
+                                }
+
+                               
+                                
+                                    bmp = SaveTextureAsImage(screenTexture, $"frame_{frameCount}.png");
+                                
+
+                                // 释放资源
+                                screenTexture.Dispose();
+                                resource.Dispose();
+                                duplication.ReleaseFrame();
+
+                                frameCount++;
+                            }
+                            catch (SharpDXException e)
+                            {
+                                MessageBox.Show($"Frame acquisition failed: {e.Message}");
+                            }
+                        }
+
+                        stopwatch.Stop();
+                        //MessageBox.Show($"捕获一帧用时{stopwatch.ElapsedMilliseconds} ms");
+                    }
+                    finally
+                    {
+                        duplication?.Dispose(); // 确保输出复制接口被释放
+                    }
+                }
+            }
+           
+
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"An error occurred: {ex.Message}");
+        }
+        captureMutex.ReleaseMutex();
+        return bmp;
+    }
+
+    // 增加初始化输出复制接口的重试机制
+    private static OutputDuplication InitializeDuplicationWithRetry(Output1 output1, Device device, int maxRetries)
+    {
+        int attempts = 0;
+        while (attempts < maxRetries)
+        {
+            try
+            {
+                var duplication = output1.DuplicateOutput(device);
+                if (duplication != null)
+                {
+                    return duplication;
+                }
+            }
+            catch (SharpDXException ex)
+            {
+                if (ex.ResultCode.Code == unchecked((int)0x80070057)) // E_INVALIDARG
+                {
+                    MessageBox.Show($"Attempt {attempts + 1} failed: Invalid argument. Retrying...");
+                }
+                else
+                {
+                    MessageBox.Show($"Attempt {attempts + 1} failed: {ex.Message}");
+                }
+            }
+            attempts++;
+            System.Threading.Thread.Sleep(100); // 等待100毫秒后重试
+        }
+        return null;
+    }
+
+
+    // 保存 Texture2D 为图片文件
+    public static Bitmap SaveTextureAsImage(Texture2D texture, string filename)
+    {
+        // 创建 WIC ImagingFactory
+        var factory = new SharpDX.WIC.ImagingFactory2();
+
+        // 获取纹理的描述信息
+        var textureDescription = texture.Description;
+
+        // 创建一个 Staging 纹理（GPU到CPU的复制）
+        var stagingDescription = new Texture2DDescription
+        {
+            Width = textureDescription.Width,
+            Height = textureDescription.Height,
+            MipLevels = 1,
+            ArraySize = 1,
+            Format = textureDescription.Format,
+            Usage = ResourceUsage.Staging,  // Staging纹理
+            SampleDescription = new SampleDescription(1, 0),
+            BindFlags = BindFlags.None,
+            CpuAccessFlags = CpuAccessFlags.Read,  // 允许CPU读取
+            OptionFlags = ResourceOptionFlags.None
+        };
+
+        // 创建 Staging 纹理
+        var stagingTexture = new Texture2D(texture.Device, stagingDescription);
+
+        // 复制渲染目标到 Staging 纹理
+        texture.Device.ImmediateContext.CopyResource(texture, stagingTexture);
+
+        // 映射 Staging 纹理到内存
+        var dataBox = texture.Device.ImmediateContext.MapSubresource(stagingTexture, 0, MapMode.Read, SharpDX.Direct3D11.MapFlags.None);
+
+        try
+        {
+            // 获取纹理的宽度和高度
+            int width = textureDescription.Width;
+            int height = textureDescription.Height;
+            byte[] pixelData = new byte[width * height * 4]; // 假设格式是 RGBA
+
+            // 将像素数据从 GPU 内存复制到主机内存
+            Marshal.Copy(dataBox.DataPointer, pixelData, 0, pixelData.Length);
+
+            // 解锁纹理
+            texture.Device.ImmediateContext.UnmapSubresource(stagingTexture, 0);
+
+            // 创建 GDI+ Bitmap 对象
+            var bmp = new System.Drawing.Bitmap(width, height);
+            var bd = bmp.LockBits(new System.Drawing.Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+
+            // 将像素数据复制到 GDI+ Bitmap
+            Marshal.Copy(pixelData, 0, bd.Scan0, pixelData.Length);
+
+            // 解锁 Bitmap
+            bmp.UnlockBits(bd);
+
+            // 保存图片为 PNG 格式
+            bmp.Save(filename, System.Drawing.Imaging.ImageFormat.Png);
+            return bmp;
+        }
+        finally
+        {
+            // 释放 Staging 纹理
+            stagingTexture.Dispose();
+            
+        }
+       
+    }
+
+    
     /// <summary>
     /// 停止自动平衡
     /// </summary>
@@ -203,6 +607,7 @@ public partial class Autobalance : UserControl
     private bool stopbalanceflag = false;
     private async void Button_StopWebsocketServer_Click(object sender, RoutedEventArgs e)
     {
+        Capture();
         stopbalanceflag = true;
         if (timer != null)
         {
@@ -404,7 +809,7 @@ public partial class Autobalance : UserControl
     private bool stopRequested = false;
     private void TimerCallback(object state)
     {
-        Console.WriteLine("Timer finished.");
+        MessageBox.Show("Timer finished.");
         StopRecording();
         stopRequested = true;
         timerrecord.Dispose(); // 清理定时器
@@ -774,7 +1179,7 @@ public partial class Autobalance : UserControl
                         var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, OriginTeam);
                         // 重新获取玩家列表以验证换边是否成功
                         if (isPlayerInTeam3)
-                        { await Task.Delay(15500); }
+                        { await Task.Delay(5000); }
                         else
                         {
                             await Task.Delay(1000);
@@ -829,7 +1234,7 @@ public partial class Autobalance : UserControl
                         var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, OriginTeam);
                         // 重新获取玩家列表以验证换边是否成功
                         if (isPlayerInTeam3)
-                        { await Task.Delay(1500); }
+                        { await Task.Delay(5000); }
                         else
                         {
                             await Task.Delay(1000);
@@ -910,7 +1315,7 @@ public partial class Autobalance : UserControl
 
 
                             if (isPlayerInTeam3)
-                            { await Task.Delay(15500); }
+                            { await Task.Delay(5000); }
                             else
                             {
                                 await Task.Delay(1000);
@@ -978,7 +1383,7 @@ public partial class Autobalance : UserControl
 
 
                             if (isPlayerInTeam3)
-                            { await Task.Delay(15500); }
+                            { await Task.Delay(5000); }
                             else
                             {
                                 await Task.Delay(1000);
@@ -1031,7 +1436,7 @@ public partial class Autobalance : UserControl
 
                     if (!balanceAchieved)
                     {
-                        await Task.Delay(1000);
+                        await Task.Delay(100);
                     }
                 }
             }
@@ -1419,7 +1824,7 @@ public partial class Autobalance : UserControl
         int x = (int)(relX * screenWidth);
         int y = (int)(relY * screenHeight);
 
-        using (Bitmap bmp = new Bitmap(1, 1))
+        using (System.Drawing.Bitmap bmp = new System.Drawing.Bitmap(1, 1))
         {
             using (Graphics g = Graphics.FromImage(bmp))
             {
@@ -1508,7 +1913,7 @@ public partial class Autobalance : UserControl
             int ret = ffmpeg.avcodec_send_frame(_pCodecContext, frame);
             if (ret < 0)
             {
-                Console.WriteLine($"Error sending frame to codec: {ret}");
+                MessageBox.Show($"Error sending frame to codec: {ret}");
                 return;
             }
 
@@ -1522,7 +1927,7 @@ public partial class Autobalance : UserControl
                         break;
                     else if (ret < 0)
                     {
-                        Console.WriteLine($"Error receiving packet from codec: {ret}");
+                        MessageBox.Show($"Error receiving packet from codec: {ret}");
                         break;
                     }
 
@@ -1531,7 +1936,7 @@ public partial class Autobalance : UserControl
                     ret = ffmpeg.av_interleaved_write_frame(_pFormatContext, pPacket);
                     if (ret < 0)
                     {
-                        Console.WriteLine($"Error writing frame: {ret}");
+                        MessageBox.Show($"Error writing frame: {ret}");
                         break;
                     }
 
@@ -1549,7 +1954,7 @@ public partial class Autobalance : UserControl
             int ret = ffmpeg.avcodec_send_frame(_pCodecContext, null);
             if (ret < 0)
             {
-                Console.WriteLine($"Error sending frame to codec: {ret}");
+                MessageBox.Show($"Error sending frame to codec: {ret}");
                 return;
             }
 
@@ -1563,7 +1968,7 @@ public partial class Autobalance : UserControl
                         break;
                     else if (ret < 0)
                     {
-                        Console.WriteLine($"Error receiving packet from codec: {ret}");
+                        MessageBox.Show($"Error receiving packet from codec: {ret}");
                         break;
                     }
 
@@ -1572,7 +1977,7 @@ public partial class Autobalance : UserControl
                     ret = ffmpeg.av_interleaved_write_frame(_pFormatContext, pPacket);
                     if (ret < 0)
                     {
-                        Console.WriteLine($"Error writing frame: {ret}");
+                        MessageBox.Show($"Error writing frame: {ret}");
                         break;
                     }
 
@@ -1591,7 +1996,7 @@ public partial class Autobalance : UserControl
 
 
 
-    private static ConcurrentQueue<Bitmap> bitQueue = new ConcurrentQueue<Bitmap>();
+    private static ConcurrentQueue<System.Drawing.Bitmap> bitQueue = new ConcurrentQueue<System.Drawing.Bitmap>();
     private static DateTime lastCaptureTime = DateTime.MinValue;
     private H264VideoStreamEncoder _encoder;
         private Thread _recordingThread;
@@ -1691,7 +2096,7 @@ public partial class Autobalance : UserControl
 
 
                 // 获取队列中的第一个捕获图像
-                Bitmap bmp;
+                System.Drawing.Bitmap bmp;
                 if(!bitQueue.TryDequeue(out bmp))
                 { 
                     // 队列中没有可用的图像，等待一段时间后继续
@@ -1829,9 +2234,9 @@ public partial class Autobalance : UserControl
 
         private const int SRCCOPY = 0x00CC0020;
 
-        public static Bitmap CaptureScreen(Size frameSize)
+        public static System.Drawing.Bitmap CaptureScreen(Size frameSize)
         {
-            Bitmap bmp = new Bitmap(frameSize.Width, frameSize.Height);
+            System.Drawing.Bitmap bmp = new System.Drawing.Bitmap(frameSize.Width, frameSize.Height);
             using (Graphics g = Graphics.FromImage(bmp))
             {
                 IntPtr hdcDest = g.GetHdc();
@@ -1859,7 +2264,169 @@ public partial class Autobalance : UserControl
 
 
 
+public class TesseractOCR
+{
+    // 将 Bitmap 转换为适合 Tesseract OCR 的格式
+    public static string PerformOcr(Bitmap bmp)
+    {
+        // 将 Bitmap 转换为灰度图
+        Bitmap grayBitmap = ConvertToGrayscale(bmp);
 
+        // 使用 MemoryStream 将图像转换为 Tesseract 可读取的格式
+        MemoryStream ms = new MemoryStream();
+        grayBitmap.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+        ms.Position = 0;  // 重置流的位置
+
+        // 使用 Tesseract 进行 OCR 识别
+        string extractedText = PerformOcrOnStream(ms,false);
+
+        return extractedText;
+    }
+    //特定区域ocr
+    public static string PerformOcrspe(Bitmap bmp, double x1, double x2, double y1, double y2, bool onlynumber)
+    {
+        // 获取图像的宽度和高度
+        int width = bmp.Width;
+        int height = bmp.Height;
+
+        // 计算实际的屏幕像素坐标
+        int left = (int)(x1 * width);  // 将相对坐标转换为像素坐标
+        int right = (int)(x2 * width);
+        int top = (int)(y1 * height);
+        int bottom = (int)(y2 * height);
+
+        // 裁剪图像
+        Rectangle cropRect = new Rectangle(left, top, right - left, bottom - top);
+
+       
+        using (Bitmap croppedBmp = bmp.Clone(cropRect, bmp.PixelFormat))
+        {
+            //转换为灰度图
+            using (Bitmap grayBitmap = ConvertToGrayscale(croppedBmp))
+
+            {
+                grayBitmap.Save("test.png", System.Drawing.Imaging.ImageFormat.Png);
+                // 二值化处理
+                using (Bitmap binarizedBitmap = BinarizeImage(grayBitmap))
+                {
+                    //去噪声处理
+                    using (Bitmap denoisedBitmap = DenoiseImage(binarizedBitmap))
+                    {
+                        // 使用 MemoryStream 将图像转换为 Tesseract 可读取的格式
+                        using (MemoryStream ms = new MemoryStream())
+                        {
+                            denoisedBitmap.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                            ms.Position = 0; 
+                                              
+                            string extractedText = PerformOcrOnStream(ms, onlynumber);
+
+                            return extractedText;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    // 二值化处理
+    public static Bitmap BinarizeImage(Bitmap grayBitmap)
+    {
+        Bitmap binarizedBitmap = new Bitmap(grayBitmap.Width, grayBitmap.Height);
+        for (int y = 0; y < grayBitmap.Height; y++)
+        {
+            for (int x = 0; x < grayBitmap.Width; x++)
+            {
+                drawcolor pixelColor = grayBitmap.GetPixel(x, y);
+                int grayValue = (int)(pixelColor.R * 0.3 + pixelColor.G * 0.59 + pixelColor.B * 0.11);
+                drawcolor newColor = (grayValue > 128) ? drawcolor.White : drawcolor.Black;  // 设置阈值为128，白色或黑色
+                binarizedBitmap.SetPixel(x, y, newColor);
+            }
+        }
+        return binarizedBitmap;
+    }
+
+    // 去噪声处理（如中值滤波）
+    public static Bitmap DenoiseImage(Bitmap binarizedBitmap)
+    {
+        // 使用中值滤波进行简单去噪
+        Bitmap denoisedBitmap = new Bitmap(binarizedBitmap.Width, binarizedBitmap.Height);
+        for (int y = 1; y < binarizedBitmap.Height - 1; y++)
+        {
+            for (int x = 1; x < binarizedBitmap.Width - 1; x++)
+            {
+                List<int> neighbors = new List<int>();
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    for (int dx = -1; dx <= 1; dx++)
+                    {
+                        drawcolor neighborColor = binarizedBitmap.GetPixel(x + dx, y + dy);
+                        int grayValue = (int)(neighborColor.R * 0.3 + neighborColor.G * 0.59 + neighborColor.B * 0.11);
+                        neighbors.Add(grayValue);
+                    }
+                }
+                neighbors.Sort();
+                int median = neighbors[neighbors.Count / 2];
+                drawcolor newColor = (median > 128) ? drawcolor.White : drawcolor.Black;
+                denoisedBitmap.SetPixel(x, y, newColor);
+            }
+        }
+        return denoisedBitmap;
+    }
+
+
+
+    // 将 Bitmap 转换为灰度图
+    private static Bitmap ConvertToGrayscale(Bitmap original)
+    {
+        Bitmap grayBitmap = new Bitmap(original.Width, original.Height);
+        using (Graphics g = Graphics.FromImage(grayBitmap))
+        {
+            // 创建灰度色彩矩阵
+            ColorMatrix colorMatrix = new ColorMatrix(new float[][]
+            {
+                new float[] { 0.3f, 0.3f, 0.3f, 0, 0 },
+                new float[] { 0.59f, 0.59f, 0.59f, 0, 0 },
+                new float[] { 0.11f, 0.11f, 0.11f, 0, 0 },
+                new float[] { 0, 0, 0, 1, 0 },
+                new float[] { 0, 0, 0, 0, 1 }
+            });
+
+            // 创建一个将图片转为灰度的图像调整类
+            ImageAttributes attributes = new ImageAttributes();
+            attributes.SetColorMatrix(colorMatrix);
+
+            // 将原图绘制到新图上，转换为灰度
+            g.DrawImage(original, new Rectangle(0, 0, original.Width, original.Height),
+                        0, 0, original.Width, original.Height, GraphicsUnit.Pixel, attributes);
+        }
+
+        return grayBitmap;
+    }
+
+    // 使用 Tesseract 对 MemoryStream 进行 OCR 识别
+    private static string PerformOcrOnStream(MemoryStream ms,bool onlynumber)
+    {
+        // 初始化 Tesseract 引擎（指定语言和数据文件路径）
+        using (var engine = new TesseractEngine(@"./tessdata", "eng", EngineMode.Default))
+        {    // 设置字符白名单，只识别字母和数字
+            if (!onlynumber)
+            {
+                engine.SetVariable("tessedit_char_whitelist", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
+            }
+            else
+            {
+               // engine.SetVariable("tessedit_char_whitelist", "0123456789");
+            }
+            using (var img = Pix.LoadFromMemory(ms.ToArray()))
+            {
+                // 执行 OCR 识别
+                var result = engine.Process(img);
+                return result.GetText();  // 返回识别的文本
+            }
+        }
+    }
+}
 public class FFmpegBinariesHelper
 {
     public static void RegisterFFmpegBinaries()
@@ -1875,7 +2442,7 @@ public class FFmpegBinariesHelper
 
                 if (Directory.Exists(ffmpegBinaryPath))
                 {
-                    Console.WriteLine($"FFmpeg binaries found in: {ffmpegBinaryPath}");
+                    MessageBox.Show($"FFmpeg binaries found in: {ffmpegBinaryPath}");
                     FFmpeg.AutoGen.Bindings.DynamicallyLoaded.DynamicallyLoadedBindings.LibrariesPath = ffmpegBinaryPath;
                     ffmpeg.RootPath = ffmpegBinaryPath;
                     return;

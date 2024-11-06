@@ -113,6 +113,76 @@ public static class Player
 
         return false;
     }
+
+    // ghs api的json解析
+    public class ServerResponse
+    {
+        [JsonProperty("code")]
+        public int Code { get; set; }
+
+        [JsonProperty("message")]
+        public string Message { get; set; }
+
+        [JsonProperty("data")]
+        public List<PlayerJson> Data { get; set; }
+    }
+
+    public class PlayerJson
+    {
+        [JsonProperty("platoonName")]
+        public string PlatoonName { get; set; }
+
+        [JsonProperty("personaName")]
+        public string PersonaName { get; set; }
+
+        [JsonProperty("personaId")]
+        public long PersonaId { get; set; }
+
+        [JsonProperty("rank")]
+        public int Rank { get; set; }
+
+        [JsonProperty("teamId")]
+        public int TeamId { get; set; }
+
+        [JsonProperty("detailed")]
+        public PlayerDetailed Detailed { get; set; }
+    }
+
+    public class PlayerDetailed
+    {
+        [JsonProperty("hoursPlayed")]
+        public int HoursPlayed { get; set; }
+
+        [JsonProperty("kills")]
+        public int Kills { get; set; }
+
+        [JsonProperty("deaths")]
+        public int Deaths { get; set; }
+
+        [JsonProperty("kd")]
+        public double Kd { get; set; }
+
+        [JsonProperty("kpm")]
+        public double Kpm { get; set; }
+
+        [JsonProperty("roundAvgKills")]
+        public double RoundAvgKills { get; set; }
+
+        [JsonProperty("accuracyRatio")]
+        public double AccuracyRatio { get; set; }
+
+        [JsonProperty("headShotsRatio")]
+        public double HeadShotsRatio { get; set; }
+
+        [JsonProperty("winRatio")]
+        public double WinRatio { get; set; }
+
+        [JsonProperty("roundsPlayed")]
+        public int RoundsPlayed { get; set; }
+
+        [JsonProperty("skill")]
+        public double Skill { get; set; }
+    }
     //json解析
     public class ServerInfoRoot
     {
@@ -203,9 +273,44 @@ public static class Player
         [JsonProperty("platoon")]
         public string Platoon { get; set; }
     }
-   
+    // 计算两个字符串的相似度，使用 Levenshtein 距离的简单实现
+    static double CalculateStringSimilarity(string str1, string str2)
+    {
+        int len1 = str1.Length;
+        int len2 = str2.Length;
+
+        // 创建二维数组来存储计算结果
+        var matrix = new int[len1 + 1, len2 + 1];
+
+        for (int i = 0; i <= len1; i++)
+            matrix[i, 0] = i;
+        for (int j = 0; j <= len2; j++)
+            matrix[0, j] = j;
+
+        for (int i = 1; i <= len1; i++)
+        {
+            for (int j = 1; j <= len2; j++)
+            {
+                int cost = (str1[i - 1] == str2[j - 1]) ? 0 : 1;
+
+                matrix[i, j] = Math.Min(
+                    Math.Min(matrix[i - 1, j] + 1, matrix[i, j - 1] + 1),
+                    matrix[i - 1, j - 1] + cost
+                );
+            }
+        }
+
+        // 返回相似度
+        int editDistance = matrix[len1, len2];
+        double maxLength = Math.Max(len1, len2);
+        return 1.0 - (editDistance / maxLength);
+    }
     public static string retrievedString = "";
+    public static long gameId = 0;
     public static bool IsUseMode1 = true;
+    public static List<PlayerData> playerlistocr1 = new List<PlayerData>();
+    public static List<PlayerData> playerlistocr2 = new List<PlayerData>();
+    public static bool ocrflag = true;//真读取1
     /// <summary>
     /// 获取玩家列表信息
     /// </summary>
@@ -213,15 +318,26 @@ public static class Player
     public static List<PlayerData> GetPlayerList()
 
     {
+        
         // 初始化 HttpClient 实例
         using (var httpClient = new HttpClient())
             if (!IsUseMode1)//测试时为false
                 {   
                     List<PlayerData> _playerList = new List<PlayerData>();
-                
+                var playerListOcr = new List<PlayerData>();
+                if (ocrflag)
+                {
+                    playerListOcr = playerlistocr1;
+
+                }
+                else
+                {
+                    playerListOcr = playerlistocr2;
+                }
+                string url = $"https://battlefield.tools/api/server/player/query/batch?game_id={gameId}&detailed=true";
                 try
                 {
-                    var responseTask = httpClient.GetAsync(retrievedString);
+                    var responseTask = httpClient.GetAsync(url);
                     responseTask.Wait(); // 等待任务完成
 
                     var response = responseTask.Result; // 获取结果
@@ -229,30 +345,90 @@ public static class Player
                     if (response.IsSuccessStatusCode)
                     {
                         var responseString = response.Content.ReadAsStringAsync().Result; // 同步获取响应内容
-                        var serverInfo = JsonConvert.DeserializeObject<ServerInfoRoot>(responseString);
+                        var serverInfo = JsonConvert.DeserializeObject<ServerResponse>(responseString);
 
-                        foreach (var team in serverInfo.Teams)
+                        if (serverInfo != null && serverInfo.Code == 200 && serverInfo.Data != null)
                         {
-                            foreach (var playerJson in team.Players)
+                            foreach (var playerJson in serverInfo.Data)
                             {
                                 var playerData = new PlayerData
                                 {
-                                    Clan = playerJson.Platoon,
-                                    Name = playerJson.Name,
-                                    PersonaId = playerJson.PlayerId,
+                                    Clan = playerJson.PlatoonName,
+                                    Name = playerJson.PersonaName,
+                                    PersonaId = playerJson.PersonaId,
                                     Rank = playerJson.Rank,
-                                    // 初始化其他字段...
-                                    TeamId = team.TeamId == "teamOne" ? 1 : 2,
+                                    TeamId = playerJson.TeamId,
+
+
+                                    LifeKd = (float)playerJson.Detailed.Kd,
+                                    LifeKpm = (float)playerJson.Detailed.Kpm,
+
+
                                 };
 
                                 _playerList.Add(playerData);
+                            }
+                        }
+                        else
+                        {
+                            responseTask = httpClient.GetAsync(retrievedString);
+                            responseTask.Wait(); // 等待任务完成
+
+                            response = responseTask.Result; // 获取结果
+                            if (response.IsSuccessStatusCode)
+                            {
+                                 responseString = response.Content.ReadAsStringAsync().Result; // 同步获取响应内容
+                                var serverInfo2 = JsonConvert.DeserializeObject<ServerInfoRoot>(responseString);
+
+                                foreach (var team in serverInfo2.Teams)
+                                {
+                                    foreach (var playerJson in team.Players)
+                                    {
+                                        var playerData = new PlayerData
+                                        {
+                                            Clan = playerJson.Platoon,
+                                            Name = playerJson.Name,
+                                            PersonaId = playerJson.PlayerId,
+                                            Rank = playerJson.Rank,
+                                            // 初始化其他字段...
+                                            TeamId = team.TeamId == "teamOne" ? 1 : 2,
+                                        };
+
+                                        _playerList.Add(playerData);
+                                    }
+                                }
                             }
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    
+
+                }
+                if(playerListOcr.Count != 0)
+                { 
+                foreach (var playerOcr in playerListOcr)
+                {
+                    foreach (var player in _playerList)
+                    {
+                        // 拼接 _playerList 中的 clan 和 name
+                        string _playerString = player.Clan + player.Name;
+
+                        // 计算相似度
+                        double similarity = CalculateStringSimilarity(playerOcr.Name, _playerString);
+
+                        // 如果相似度超过50%
+                        if (similarity >= 0.5)
+                        {
+                            // 将 playerListOcr 中的 Kill, Death, Score 赋值给 _playerList 中相应的元素
+                            player.Kill = playerOcr.Kill;
+                            player.Dead = playerOcr.Dead;
+                            player.Score = playerOcr.Score;
+
+
+                        }
+                    }
+                }
                 }
                 return _playerList;
                 
