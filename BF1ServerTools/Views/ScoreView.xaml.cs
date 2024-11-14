@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using static BF1ServerTools.Views.ScoreView;
 using System.IO.Pipes;
 using System.Windows.Controls;
+using BF1ServerTools.RES.Data;
 
 namespace BF1ServerTools.Views;
 
@@ -189,7 +190,7 @@ public partial class ScoreView : UserControl
     {
         public string ServerUrl { get; set; }
     }
-    private readonly string F_Auth_Path2 = FileUtil.D_Config_Path + @"\AuthConfig2.json";
+    private readonly string F_Auth_Path2 = BF1ServerTools.Utils.FileUtil.D_Config_Path + @"\AuthConfig2.json";
     private Config ReadConfig()
     {
         // 从文件中读取JSON字符串
@@ -200,7 +201,40 @@ public partial class ScoreView : UserControl
 
         return config;
     }
-   
+    public class ServerResponse
+    {
+        [JsonProperty("code")]
+        public int Code { get; set; }
+
+        [JsonProperty("message")]
+        public string Message { get; set; }
+
+        [JsonProperty("data")]
+        public ServerData2 Data { get; set; }
+
+        [JsonProperty("time")]
+        public DateTime Time { get; set; }
+    }
+    public class ServerData2
+    {
+        [JsonProperty("name")]
+        public string Name { get; set; }
+
+        [JsonProperty("gameId")]
+        public long GameId { get; set; }
+
+        [JsonProperty("mapName")]
+        public string MapName { get; set; }
+
+        [JsonProperty("mapName2")]
+        public string MapName2 { get; set; }
+
+        [JsonProperty("gameMode")]
+        public string GameMode { get; set; }
+
+        [JsonProperty("gameMode2")]
+        public string GameMode2 { get; set; }
+    }
     /// <summary>
     /// 更新服务器信息线程
     /// </summary>
@@ -248,61 +282,117 @@ public partial class ScoreView : UserControl
                 {
                     try
                     {
+                        string zhangurl = "http://127.0.0.1:10086/Server/GetServerData";
+
                         string serverUrl = "";
-                        if (AuthView.URL != null)
+                        ServerResponse serverInfo2;
+                        try
                         {
-                            serverUrl = AuthView.URL;
-                            string globalString = serverUrl;
-                            Player.retrievedString = globalString;
-                            Player.gameId = Globals.GameId;
+                            string response2 = await httpClient.GetStringAsync(zhangurl);
+                            serverInfo2 = JsonConvert.DeserializeObject<ServerResponse>(response2);
+                        }
+                        catch (HttpRequestException ex)  // 处理 HTTP 请求异常
+                        {
+                            
+                            serverInfo2 = new ServerResponse { Code = -1, Message = "网络请求失败" };
+                        }
+                        catch (Newtonsoft.Json.JsonException ex)  // 处理 JSON 解析异常
+                        {
+                         
+                            serverInfo2 = new ServerResponse { Code = -2, Message = "JSON 解析失败" };
+                        }
+                        catch (Exception ex)  // 其他未知异常
+                        {
+                            
+                            serverInfo2 = new ServerResponse { Code = -3, Message = "未知错误" };
+                        }
+                        if (serverInfo2.Code == 200)
+                        {
+                            _serverData.Name = serverInfo2.Data.Name;
+                            _serverData.Name = string.IsNullOrEmpty(_serverData.Name) ? "未知" : _serverData.Name;
+                            ScoreModel.ServerName = _serverData.Name;
+                            _serverData.GameMode = serverInfo2.Data.GameMode;
+                            ScoreModel.ServerGameMode = serverInfo2.Data.GameMode2;
+                            _serverData.MapName = serverInfo2.Data.MapName.Split('/').Last(); //原始名称
+                            ScoreModel.ServerMapName = serverInfo2.Data.MapName2;
+                            _serverData.GameId = serverInfo2.Data.GameId;
+                            if (_serverData.GameId == 0)
+                            {
+                                _serverData.GameId = BF1ServerTools.Views.AuthView.gameid233;//服务器id获取
+
+                            }
+                            ScoreModel.ServerGameId = _serverData.GameId;
+                            ScoreModel.Team1Img = ClientHelper.GetTeam1Image2(_serverData.MapName);
+                            ScoreModel.Team2Img = ClientHelper.GetTeam2Image2(_serverData.MapName);
+
+                            ScoreModel.Team1Name = ClientHelper.GetTeamChsName2(_serverData.MapName, 1);
+                            ScoreModel.Team2Name = ClientHelper.GetTeamChsName2(_serverData.MapName, 2);
+                            
                         }
                         else
                         {
-                            serverUrl = "1";
+                            if (AuthView.URL != null)
+                            {
+                                serverUrl = AuthView.URL;
+                                string globalString = serverUrl;
+                                Player.retrievedString = globalString;
+                                Player.gameId = Globals.GameId;
+                            }
+                            else
+                            {
+                                serverUrl = "1";
+                            }
+
+                            var response = await httpClient.GetStringAsync(serverUrl);
+                            var serverInfo = JsonConvert.DeserializeObject<ServerInfoRoot>(response);
+
+                            // 使用serverInfo中的数据
+
+                            _serverData.Name = serverInfo.ServerInfo.Name;
+                            _serverData.Name = string.IsNullOrEmpty(_serverData.Name) ? "未知" : _serverData.Name;
+
+                            _serverData.MapName = serverInfo.ServerInfo.Level;
+                            _serverData.MapName = string.IsNullOrEmpty(_serverData.MapName) ? "未知" : _serverData.MapName;
+
+                            _serverData.GameMode = serverInfo.ServerInfo.Mode;
+
+
+                            // 服务器时间
+                            //_serverData.Time = Server.GetServerTime();
+
+                            //////////////////////////////// 服务器数据整理 ////////////////////////////////
+
+                            ScoreModel.ServerName = _serverData.Name;
+                            //ScoreModel.ServerTime = PlayerUtil.SecondsToMMSS(_serverData.Time);
+
+                            ScoreModel.ServerMapName = ClientHelper.GetMapChsName2(_serverData.MapName);
+                            ScoreModel.ServerMapImg = ClientHelper.GetMapPrevImage2(_serverData.MapName);
+                            //test
+
+                            // 最大比分
+                            _serverData.MaxScore = Server.GetServerMaxScore();
+                            // 队伍1、队伍2分数
+                            _serverData.Team1Score = Server.GetTeam1Score();
+                            _serverData.Team2Score = Server.GetTeam2Score();
+
+                            //test
+                            ScoreModel.ServerGameMode = ClientHelper.GetGameMode2(_serverData.GameMode);
+
+                            ScoreModel.Team1Img = ClientHelper.GetTeam1Image2(_serverData.MapName);
+                            ScoreModel.Team2Img = ClientHelper.GetTeam2Image2(_serverData.MapName);
+
+                            ScoreModel.Team1Name = ClientHelper.GetTeamChsName2(_serverData.MapName, 1);
+                            ScoreModel.Team2Name = ClientHelper.GetTeamChsName2(_serverData.MapName, 2);
+
+
+
+                            /////////////////////////////////////////////////////////////////////////
+
+                            // 服务器数字Id
+                            _serverData.GameId = BF1ServerTools.Views.AuthView.gameid233;//服务器id获取
+
+                            ScoreModel.ServerGameId = _serverData.GameId;
                         }
-
-                        var response = await httpClient.GetStringAsync(serverUrl);
-                        var serverInfo = JsonConvert.DeserializeObject<ServerInfoRoot>(response);
-
-                        // 使用serverInfo中的数据
-
-                        _serverData.Name = serverInfo.ServerInfo.Name;
-                        _serverData.Name = string.IsNullOrEmpty(_serverData.Name) ? "未知" : _serverData.Name;
-
-                        _serverData.MapName = serverInfo.ServerInfo.Level;
-                        _serverData.MapName = string.IsNullOrEmpty(_serverData.MapName) ? "未知" : _serverData.MapName;
-
-                        _serverData.GameMode = serverInfo.ServerInfo.Mode;
-
-
-                        // 服务器时间
-                        //_serverData.Time = Server.GetServerTime();
-
-                        //////////////////////////////// 服务器数据整理 ////////////////////////////////
-
-                        ScoreModel.ServerName = _serverData.Name;
-                        //ScoreModel.ServerTime = PlayerUtil.SecondsToMMSS(_serverData.Time);
-
-                        ScoreModel.ServerMapName = ClientHelper.GetMapChsName2(_serverData.MapName);
-                        ScoreModel.ServerMapImg = ClientHelper.GetMapPrevImage2(_serverData.MapName);
-
-
-                        ScoreModel.ServerGameMode = ClientHelper.GetGameMode2(_serverData.GameMode);
-
-                        ScoreModel.Team1Img = ClientHelper.GetTeam1Image2(_serverData.MapName);
-                        ScoreModel.Team2Img = ClientHelper.GetTeam2Image2(_serverData.MapName);
-
-                        ScoreModel.Team1Name = ClientHelper.GetTeamChsName2(_serverData.MapName, 1);
-                        ScoreModel.Team2Name = ClientHelper.GetTeamChsName2(_serverData.MapName, 2);
-
-
-
-                        /////////////////////////////////////////////////////////////////////////
-
-                        // 服务器数字Id
-                        _serverData.GameId = BF1ServerTools.Views.AuthView.gameid233;//服务器id获取
-                        ScoreModel.ServerGameId = _serverData.GameId;
-
                         // 如果玩家没有进入服务器，要进行一些数据清理
                         if (ScoreModel.ServerMapName == "大厅菜单")
                         {
@@ -373,7 +463,7 @@ public partial class ScoreView : UserControl
                 ScoreModel.Team2Name = ClientHelper.GetTeamChsName(_serverData.MapName, 2);
 
                 // 当服务器模式为征服时，下列数据才有效
-                if (ScoreModel.ServerGameMode == "征服")
+                if (ScoreModel.ServerGameMode == "征服" || true)
                 {
                     // 最大比分
                     _serverData.MaxScore = Server.GetServerMaxScore();
@@ -419,10 +509,13 @@ public partial class ScoreView : UserControl
 
                 // 服务器数字Id
                 _serverData.GameId = Server.GetGameId();
-                ScoreModel.ServerGameId = _serverData.GameId;
-
-                // 如果玩家没有进入服务器，要进行一些数据清理
-                if (ScoreModel.ServerMapName == "大厅菜单")
+                    if (_serverData.GameId == 0) {
+                        _serverData.GameId = BF1ServerTools.Views.AuthView.gameid233;//服务器id获取
+                    }
+                    ScoreModel.ServerGameId = _serverData.GameId;
+                   
+                    // 如果玩家没有进入服务器，要进行一些数据清理
+                    if (ScoreModel.ServerMapName == "大厅菜单")
                 {
                     Globals.GameId = 0;
 

@@ -8,8 +8,8 @@
 		<UseWPF>true</UseWPF>
 		<Platforms>x64;ARM64;x86</Platforms>
 		<StartupObject>BF1ServerTools.App</StartupObject>
-		<AssemblyVersion>2.1.6</AssemblyVersion>
-		<FileVersion>2.1.6</FileVersion>
+		<AssemblyVersion>2.2.2</AssemblyVersion>
+		<FileVersion>2.2.2</FileVersion>
 		<ApplicationManifest>Properties\app.manifest</ApplicationManifest>
 		<ApplicationIcon>Assets\Images\Favicon.ico</ApplicationIcon>
 		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
@@ -42,6 +42,7 @@
 	<ItemGroup>
 	  <None Remove="eng.traineddata" />
 	  <None Remove="ffmpeg.zip" />
+	  <None Remove="num.traineddata" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -49,6 +50,7 @@
 		<EmbeddedResource Include="ffmpeg.zip" />
 		<EmbeddedResource Include="Files\config.yml" />
 		<EmbeddedResource Include="Files\go-cqhttp.exe" />
+		<EmbeddedResource Include="num.traineddata" />
 	</ItemGroup>
 	<ItemGroup>
 		<None Update="ffmpeg\**\*">
@@ -87,6 +89,9 @@
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="NLog" Version="5.1.0" />
 		<PackageReference Include="Notification.Wpf" Version="6.1.0.5" />
+		<PackageReference Include="OpenCvSharp4" Version="4.10.0.20241108" />
+		<PackageReference Include="OpenCvSharp4.Extensions" Version="4.10.0.20241108" />
+		<PackageReference Include="OpenCvSharp4.runtime.win" Version="4.10.0.20241108" />
 		<PackageReference Include="SharpAvi" Version="3.0.1" />
 		<PackageReference Include="SharpDX" Version="4.2.0" />
 		<PackageReference Include="SharpDX.Direct2D1" Version="4.2.0" />

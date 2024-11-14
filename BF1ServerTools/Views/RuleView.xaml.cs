@@ -16,7 +16,7 @@ public partial class RuleView : UserControl
     /// <summary>
     /// Auth配置文件路径
     /// </summary>
-    private readonly string F_Rule_Path = FileUtil.D_Config_Path + @"\RuleConfig.json";
+    private readonly string F_Rule_Path = BF1ServerTools.Utils.FileUtil.D_Config_Path + @"\RuleConfig.json";
 
     /// <summary>
     /// Rule配置文件，以json格式保存到本地
@@ -156,6 +156,7 @@ public partial class RuleView : UserControl
             rule.Team1Rule.LifeMaxKPM = RuleTeam1Model.LifeMaxKPM;
             rule.Team1Rule.LifeMaxWeaponStar = RuleTeam1Model.LifeMaxWeaponStar;
             rule.Team1Rule.LifeMaxVehicleStar = RuleTeam1Model.LifeMaxVehicleStar;
+            rule.Team1Rule.LifeMaxPlaneStar = RuleTeam1Model.LifeMaxPlaneStar;
 
             rule.Team2Rule.MaxKill = RuleTeam2Model.MaxKill;
             rule.Team2Rule.FlagKD = RuleTeam2Model.FlagKD;
@@ -169,6 +170,7 @@ public partial class RuleView : UserControl
             rule.Team2Rule.LifeMaxKPM = RuleTeam2Model.LifeMaxKPM;
             rule.Team2Rule.LifeMaxWeaponStar = RuleTeam2Model.LifeMaxWeaponStar;
             rule.Team2Rule.LifeMaxVehicleStar = RuleTeam2Model.LifeMaxVehicleStar;
+            rule.Team2Rule.LifeMaxPlaneStar = RuleTeam2Model.LifeMaxPlaneStar;
 
             rule.WhiteList.Clear();
             foreach (string name in ListBox_CustomWhites.Items)
@@ -233,7 +235,8 @@ public partial class RuleView : UserControl
         RuleTeam1Model.LifeMaxKPM = rule.Team1Rule.LifeMaxKPM;
         RuleTeam1Model.LifeMaxWeaponStar = rule.Team1Rule.LifeMaxWeaponStar;
         RuleTeam1Model.LifeMaxVehicleStar = rule.Team1Rule.LifeMaxVehicleStar;
-        RuleTeam1Model.MaxScout = rule.Team1Rule.MaxScout;
+        RuleTeam1Model.LifeMaxPlaneStar = rule.Team1Rule.LifeMaxPlaneStar;
+
         // 应用队伍2规则
         RuleTeam2Model.MaxKill = rule.Team2Rule.MaxKill;
         RuleTeam2Model.FlagKD = rule.Team2Rule.FlagKD;
@@ -247,6 +250,7 @@ public partial class RuleView : UserControl
         RuleTeam2Model.LifeMaxKPM = rule.Team2Rule.LifeMaxKPM;
         RuleTeam2Model.LifeMaxWeaponStar = rule.Team2Rule.LifeMaxWeaponStar;
         RuleTeam2Model.LifeMaxVehicleStar = rule.Team2Rule.LifeMaxVehicleStar;
+        RuleTeam2Model.LifeMaxPlaneStar = rule.Team2Rule.LifeMaxPlaneStar;
 
         // 读取白名单列表
         ListBox_CustomWhites.Items.Clear();
@@ -385,6 +389,7 @@ public partial class RuleView : UserControl
         Globals.ServerRule_Team1.LifeMaxKPM = RuleTeam1Model.LifeMaxKPM;
         Globals.ServerRule_Team1.LifeMaxWeaponStar = RuleTeam1Model.LifeMaxWeaponStar;
         Globals.ServerRule_Team1.LifeMaxVehicleStar = RuleTeam1Model.LifeMaxVehicleStar;
+        Globals.ServerRule_Team1.LifeMaxPlaneStar = RuleTeam1Model.LifeMaxPlaneStar;
 
         Globals.ServerRule_Team2.MaxKill = RuleTeam2Model.MaxKill;
         Globals.ServerRule_Team2.FlagKD = RuleTeam2Model.FlagKD;
@@ -400,7 +405,7 @@ public partial class RuleView : UserControl
         Globals.ServerRule_Team2.LifeMaxKPM = RuleTeam2Model.LifeMaxKPM;
         Globals.ServerRule_Team2.LifeMaxWeaponStar = RuleTeam2Model.LifeMaxWeaponStar;
         Globals.ServerRule_Team2.LifeMaxVehicleStar = RuleTeam2Model.LifeMaxVehicleStar;
-
+        Globals.ServerRule_Team2.LifeMaxPlaneStar = RuleTeam2Model.LifeMaxPlaneStar;
         /////////////////////////////////////////////////////////////////////////////
 
         // 检查队伍1等级限制
@@ -472,7 +477,9 @@ public partial class RuleView : UserControl
         AddRuleLog("生涯KPM", $"{Globals.ServerRule_Team1.LifeMaxKPM}", $"{Globals.ServerRule_Team2.LifeMaxKPM}");
 
         AddRuleLog("武器星数", $"{Globals.ServerRule_Team1.LifeMaxWeaponStar}", $"{Globals.ServerRule_Team2.LifeMaxWeaponStar}");
-        AddRuleLog("载具星数", $"{Globals.ServerRule_Team1.LifeMaxVehicleStar}", $"{Globals.ServerRule_Team2.LifeMaxVehicleStar}");
+        AddRuleLog("坦克星数", $"{Globals.ServerRule_Team1.LifeMaxVehicleStar}", $"{Globals.ServerRule_Team2.LifeMaxVehicleStar}");
+        AddRuleLog("飞机星数", $"{Globals.ServerRule_Team1.LifeMaxPlaneStar}", $"{Globals.ServerRule_Team2.LifeMaxPlaneStar}");
+
 
         AddRuleLog("【禁用武器】");
         int team1 = Globals.CustomWeapons_Team1.Count;

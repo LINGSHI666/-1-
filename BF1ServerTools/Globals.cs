@@ -103,8 +103,10 @@ public static class Globals
     /// </summary>
     public static string SessionId
     {
+       
         get
         {
+            return SessionId2;
             return IsUseMode1 ? SessionId1 : SessionId2;
         }
     }

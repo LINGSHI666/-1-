@@ -68,7 +68,7 @@ public partial class ChatView : UserControl
     /// <summary>
     /// 配置文件路径
     /// </summary>
-    private readonly string F_Chat_Path = FileUtil.D_Config_Path + @"\ChatConfig.json";
+    private readonly string F_Chat_Path = BF1ServerTools.Utils.FileUtil.D_Config_Path + @"\ChatConfig.json";
 
     /// <summary>
     /// 独立聊天窗口

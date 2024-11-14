@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Windows;
-using System.Windows.Threading; // 添加这个命名空间以使用DispatcherTimer
+using System.Windows.Threading;
 using BF1ServerTools.SDK;
 using BF1ServerTools.SDK.Core;
 using BF1ServerTools.Utils;
@@ -54,6 +54,7 @@ public partial class LoadWindow : UiWindow
         {
             try
             {
+                
                 LoadModel.LoadState = "正在初始化工具中...";
 
                 LoggerHelper.Info("开始初始化程序...");
@@ -74,32 +75,35 @@ public partial class LoadWindow : UiWindow
                 LoggerHelper.Info("正在初始化配置文件...");
 
                 // 创建配置目录
-                Directory.CreateDirectory(FileUtil.D_Cache_Path);
-                Directory.CreateDirectory(FileUtil.D_Config_Path);
-                Directory.CreateDirectory(FileUtil.D_Data_Path);
-                Directory.CreateDirectory(FileUtil.D_Log_Path);
-                Directory.CreateDirectory(FileUtil.D_Robot_Path);
+                Directory.CreateDirectory(BF1ServerTools.Utils.FileUtil.D_Cache_Path);
+                Directory.CreateDirectory(BF1ServerTools.Utils.FileUtil.D_Config_Path);
+                Directory.CreateDirectory(BF1ServerTools.Utils.FileUtil.D_Data_Path);
+                Directory.CreateDirectory(BF1ServerTools.Utils.FileUtil.D_Log_Path);
+                Directory.CreateDirectory(BF1ServerTools.Utils.FileUtil.D_Robot_Path);
 
                 LoadModel.LoadState = "正在检测战地1是否运行...";
                 // 检测战地1是否运行，测试离线运行
-                if (false)
+                if (true)
                 {
-                    if (!ProcessUtil.IsBf1Run())
-                    {
-                        LoadModel.LoadState = "未发现《战地1》游戏进程！程序即将关闭";
-                        LoggerHelper.Error("未发现战地1进程");
-
-                        Task.Delay(2000).Wait();
-                        this.Dispatcher.Invoke(() =>
+                    if (false) {
+                        if (!ProcessUtil.IsBf1Run())
                         {
-                            Application.Current.Shutdown();
-                        });
-                        return;
+                            LoadModel.LoadState = "未发现《战地1》游戏进程！程序即将关闭";
+                            LoggerHelper.Error("未发现战地1进程");
+
+                            Task.Delay(2000).Wait();
+                            this.Dispatcher.Invoke(() =>
+                            {
+                                Application.Current.Shutdown();
+                            });
+                            return;
+                        }
                     }
+                    
 
                     LoadModel.LoadState = "正在初始化战地1内存模块...";
                     // 初始化战地1内存模块
-                    if (!Memory.Initialize())
+                    if (!Memory.Initialize() && false)//test
                     {
                         LoadModel.LoadState = $"战地1内存模块初始化失败！程序即将关闭";
                         LoggerHelper.Error("战地1内存模块初始化失败");
@@ -107,7 +111,7 @@ public partial class LoadWindow : UiWindow
                         Task.Delay(2000).Wait();
                         this.Dispatcher.Invoke(() =>
                         {
-                            Application.Current.Shutdown();
+                             Application.Current.Shutdown();
                         });
                         return;
                     }
@@ -132,11 +136,11 @@ public partial class LoadWindow : UiWindow
                     LoadModel.LoadState = "正在准备最后工作...";
 
                     // 释放必要文件
-                    if (!File.Exists(FileUtil.D_Robot_Path + "\\config.yml"))
-                        FileUtil.ExtractResFile(FileUtil.Resource_Path + "config.yml", FileUtil.D_Robot_Path + "\\config.yml");
+                    if (!File.Exists(BF1ServerTools.Utils.FileUtil.D_Robot_Path + "\\config.yml"))
+                        BF1ServerTools.Utils.FileUtil.ExtractResFile(BF1ServerTools.Utils.FileUtil.Resource_Path + "config.yml", BF1ServerTools.Utils.FileUtil.D_Robot_Path + "\\config.yml");
 
-                    if (!File.Exists(FileUtil.D_Robot_Path + "\\go-cqhttp.exe"))
-                        FileUtil.ExtractResFile(FileUtil.Resource_Path + "go-cqhttp.exe", FileUtil.D_Robot_Path + "\\go-cqhttp.exe");
+                    if (!File.Exists(BF1ServerTools.Utils.FileUtil.D_Robot_Path + "\\go-cqhttp.exe"))
+                        BF1ServerTools.Utils.FileUtil.ExtractResFile(BF1ServerTools.Utils.FileUtil.Resource_Path + "go-cqhttp.exe", BF1ServerTools.Utils.FileUtil.D_Robot_Path + "\\go-cqhttp.exe");
 
                     Chat.AllocateMemory();
                     LoggerHelper.Info($"中文聊天指针分配成功 0x{Chat.AllocateMemAddress:x}");
@@ -145,7 +149,7 @@ public partial class LoadWindow : UiWindow
                     LoggerHelper.Info("简繁翻译库初始化成功");
 
                     /////////////////////////////////////////////////////////////////////
-
+                    /*
                     this.Dispatcher.Invoke(() =>
                     {
                         var mainWindow = new MainWindow();
@@ -155,18 +159,18 @@ public partial class LoadWindow : UiWindow
                         Application.Current.MainWindow = mainWindow;
                         // 关闭初始化窗口
                         this.Close();
-                    });
+                    });*/
                 }
                 //Memory.Initialize();
                 SQLiteHelper.Initialize();
                 LoadModel.LoadState = "正在准备最后工作...";
 
                 // 释放必要文件
-                if (!File.Exists(FileUtil.D_Robot_Path + "\\config.yml"))
-                    FileUtil.ExtractResFile(FileUtil.Resource_Path + "config.yml", FileUtil.D_Robot_Path + "\\config.yml");
+                if (!File.Exists(BF1ServerTools.Utils.FileUtil.D_Robot_Path + "\\config.yml"))
+                    BF1ServerTools.Utils.FileUtil.ExtractResFile(BF1ServerTools.Utils.FileUtil.Resource_Path + "config.yml", BF1ServerTools.Utils.FileUtil.D_Robot_Path + "\\config.yml");
 
-                if (!File.Exists(FileUtil.D_Robot_Path + "\\go-cqhttp.exe"))
-                    FileUtil.ExtractResFile(FileUtil.Resource_Path + "go-cqhttp.exe", FileUtil.D_Robot_Path + "\\go-cqhttp.exe");
+                if (!File.Exists(BF1ServerTools.Utils.FileUtil.D_Robot_Path + "\\go-cqhttp.exe"))
+                    BF1ServerTools.Utils.FileUtil.ExtractResFile(BF1ServerTools.Utils.FileUtil.Resource_Path + "go-cqhttp.exe", BF1ServerTools.Utils.FileUtil.D_Robot_Path + "\\go-cqhttp.exe");
 
                 Chat.AllocateMemory();
                 LoggerHelper.Info($"中文聊天指针分配成功 0x{Chat.AllocateMemAddress:x}");
@@ -207,7 +211,7 @@ public partial class LoadWindow : UiWindow
         switch (name)
         {
             case "OpenDefaultPath":
-                ProcessUtil.OpenPath(FileUtil.Default_Path);
+                ProcessUtil.OpenPath(BF1ServerTools.Utils.FileUtil.Default_Path);
                 break;
             case "ExitMainAPP":
                 Application.Current.Shutdown();

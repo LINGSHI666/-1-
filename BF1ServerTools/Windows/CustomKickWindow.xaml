@@ -49,12 +49,7 @@
                     x:Name="RadioButton_Reson0"
                     Content="自定义内容"
                     IsChecked="True" />
-                <RadioButton x:Name="RadioButton_Reson1" Content="FF封禁" />
-                <RadioButton x:Name="RadioButton_Reson2" Content="FF踢出" />
-                <RadioButton x:Name="RadioButton_Reson3" Content="错误代码1" />
-                <RadioButton x:Name="RadioButton_Reson4" Content="连线中断" />
-                <RadioButton x:Name="RadioButton_Reson5" Content="游戏不存在" />
-                <RadioButton x:Name="RadioButton_Reson6" Content="被管理挤出" />
+               
             </WrapPanel>
             <ui:UiTextBoxHint
                 x:Name="TextBox_CustomReason"

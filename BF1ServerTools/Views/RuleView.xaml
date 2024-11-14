@@ -235,16 +235,24 @@ Value="{Binding RuleTeam1Model.MaxScout, Mode=TwoWay}" />
                                 Value="{Binding RuleTeam1Model.LifeMaxWeaponStar, Mode=TwoWay}" />
                             <!--  ######################  -->
                             <DockPanel>
-                                <TextBlock Text="最高生涯载具星数" />
+                                <TextBlock Text="最高生涯飞机星数" />
+                                <TextBlock HorizontalAlignment="Right" Text="{Binding RuleTeam1Model.LifeMaxPlaneStar, StringFormat={}{0:0}}" />
+                            </DockPanel>
+                            <Slider
+                             Maximum="100"
+                             Minimum="0"
+                             Value="{Binding RuleTeam1Model.LifeMaxPlaneStar, Mode=TwoWay}" />
+                            <DockPanel>
+                                <TextBlock Text="最高生涯坦克星数" />
                                 <TextBlock HorizontalAlignment="Right" Text="{Binding RuleTeam1Model.LifeMaxVehicleStar, StringFormat={}{0:0}}" />
                             </DockPanel>
                             <Slider
                                 Maximum="100"
                                 Minimum="0"
                                 Value="{Binding RuleTeam1Model.LifeMaxVehicleStar, Mode=TwoWay}" />
-
+                            
                             <TextBlock Style="{StaticResource TextBlockStyle_Hint}">
-                                说明：生涯武器、载具星数只有使用或者携带才会检测违规
+                                说明：生涯武器和载具星数不携带也会检测
                             </TextBlock>
                         </StackPanel>
                     </StackPanel>
@@ -282,6 +290,14 @@ Value="{Binding RuleTeam1Model.MaxScout, Mode=TwoWay}" />
                                 Minimum="0"
                                 Value="{Binding RuleTeam2Model.LifeMaxWeaponStar, Mode=TwoWay}" />
                             <!--  ######################  -->
+                            <DockPanel>
+                                <TextBlock Text="最高生涯飞机星数" />
+                                <TextBlock HorizontalAlignment="Right" Text="{Binding RuleTeam2Model.LifeMaxPlaneStar, StringFormat={}{0:0}}" />
+                            </DockPanel>
+                            <Slider
+ Maximum="100"
+ Minimum="0"
+ Value="{Binding RuleTeam2Model.LifeMaxPlaneStar, Mode=TwoWay}" />
                             <DockPanel>
                                 <TextBlock Text="最高生涯载具星数" />
                                 <TextBlock HorizontalAlignment="Right" Text="{Binding RuleTeam2Model.LifeMaxVehicleStar, StringFormat={}{0:0}}" />

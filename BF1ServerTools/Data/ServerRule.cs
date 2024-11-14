@@ -17,6 +17,7 @@ public class ServerRule
     public float LifeMaxKPM { get; set; } = 0.00f;
     public int LifeMaxWeaponStar { get; set; } = 0;
     public int LifeMaxVehicleStar { get; set; } = 0;
+    public int LifeMaxPlaneStar { get; set; } = 0;
 
     public int MaxScout { get; set; } = 0;
 

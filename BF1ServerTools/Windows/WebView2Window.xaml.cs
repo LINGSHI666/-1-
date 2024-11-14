@@ -22,7 +22,7 @@ public partial class WebView2Window
     private async void Window_WebView2_Loaded(object sender, RoutedEventArgs e)
     {
         // 初始化WebView2环境
-        var env = await CoreWebView2Environment.CreateAsync(null, FileUtil.D_Cache_Path, null);
+        var env = await CoreWebView2Environment.CreateAsync(null, BF1ServerTools.Utils.FileUtil.D_Cache_Path, null);
         await WebView2.EnsureCoreWebView2Async(env);
 
         // 禁止Dev开发工具

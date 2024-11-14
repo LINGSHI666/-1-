@@ -1,4 +1,10 @@
 ﻿using BF1ServerTools.Utils;
+using System;
+using System.IO;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
 
 namespace BF1ServerTools;
 
@@ -11,6 +17,7 @@ public partial class App : Application
     /// 主程序互斥体
     /// </summary>
     public static Mutex AppMainMutex;
+
     /// <summary>
     /// 应用程序名称
     /// </summary>
@@ -22,20 +29,17 @@ public partial class App : Application
     /// <param name="e"></param>
     protected override void OnStartup(StartupEventArgs e)
     {
-        if (false)
+        AppMainMutex = new Mutex(true, AppName, out var createdNew);
+        if (createdNew)
         {
-            AppMainMutex = new Mutex(true, AppName, out var createdNew);
-            if (createdNew)
-            {
-                RegisterEvents();
-                base.OnStartup(e);
-            }
-            else
-            {
-                MsgBoxUtil.Warning($"请不要重复打开，程序已经运行\n如果一直提示，请到\"任务管理器-详细信息（win7为进程）\"里\n强制结束 \"{AppName}.exe\" 程序"
-                    , "重复运行警告");
-                //Current.Shutdown();//测试多开时关闭
-            }
+            RegisterEvents();
+            base.OnStartup(e);
+        }
+        else
+        {
+            MsgBoxUtil.Warning($"请不要重复打开，程序已经运行\n如果一直提示，请到\"任务管理器-详细信息（win7为进程）\"里\n强制结束 \"{AppName}.exe\" 程序",
+                "重复运行警告");
+            Current.Shutdown();
         }
     }
 
@@ -62,7 +66,16 @@ public partial class App : Application
     private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         var msg = GetExceptionInfo(e.Exception, e.ToString());
-        FileUtil.SaveCrashLog(msg);
+        BF1ServerTools.Utils.FileUtil.SaveCrashLog(msg);
+
+        // 显示错误消息提示用户
+        MessageBox.Show("程序发生了未处理的异常。\n" +
+                        "请联系开发者并提供错误日志信息。\n\n" +
+                        $"错误信息：{e.Exception.Message}",
+                        "程序异常", MessageBoxButton.OK, MessageBoxImage.Error);
+
+        // 防止程序退出
+        e.Handled = true;
     }
 
     /// <summary>
@@ -73,7 +86,13 @@ public partial class App : Application
     private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
         var msg = GetExceptionInfo(e.ExceptionObject as Exception, e.ToString());
-        FileUtil.SaveCrashLog(msg);
+        BF1ServerTools.Utils.FileUtil.SaveCrashLog(msg);
+
+        // 显示错误消息提示用户
+        MessageBox.Show("程序发生了严重的未处理异常，可能会退出。\n" +
+                        "请联系开发者并提供错误日志信息。\n\n" +
+                        $"错误信息：{((Exception)e.ExceptionObject)?.Message}",
+                        "程序异常", MessageBoxButton.OK, MessageBoxImage.Error);
     }
 
     /// <summary>
@@ -84,7 +103,10 @@ public partial class App : Application
     private void TaskScheduler_UnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
     {
         var msg = GetExceptionInfo(e.Exception, e.ToString());
-        FileUtil.SaveCrashLog(msg);
+        BF1ServerTools.Utils.FileUtil.SaveCrashLog(msg);
+
+        // 标记异常已观察，防止程序退出
+        e.SetObserved();
     }
 
     /// <summary>
@@ -115,5 +137,28 @@ public partial class App : Application
         }
 
         return builder.ToString();
+    }
+}
+
+/// <summary>
+/// FileUtil 类，用于保存日志
+/// </summary>
+public static class FileUtil
+{
+    public static void SaveCrashLog(string msg)
+    {
+        try
+        {
+            string logPath = "CrashLogs";
+            if (!Directory.Exists(logPath))
+                Directory.CreateDirectory(logPath);
+
+            string logFile = Path.Combine(logPath, $"CrashLog_{DateTime.Now:yyyyMMdd_HHmmss}.log");
+            File.WriteAllText(logFile, msg);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"日志保存失败：{ex.Message}", "日志错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 }

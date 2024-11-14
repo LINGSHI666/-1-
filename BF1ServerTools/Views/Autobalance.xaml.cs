@@ -43,7 +43,10 @@ using PixelFormat = System.Drawing.Imaging.PixelFormat;
 using System.Collections.Concurrent;
 using NLog.MessageTemplates;
 using Tesseract;
+using OpenCvSharp;
 using drawcolor = System.Drawing.Color;
+using OpenCvSharp.DnnSuperres;
+
 
 
 
@@ -192,21 +195,76 @@ public partial class Autobalance : UserControl
 
     private static readonly Mutex tabKeyMutex = new Mutex(); // 创建全局互斥锁
     private static readonly Mutex captureMutex = new Mutex();
+    public static Bitmap ApplySuperResolution(Bitmap bmp)
+    {
+        // 将 Bitmap 转换为 Mat
+        Mat image = BitmapToMat(bmp);
+
+        // 检查输入的 Mat 类型，如果是 CV_8UC4 则转换为 CV_8UC3
+        if (image.Type() == MatType.CV_8UC4)
+        {
+            Mat imageRgb = new Mat();
+            Cv2.CvtColor(image, imageRgb, ColorConversionCodes.BGRA2BGR);
+            image = imageRgb;
+        }
+
+        // 加载超分辨率模型
+        DnnSuperResImpl sr = new DnnSuperResImpl();
+        sr.ReadModel("models/ESPCN_x4.pb");  // 请确保该模型路径正确
+        sr.SetModel("espcn", 4);  // 设置模型类型和放大倍数
+
+        // 应用超分辨率
+        Mat superResImage = new Mat();
+        sr.Upsample(image, superResImage);
+
+        // 将处理后的图像转换回 Bitmap 并返回
+        return MatToBitmap(superResImage);
+    }
+    // 辅助方法：将 Bitmap 转换为 Mat
+    public static Mat BitmapToMat(Bitmap bmp)
+    {
+        return OpenCvSharp.Extensions.BitmapConverter.ToMat(bmp);
+    }
+
+    public static Bitmap MatToBitmap(Mat mat)
+    {
+        // 如果是 CV_8UC4 格式，将其转换为 CV_8UC3
+        if (mat.Type() == MatType.CV_8UC4)
+        {
+            Mat matRgb = new Mat();
+            Cv2.CvtColor(mat, matRgb, ColorConversionCodes.BGRA2BGR);
+            mat = matRgb;
+        }
+
+        // 转换为 Bitmap
+        return OpenCvSharp.Extensions.BitmapConverter.ToBitmap(mat);
+    }
     private static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
         if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
         {
             int vkCode = Marshal.ReadInt32(lParam);
-            if (vkCode == (int)System.Windows.Forms.Keys.F1)  // 检测f1键
+            if (vkCode == (int)System.Windows.Forms.Keys.F1 && false)  // 检测f1键
             {
                 if (tabKeyMutex.WaitOne())//获取
-                {
-                    try
+                { // 启用后台线程执行
+                    Task.Run(() =>
                     {
+                        try
+                    {
+
                         //Thread.Sleep(1000);
                         var bmp = Capture();
+                        
                         if (bmp != null)
                         {
+                                
+                                bmp = TesseractOCR.ConvertToGrayscale(bmp);
+                                bmp = TesseractOCR.HighPassFilter(bmp);
+                                bmp = ApplySuperResolution(bmp);
+                                //bmp=  TesseractOCR.BinarizeImage(bmp,false);
+                                //Thread.Sleep(100);
+                                bmp.Save("frame1.png", System.Drawing.Imaging.ImageFormat.Png);
                             var ocrlist = new List<PlayerData>();
                             if (Player.ocrflag)
                             {
@@ -221,7 +279,7 @@ public partial class Autobalance : UserControl
                             }
                             for (int i = 0; i <= 31; i++)
                             {
-                                double begin = 0.12639;
+                                double begin = 0.10992;
 
                                 if (i >= 3 && i < 7)
                                 {
@@ -260,17 +318,29 @@ public partial class Autobalance : UserControl
                                 double y1 = begin + 0.01647 * ((i+1)%4);
                                
                                 double y2 = y1 + 0.01647;
-
-                                string team1name = TesseractOCR.PerformOcrspe(bmp, 0.2005, 0.3703, y1, y2,false);
-                                string team1kill = TesseractOCR.PerformOcrspe(bmp, 0.4146, 0.42865, y1, y2, true);
-                                string team1death = TesseractOCR.PerformOcrspe(bmp, 0.42865, 0.44661, y1, y2, true);
-                                string team1score = TesseractOCR.PerformOcrspe(bmp, 0.44661, 0.4688, y1, y2,true);
-                               
-
+                                int kill, death, score;
                                 
-                                    int kill, death, score;
+                                string team1name = TesseractOCR.PerformOcrspe(bmp, 0.2005, 0.3703, y1, y2,false,i*8+18);
+                                string team1kill = TesseractOCR.PerformOcrspenum(bmp, 0.4146, 0.42865, y1, y2, true,i*8+19);
+                                    if (!int.TryParse(team1kill, out kill))
+                                    { 
+                                        kill = 0;
+                                    }
+                                string team1death = TesseractOCR.PerformOcrspenum(bmp, 0.42865, 0.44661, y1, y2, true,i*8+20);
+                                    if (!int.TryParse(team1death, out death))
+                                    {
+                                        death = 0;
+                                    }
+                                string team1score = TesseractOCR.PerformOcrspenum(bmp, 0.44661, 0.4688, y1, y2,true,i*8+21);
+                                    if (!int.TryParse(team1score, out score))
+                                    {
+                                        score = 0;
+                                    }
+
+
+
                                     // 使用 TryParse 来避免格式错误
-                                    if (int.TryParse(team1kill, out kill) && int.TryParse(team1death, out death) &&int.TryParse(team1score,out score))
+                                    if (kill != 0 || death !=0 || score != 0)
                                     {   
                                         var playerData = new PlayerData
                                         {
@@ -284,20 +354,31 @@ public partial class Autobalance : UserControl
                                     }
                                     else
                                     {
-                                        //NotifierHelper.Show(NotifierType.Information, team1kdscore);
+                                        team1score = "1";
                                     }
                                 
 
                                 
-                                string team2name = TesseractOCR.PerformOcrspe(bmp, 0.5445, 0.7094, y1, y2,false);
-                                string team2kill = TesseractOCR.PerformOcrspe(bmp, 0.7570, 0.77240, y1, y2, true);
-                                string team2death = TesseractOCR.PerformOcrspe(bmp, 0.77240, 0.78906, y1, y2, true);
-                                string team2score = TesseractOCR.PerformOcrspe(bmp, 0.78906, 0.8133, y1, y2,true);
-                                
-                                
-                                 
+                                string team2name = TesseractOCR.PerformOcrspe(bmp, 0.5445, 0.7094, y1, y2,false,i*8+22);
+                                string team2kill = TesseractOCR.PerformOcrspe(bmp, 0.7570, 0.77240, y1, y2, true,i*8+23);
+                                    if (!int.TryParse(team2kill, out kill))
+                                    {
+                                        kill = 0;
+                                    }
+                                    string team2death = TesseractOCR.PerformOcrspe(bmp, 0.77240, 0.78906, y1, y2, true,i*8+24);
+                                    if (!int.TryParse(team2death, out death))
+                                    {
+                                        death = 0;
+                                    }
+                                    string team2score = TesseractOCR.PerformOcrspe(bmp, 0.78906, 0.8133, y1, y2,true,i*8+25);
+                                    if (!int.TryParse(team2score, out score))
+                                    {
+                                        score = 0;
+                                    }
+
+
                                     // 使用 TryParse 来避免格式错误
-                                    if (int.TryParse(team2kill, out kill) && int.TryParse(team2death, out death) && int.TryParse(team2score, out score))
+                                    if (kill != 0 || death != 0 || score != 0)
                                     {
                                         var playerData = new PlayerData
                                         {
@@ -311,23 +392,31 @@ public partial class Autobalance : UserControl
                                     }
                                     else
                                     {
-                                       
+                                        team2score = "1";
                                     }
                                 
                             }
-                            //MessageBox.Show("ok");
-                        }
+                            MessageBox.Show("ok");
+                            Player.ocrflag = !Player.ocrflag;
+                            }
                     }
-                    finally
+                        catch (Exception ex)
+                        {
+                           MessageBox.Show($"初始化 Tesseract 数据时出错: {ex.Message}");
+                        }       
+                        finally
                     {
                         // 释放
                         tabKeyMutex.ReleaseMutex();
                     }
-                    Player.ocrflag = !Player.ocrflag;
+                       
+                    });
+                    
                 }
                 
             }
         }
+
         return CallNextHookEx(_hookID, nCode, wParam, lParam);
     }
 
@@ -415,7 +504,7 @@ public partial class Autobalance : UserControl
                         int frameCount = 0;
 
                             Thread.Sleep(40);
-                        for (int i = 0; i < 1; i++) // 测试截取1帧的时间
+                        for (int i = 0; i < 1; i++) // 截取1帧的时间
                         {
                             try
                             {
@@ -461,7 +550,7 @@ public partial class Autobalance : UserControl
 
                                
                                 
-                                    bmp = SaveTextureAsImage(screenTexture, $"frame_{frameCount}.png");
+                                bmp = SaveTextureAsImage(screenTexture, $"frame_{frameCount}.png");
                                 
 
                                 // 释放资源
@@ -607,7 +696,7 @@ public partial class Autobalance : UserControl
     private bool stopbalanceflag = false;
     private async void Button_StopWebsocketServer_Click(object sender, RoutedEventArgs e)
     {
-        Capture();
+        //Capture();
         stopbalanceflag = true;
         if (timer != null)
         {
@@ -1171,54 +1260,56 @@ public partial class Autobalance : UserControl
 
                         // 执行行动，获取应该移动的玩家
                         var playerToMove = BalanceTeam(team1Players, team2Players, avgSkillTeam1, avgSkillTeam2, skillflag, excludeplayer);
-
-                        // 根据playerToMove所在队伍决定移动方向
-                        int OriginTeam = playerToMove.TeamId == 1 ? 1 : 2;
-
-                        // 执行移动
-                        var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, OriginTeam);
-                        // 重新获取玩家列表以验证换边是否成功
-                        if (isPlayerInTeam3)
-                        { await Task.Delay(5000); }
-                        else
+                        if (playerToMove != null)
                         {
-                            await Task.Delay(1000);
-                        }
-                        var updatedPlayerList = Player.GetPlayerList();
-                        var movedPlayer = updatedPlayerList.FirstOrDefault(p => p.PersonaId == playerToMove.PersonaId);
-                        OriginTeam = playerToMove.TeamId == 1 ? 2 : 1;
-                        if (movedPlayer != null && movedPlayer.TeamId == OriginTeam)
-                        {
-                            // 如果排除名单已有三人，则移除最早添加的玩家
-                            if (excludeList.Count >= 5)
+                            // 根据playerToMove所在队伍决定移动方向
+                            int OriginTeam = playerToMove.TeamId == 1 ? 1 : 2;
+
+                            // 执行移动
+                            var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, OriginTeam);
+                            // 重新获取玩家列表以验证换边是否成功
+                            if (isPlayerInTeam3)
+                            { await Task.Delay(5000); }
+                            else
                             {
-
-                                excludeList.Dequeue(); // 移除队列前端的元素
+                                await Task.Delay(1000);
                             }
-                            LogView.ActionAddChangeTeamInfoLog(new ChangeTeamInfo()
+                            var updatedPlayerList = Player.GetPlayerList();
+                            var movedPlayer = updatedPlayerList.FirstOrDefault(p => p.PersonaId == playerToMove.PersonaId);
+                            OriginTeam = playerToMove.TeamId == 1 ? 2 : 1;
+                            if (movedPlayer != null && movedPlayer.TeamId == OriginTeam)
                             {
-                                Rank = playerToMove.Rank,
-                                Name = playerToMove.Name,
-                                PersonaId = playerToMove.PersonaId,
-                                GameMode = ScoreView.mapmode,
-                                MapName = ScoreView.mapname,
-                                Team1Name = "队伍一",
-                                Team2Name = "队伍二",
-                                State = $" >>> 队伍{OriginTeam}",
-                                Time = DateTime.Now
-                            });
-                            movecount++;
-                            if (Autobalanceshow.IsChecked ?? false)
-                            {
-                                ChatInputWindow.SendChsToBF1Chat($"自动平衡:更换玩家 {playerToMove.Name} 到队伍{OriginTeam}成功");
+                                // 如果排除名单已有三人，则移除最早添加的玩家
+                                if (excludeList.Count >= 5)
+                                {
+
+                                    excludeList.Dequeue(); // 移除队列前端的元素
+                                }
+                                LogView.ActionAddChangeTeamInfoLog(new ChangeTeamInfo()
+                                {
+                                    Rank = playerToMove.Rank,
+                                    Name = playerToMove.Name,
+                                    PersonaId = playerToMove.PersonaId,
+                                    GameMode = ScoreView.mapmode,
+                                    MapName = ScoreView.mapname,
+                                    Team1Name = "队伍一",
+                                    Team2Name = "队伍二",
+                                    State = $" >>> 队伍{OriginTeam}",
+                                    Time = DateTime.Now
+                                });
+                                movecount++;
+                                if (Autobalanceshow.IsChecked ?? false)
+                                {
+                                    ChatInputWindow.SendChsToBF1Chat($"自动平衡:更换玩家 {playerToMove.Name} 到队伍{OriginTeam}成功");
+                                }
+                                NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{OriginTeam}成功");
+                                // 将新的玩家添加到排除名单的队尾
+                                excludeList.Enqueue(movedPlayer);
                             }
-                            NotifierHelper.Show(NotifierType.Success, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{OriginTeam}成功");
-                            // 将新的玩家添加到排除名单的队尾
-                            excludeList.Enqueue(movedPlayer);
-                        }
-                        else
-                        {
-                            //NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}失败");
+                            else
+                            {
+                                //NotifierHelper.Show(NotifierType.Error, $"[{result.ExecTime:0.00} 秒] 更换玩家 {playerToMove.Name} 到队伍{targetTeam}失败");
+                            }
                         }
                     }
                     else if (Math.Abs(team1Players.Count - team2Players.Count) > 3)
@@ -1242,7 +1333,7 @@ public partial class Autobalance : UserControl
                         var updatedPlayerList = Player.GetPlayerList();
                         var movedPlayer = updatedPlayerList.FirstOrDefault(p => p.PersonaId == playerToMove.PersonaId);
                         OriginTeam = playerToMove.TeamId == 1 ? 2 : 1;
-                        if (movedPlayer != null && movedPlayer.TeamId == OriginTeam)
+                        if (movedPlayer != null)
                         {
                             // 如果排除名单已有三人，则移除最早添加的玩家
                             if (excludeList.Count >= 5)
@@ -2283,7 +2374,7 @@ public class TesseractOCR
         return extractedText;
     }
     //特定区域ocr
-    public static string PerformOcrspe(Bitmap bmp, double x1, double x2, double y1, double y2, bool onlynumber)
+    public static string PerformOcrspe(Bitmap bmp, double x1, double x2, double y1, double y2, bool onlynumber,int i)
     {
         // 获取图像的宽度和高度
         int width = bmp.Width;
@@ -2298,41 +2389,274 @@ public class TesseractOCR
         // 裁剪图像
         Rectangle cropRect = new Rectangle(left, top, right - left, bottom - top);
 
-       
-        using (Bitmap croppedBmp = bmp.Clone(cropRect, bmp.PixelFormat))
+
+        Bitmap grayBitmap = bmp.Clone(cropRect, bmp.PixelFormat);
+        
+
+
+
+        // Step 1: Save the bitmap as test.png
+        string imagePath = "test.png";
+        string outputPath = "output";
+        grayBitmap.Save(imagePath, System.Drawing.Imaging.ImageFormat.Png);
+        grayBitmap.Save($"test{i}.png", System.Drawing.Imaging.ImageFormat.Png);
+        // Step 2: Run tesseract command to perform OCR
+        ProcessStartInfo processStartInfo = new ProcessStartInfo
         {
-            //转换为灰度图
-            using (Bitmap grayBitmap = ConvertToGrayscale(croppedBmp))
+            FileName = "tesseract",
+            Arguments = $"{imagePath} {outputPath} -l eng",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
 
+        using (Process process = new Process())
+        {
+            process.StartInfo = processStartInfo;
+            process.Start();
+
+            // Capture any error messages from Tesseract
+            string errorOutput = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+
+            if (process.ExitCode != 0)
             {
-                grayBitmap.Save("test.png", System.Drawing.Imaging.ImageFormat.Png);
-                // 二值化处理
-                using (Bitmap binarizedBitmap = BinarizeImage(grayBitmap))
-                {
-                    //去噪声处理
-                    using (Bitmap denoisedBitmap = DenoiseImage(binarizedBitmap))
-                    {
-                        // 使用 MemoryStream 将图像转换为 Tesseract 可读取的格式
-                        using (MemoryStream ms = new MemoryStream())
-                        {
-                            denoisedBitmap.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-                            ms.Position = 0; 
-                                              
-                            string extractedText = PerformOcrOnStream(ms, onlynumber);
+                throw new Exception($"Tesseract OCR failed with error: {errorOutput}");
+            }
+        }
 
-                            return extractedText;
-                        }
+        // Step 3: Read the result from the output file
+        string result = File.ReadAllText($"{outputPath}.txt");
+        return RemoveWhitespaceAndNewlines(result);
+
+        //grayBitmap = ConvertToGrayscale(grayBitmap);
+        //grayBitmap = HighPassFilter(grayBitmap);
+
+        //grayBitmap  = PerformNiblack(grayBitmap);
+        // 使用 MemoryStream 将图像转换为 Tesseract 可读取的格式
+        MemoryStream ms = new MemoryStream();
+
+        grayBitmap.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                            ms.Position = 0;
+                            string extractedText = PerformOcrOnStream(ms, onlynumber);
+        grayBitmap.Save($"test{i}.png", System.Drawing.Imaging.ImageFormat.Png);
+       return RemoveWhitespaceAndNewlines(extractedText);
+         
+
+                    
+                
+            
+        
+    }
+    public static string PerformOcrspenum(Bitmap bmp, double x1, double x2, double y1, double y2, bool onlynumber,int i)
+    {
+        // 获取图像的宽度和高度
+        int width = bmp.Width;
+        int height = bmp.Height;
+
+        // 计算实际的屏幕像素坐标
+        int left = (int)(x1 * width);  // 将相对坐标转换为像素坐标
+        int right = (int)(x2 * width);
+        int top = (int)(y1 * height);
+        int bottom = (int)(y2 * height);
+
+        // 裁剪图像
+        Rectangle cropRect = new Rectangle(left, top, right - left, bottom - top);
+
+        Bitmap grayBitmap = bmp.Clone(cropRect, bmp.PixelFormat);
+        grayBitmap.Save($"test{i}.png", System.Drawing.Imaging.ImageFormat.Png);
+
+
+        // Step 1: Save the bitmap as test.png
+        string imagePath = "test.png";
+        string outputPath = "output";
+        grayBitmap.Save(imagePath, System.Drawing.Imaging.ImageFormat.Png);
+        // Step 2: Run tesseract command to perform OCR
+        ProcessStartInfo processStartInfo = new ProcessStartInfo
+        {
+            FileName = "tesseract",
+            Arguments = $"{imagePath} {outputPath} -l eng --psm 6",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+
+        using (Process process = new Process())
+        {
+            process.StartInfo = processStartInfo;
+            process.Start();
+
+            // Capture any error messages from Tesseract
+            string errorOutput = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+
+            if (process.ExitCode != 0)
+            {
+                throw new Exception($"Tesseract OCR failed with error: {errorOutput}");
+            }
+        }
+
+        // Step 3: Read the result from the output file
+        string result = File.ReadAllText($"{outputPath}.txt");
+        return RemoveWhitespaceAndNewlines(result);
+
+
+
+        string tempFilePath = $"test{i}.png";
+                MemoryStream ms = new MemoryStream();
+                grayBitmap.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                grayBitmap.Save(tempFilePath, System.Drawing.Imaging.ImageFormat.Png);
+                
+                ms.Position = 0;
+                string extractedText = PerformOcrOnStream(ms, onlynumber);
+                // 使用 Tesseract 处理保存的图像文件
+                //string extractedText = PerformOcrOnStream2(tempFilePath);
+                return RemoveWhitespaceAndNewlines(extractedText);
+            
+        
+    }
+
+    // 高通滤波方法
+    public static Bitmap HighPassFilter(Bitmap grayImage)
+    {
+        // 将图像转换为灰度图像
+       //Bitmap grayImage = ConvertToGrayscale(image);
+
+        // 锁定位图的像素数据
+        BitmapData bmpData = grayImage.LockBits(new Rectangle(0, 0, grayImage.Width, grayImage.Height), ImageLockMode.ReadWrite, grayImage.PixelFormat);
+        int stride = bmpData.Stride;
+        IntPtr scan0 = bmpData.Scan0;
+        int width = grayImage.Width;
+        int height = grayImage.Height;
+
+        byte[] pixelValues = new byte[stride * height];
+        System.Runtime.InteropServices.Marshal.Copy(scan0, pixelValues, 0, pixelValues.Length);
+
+        // 高通滤波器卷积核
+        int[,] kernel = new int[,]
+        {
+        { -1, -1, -1 },
+        { -1,  8, -1 },
+        { -1, -1, -1 }
+        };
+
+        int kernelSize = 3;
+        int kOffset = kernelSize / 2;
+        byte[] resultValues = new byte[stride * height];
+
+        // 应用卷积核
+        for (int y = kOffset; y < height - kOffset; y++)
+        {
+            for (int x = kOffset; x < width - kOffset; x++)
+            {
+                int pixelValue = 0;
+
+                for (int ky = -kOffset; ky <= kOffset; ky++)
+                {
+                    for (int kx = -kOffset; kx <= kOffset; kx++)
+                    {
+                        int pixelPos = (y + ky) * stride + (x + kx);
+                        pixelValue += pixelValues[pixelPos] * kernel[ky + kOffset, kx + kOffset];
+                    }
+                }
+
+                pixelValue = Math.Min(255, Math.Max(0, pixelValue));
+                resultValues[y * stride + x] = (byte)pixelValue;
+            }
+        }
+
+        // 将结果复制回图像
+        System.Runtime.InteropServices.Marshal.Copy(resultValues, 0, scan0, resultValues.Length);
+        grayImage.UnlockBits(bmpData);
+
+        return grayImage;
+    }
+    // 灰度转换方法
+    public static Bitmap ConvertToGrayscale(Bitmap original)
+    {
+        // 创建一个8位灰度图像
+        Bitmap grayBitmap = new Bitmap(original.Width, original.Height, PixelFormat.Format8bppIndexed);
+
+        // 创建调色板并设置为灰度调色板
+        ColorPalette palette = grayBitmap.Palette;
+        for (int i = 0; i < 256; i++)
+        {
+            palette.Entries[i] = drawcolor.FromArgb(i, i, i);
+        }
+        grayBitmap.Palette = palette;
+
+        // 使用锁定位图的数据进行像素拷贝
+        BitmapData grayData = grayBitmap.LockBits(new Rectangle(0, 0, grayBitmap.Width, grayBitmap.Height),
+                                                  ImageLockMode.WriteOnly, PixelFormat.Format8bppIndexed);
+        BitmapData originalData = original.LockBits(new Rectangle(0, 0, original.Width, original.Height),
+                                                    ImageLockMode.ReadOnly, original.PixelFormat);
+        try
+        {
+            int bytesPerPixel = System.Drawing.Image.GetPixelFormatSize(original.PixelFormat) / 8;
+            int width = original.Width;
+            int height = original.Height;
+            unsafe
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    byte* grayRow = (byte*)grayData.Scan0 + (y * grayData.Stride);
+                    byte* originalRow = (byte*)originalData.Scan0 + (y * originalData.Stride);
+
+                    for (int x = 0; x < width; x++)
+                    {
+                        byte r = originalRow[x * bytesPerPixel + 2];
+                        byte g = originalRow[x * bytesPerPixel + 1];
+                        byte b = originalRow[x * bytesPerPixel + 0];
+                        byte grayValue = (byte)(0.3 * r + 0.59 * g + 0.11 * b);
+
+                        grayRow[x] = grayValue;
                     }
                 }
             }
         }
+        finally
+        {
+            original.UnlockBits(originalData);
+            grayBitmap.UnlockBits(grayData);
+        }
+
+        return grayBitmap;
     }
 
-
-    // 二值化处理
-    public static Bitmap BinarizeImage(Bitmap grayBitmap)
+    private static string PerformOcrOnStream2(string filePath)
     {
+        // 初始化 Tesseract 引擎
+        using (var engine = new TesseractEngine(@"./tessdata", "num", EngineMode.Default))
+        {
+            // 设置 PSM 模式
+            engine.DefaultPageSegMode = PageSegMode.SingleBlock;
+            engine.SetVariable("tessedit_char_whitelist", "0123456789");
+            using (var img = Pix.LoadFromFile(filePath))
+            {
+                // 执行 OCR 识别
+                var result = engine.Process(img);
+                return result.GetText();  // 返回识别的文本
+            }
+        }
+    }
+    public static string RemoveWhitespaceAndNewlines(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return input;
+
+        return Regex.Replace(input, @"\s+", ""); // 匹配所有空白字符
+    }
+    // 二值化处理
+    public static Bitmap BinarizeImage(Bitmap grayBitmap,bool number)
+    {
+        if (number)
+        {
+            return grayBitmap;
+        }
         Bitmap binarizedBitmap = new Bitmap(grayBitmap.Width, grayBitmap.Height);
+        
         for (int y = 0; y < grayBitmap.Height; y++)
         {
             for (int x = 0; x < grayBitmap.Width; x++)
@@ -2345,88 +2669,202 @@ public class TesseractOCR
         }
         return binarizedBitmap;
     }
-
-    // 去噪声处理（如中值滤波）
-    public static Bitmap DenoiseImage(Bitmap binarizedBitmap)
-    {
-        // 使用中值滤波进行简单去噪
-        Bitmap denoisedBitmap = new Bitmap(binarizedBitmap.Width, binarizedBitmap.Height);
-        for (int y = 1; y < binarizedBitmap.Height - 1; y++)
-        {
-            for (int x = 1; x < binarizedBitmap.Width - 1; x++)
-            {
-                List<int> neighbors = new List<int>();
-                for (int dy = -1; dy <= 1; dy++)
-                {
-                    for (int dx = -1; dx <= 1; dx++)
-                    {
-                        drawcolor neighborColor = binarizedBitmap.GetPixel(x + dx, y + dy);
-                        int grayValue = (int)(neighborColor.R * 0.3 + neighborColor.G * 0.59 + neighborColor.B * 0.11);
-                        neighbors.Add(grayValue);
-                    }
-                }
-                neighbors.Sort();
-                int median = neighbors[neighbors.Count / 2];
-                drawcolor newColor = (median > 128) ? drawcolor.White : drawcolor.Black;
-                denoisedBitmap.SetPixel(x, y, newColor);
-            }
-        }
-        return denoisedBitmap;
-    }
-
-
-
-    // 将 Bitmap 转换为灰度图
-    private static Bitmap ConvertToGrayscale(Bitmap original)
-    {
-        Bitmap grayBitmap = new Bitmap(original.Width, original.Height);
-        using (Graphics g = Graphics.FromImage(grayBitmap))
-        {
-            // 创建灰度色彩矩阵
-            ColorMatrix colorMatrix = new ColorMatrix(new float[][]
-            {
-                new float[] { 0.3f, 0.3f, 0.3f, 0, 0 },
-                new float[] { 0.59f, 0.59f, 0.59f, 0, 0 },
-                new float[] { 0.11f, 0.11f, 0.11f, 0, 0 },
-                new float[] { 0, 0, 0, 1, 0 },
-                new float[] { 0, 0, 0, 0, 1 }
-            });
-
-            // 创建一个将图片转为灰度的图像调整类
-            ImageAttributes attributes = new ImageAttributes();
-            attributes.SetColorMatrix(colorMatrix);
-
-            // 将原图绘制到新图上，转换为灰度
-            g.DrawImage(original, new Rectangle(0, 0, original.Width, original.Height),
-                        0, 0, original.Width, original.Height, GraphicsUnit.Pixel, attributes);
-        }
-
-        return grayBitmap;
-    }
-
     // 使用 Tesseract 对 MemoryStream 进行 OCR 识别
     private static string PerformOcrOnStream(MemoryStream ms,bool onlynumber)
     {
-        // 初始化 Tesseract 引擎（指定语言和数据文件路径）
-        using (var engine = new TesseractEngine(@"./tessdata", "eng", EngineMode.Default))
-        {    // 设置字符白名单，只识别字母和数字
-            if (!onlynumber)
+
+        if (onlynumber)
+        {
+            // 初始化 Tesseract 引擎
+            using (var engine = new TesseractEngine(@"./tessdata", "eng", EngineMode.Default))
+            // 设置 PSM 模式
             {
-                engine.SetVariable("tessedit_char_whitelist", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
+                engine.DefaultPageSegMode = PageSegMode.SingleBlock;
+
+               
+                 
+               
+                using (var img = Pix.LoadFromMemory(ms.ToArray()))
+                {
+                    // 执行 OCR 识别
+                    var result = engine.Process(img);
+                    return result.GetText();  // 返回识别的文本
+                }
             }
-            else
+        }
+        else {
+            // 初始化 Tesseract 引擎
+            using (var engine = new TesseractEngine(@"./tessdata", "eng", EngineMode.Default))
+            // 设置 PSM 模式
             {
-               // engine.SetVariable("tessedit_char_whitelist", "0123456789");
-            }
-            using (var img = Pix.LoadFromMemory(ms.ToArray()))
-            {
-                // 执行 OCR 识别
-                var result = engine.Process(img);
-                return result.GetText();  // 返回识别的文本
+                engine.DefaultPageSegMode = PageSegMode.SingleBlock;
+
+                
+               engine.SetVariable("tessedit_char_whitelist", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
+                
+                using (var img = Pix.LoadFromMemory(ms.ToArray()))
+                {
+                    // 执行 OCR 识别
+                    var result = engine.Process(img);
+                    return result.GetText();  // 返回识别的文本
+                }
             }
         }
     }
+    public static Bitmap PerformNiblack(Bitmap image, int[] window = null, double k = -0.2, double offset = 0, string padding = "replicate")
+    {
+        // 设置默认参数
+        if (window == null)
+        {
+            window = new int[] { 3, 3 };
+        }
+
+        if (image == null)
+        {
+            throw new ArgumentNullException("image", "Input image cannot be null.");
+        }
+
+        if (image.PixelFormat != System.Drawing.Imaging.PixelFormat.Format8bppIndexed)
+        {
+            throw new ArgumentException("The input image must be a grayscale image.", "image");
+        }
+
+        // 转换为灰度图像的双精度数组
+        int width = image.Width;
+        int height = image.Height;
+        double[,] grayImage = new double[height, width];
+
+        BitmapData bmpData = image.LockBits(new Rectangle(0, 0, image.Width, image.Height), ImageLockMode.ReadOnly, image.PixelFormat);
+        try
+        {
+            int stride = bmpData.Stride;
+            IntPtr scan0 = bmpData.Scan0;
+            byte[] pixelValues = new byte[stride * height];
+            System.Runtime.InteropServices.Marshal.Copy(scan0, pixelValues, 0, pixelValues.Length);
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    grayImage[y, x] = pixelValues[y * stride + x];
+                }
+            }
+        }
+        finally
+        {
+            image.UnlockBits(bmpData);
+        }
+
+        // 计算均值和标准差
+        double[,] mean = AverageFilter(grayImage, window, padding);
+        double[,] meanSquare = AverageFilter(SquareImage(grayImage), window, padding);
+        double[,] deviation = new double[height, width];
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                deviation[y, x] = Math.Sqrt(meanSquare[y, x] - mean[y, x] * mean[y, x]);
+            }
+        }
+
+        // 创建输出图像
+        Bitmap outputImage = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format8bppIndexed);
+        BitmapData outputData = outputImage.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, outputImage.PixelFormat);
+        try
+        {
+            int stride = outputData.Stride;
+            byte[] outputValues = new byte[stride * height];
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    if (grayImage[y, x] > mean[y, x] + k * deviation[y, x] - offset)
+                    {
+                        outputValues[y * stride + x] = 255;
+                    }
+                    else
+                    {
+                        outputValues[y * stride + x] = 0;
+                    }
+                }
+            }
+
+            System.Runtime.InteropServices.Marshal.Copy(outputValues, 0, outputData.Scan0, outputValues.Length);
+        }
+        finally
+        {
+            outputImage.UnlockBits(outputData);
+        }
+
+        return outputImage;
+    }
+
+    // 辅助方法：计算均值滤波器
+    private static double[,] AverageFilter(double[,] image, int[] window, string padding)
+    {
+        int width = image.GetLength(1);
+        int height = image.GetLength(0);
+        int halfWindowX = window[0] / 2;
+        int halfWindowY = window[1] / 2;
+
+        double[,] result = new double[height, width];
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                double sum = 0;
+                int count = 0;
+
+                for (int wy = -halfWindowY; wy <= halfWindowY; wy++)
+                {
+                    for (int wx = -halfWindowX; wx <= halfWindowX; wx++)
+                    {
+                        int ny = y + wy;
+                        int nx = x + wx;
+
+                        if (ny >= 0 && ny < height && nx >= 0 && nx < width)
+                        {
+                            sum += image[ny, nx];
+                            count++;
+                        }
+                    }
+                }
+
+                result[y, x] = sum / count;
+            }
+        }
+
+        return result;
+    }
+
+    // 辅助方法：计算平方图像
+    private static double[,] SquareImage(double[,] image)
+    {
+        int width = image.GetLength(1);
+        int height = image.GetLength(0);
+        double[,] squaredImage = new double[height, width];
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                squaredImage[y, x] = image[y, x] * image[y, x];
+            }
+        }
+
+        return squaredImage;
+    }
+
 }
+
+
+
+
+
+
 public class FFmpegBinariesHelper
 {
     public static void RegisterFFmpegBinaries()

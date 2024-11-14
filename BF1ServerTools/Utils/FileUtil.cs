@@ -1,4 +1,5 @@
-﻿namespace BF1ServerTools.Utils;
+﻿
+namespace BF1ServerTools.Utils;
 
 public static class FileUtil
 {

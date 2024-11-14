@@ -36,30 +36,7 @@ public partial class CustomKickWindow
             if (!string.IsNullOrEmpty(reason))
                 reason = ChsUtil.ToTraditional(reason);
         }
-        else if (RadioButton_Reson1.IsChecked == true)
-        {
-            reason = "FairFight: Banned Code #RSuhf1";
-        }
-        else if (RadioButton_Reson2.IsChecked == true)
-        {
-            reason = "您已被 FairFight 踢出。";
-        }
-        else if (RadioButton_Reson3.IsChecked == true)
-        {
-            reason = "未知錯誤。錯誤代碼：1";
-        }
-        else if (RadioButton_Reson4.IsChecked == true)
-        {
-            reason = "您與遊戲連線已中斷。";
-        }
-        else if (RadioButton_Reson5.IsChecked == true)
-        {
-            reason = "該遊戲已不存在。";
-        }
-        else if (RadioButton_Reson6.IsChecked == true)
-        {
-            reason = "ADMINPRIORITY";
-        }
+        
 
         NotifierHelper.Show(NotifierType.Information, $"正在踢出玩家 {PlayerName} 中...");
 

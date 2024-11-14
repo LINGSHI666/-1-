@@ -10,7 +10,7 @@ public static class Server
     /// <returns></returns>
     public static string GetServerName()
     {
-        long pointer = Memory.Read<long>(Memory.Bf1ProBaseAddress + Offsets.Offset_ServerName);
+        long pointer = Memory.Read<long>(0x143A20898);
         pointer = Memory.Read<long>(pointer + 0x30);
         return Memory.ReadString(pointer, 64);
     }
@@ -21,8 +21,8 @@ public static class Server
     /// <returns></returns>
     public static long GetGameId()
     {
-        long pointer = Memory.Read<long>(Memory.Bf1ProBaseAddress + Offsets.Offset_ServerId);
-        return Memory.Read<long>(pointer + 0x418);
+        long pointer = Memory.Read<long>(0x143A20898);
+        return Memory.Read<long>(pointer + 0x100);
     }
 
     /// <summary>
@@ -44,7 +44,7 @@ public static class Server
     /// <returns></returns>
     public static string GetGameMode()
     {
-        long pointer = Memory.Read<long>(Memory.Bf1ProBaseAddress + Offsets.Offset_ServerId);
+        long pointer = Memory.Read<long>(5427429792);
         pointer = Memory.Read<long>(pointer + 0x648);
         return Memory.ReadString(pointer, 64);
     }
@@ -55,11 +55,12 @@ public static class Server
     /// <returns></returns>
     public static float GetServerTime()
     {
-        long pointer = Memory.Read<long>(Memory.Bf1ProBaseAddress + Offsets.Offset_ServerTime);
+        long pointer = Memory.Read<long>(Memory.Bf1ProBaseAddress + Offsets.Offset_ServerScore);
+        pointer = Memory.Read<long>(pointer + 0x10);
+        pointer = Memory.Read<long>(pointer + 0x88);
         pointer = Memory.Read<long>(pointer + 0x20);
-        pointer = Memory.Read<long>(pointer + 0x38);
-        pointer = Memory.Read<long>(pointer + 0x58);
-        return Memory.Read<float>(pointer + 0x78);
+    
+        return Memory.Read<float>(pointer + 0x50);
     }
 
     /// <summary>
@@ -68,10 +69,14 @@ public static class Server
     /// <returns></returns>
     public static long GetServerScorePtr()
     {
+        //Memory.Bf1ProBaseAddress + Offsets.Offset_ServerScore);
         long pointer = Memory.Read<long>(Memory.Bf1ProBaseAddress + Offsets.Offset_ServerScore);
-        pointer = Memory.Read<long>(pointer + 0x58);
-        pointer = Memory.Read<long>(pointer + 0x18);
-        return Memory.Read<long>(pointer + 0x08);
+        
+        pointer = Memory.Read<long>(pointer + 0x10);
+        pointer = Memory.Read<long>(pointer + 0x88);
+
+        long a = Memory.Read<long>(pointer + 0x20);
+        return a;
     }
 
     /// <summary>
@@ -80,7 +85,7 @@ public static class Server
     /// <returns></returns>
     public static int GetServerMaxScore()
     {
-        return Memory.Read<int>(GetServerScorePtr() + 0x120);
+        return Memory.Read<int>(GetServerScorePtr() + 0x1E0);
     }
 
     /// <summary>
@@ -89,7 +94,7 @@ public static class Server
     /// <returns></returns>
     public static int GetTeam1Score()
     {
-        int a=Memory.Read<int>(GetServerScorePtr() + 0xE8);
+        int a=Memory.Read<int>(GetServerScorePtr() + 0x28);
         if (a < 2001 && a >= 0)
         { return a; }
         else { return 0; }
@@ -101,7 +106,7 @@ public static class Server
     /// <returns></returns>
     public static int GetTeam2Score()
     {
-        int a=Memory.Read<int>(GetServerScorePtr() + 0x118);
+        int a=Memory.Read<int>(GetServerScorePtr() + 0x88);
         if (a < 2001 && a >= 0)
         { return a; }
         else { return 0; }

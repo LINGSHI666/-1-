@@ -70,7 +70,7 @@ public partial class MonitView : UserControl
     /// <summary>
     /// 生涯数据缓存
     /// </summary>
-    private string F_LifeCache_Path = FileUtil.D_Data_Path + @"\LifeCache.json";
+    private string F_LifeCache_Path = BF1ServerTools.Utils.FileUtil.D_Data_Path + @"\LifeCache.json";
 
     /// <summary>
     /// 自定义踢出非白名单玩家理由
@@ -174,7 +174,7 @@ public partial class MonitView : UserControl
             if (!string.IsNullOrEmpty(Globals.SessionId) && Globals.GameId != 0)
             {
                 // 遍历玩家列表
-                foreach (var item in Player.GetPlayerCache())
+                foreach (var item in Player.GetPlayerList())
                 {
                     // 先判断这个玩家是否在玩家生涯缓存数据中
                     var index = Globals.LifePlayerCacheDatas.FindIndex(var => var.PersonaId == item.PersonaId);
@@ -198,6 +198,7 @@ public partial class MonitView : UserControl
                                 Name = item.Name,
                                 PersonaId = item.PersonaId,
                                 KD = kd,
+                                
                                 KPM = kpm,
                                 Skill = skill,
                                 Time = time,
@@ -591,25 +592,73 @@ public partial class MonitView : UserControl
             };
 
             foreach (var item in tempData)
-            {
-                // 限制玩家武器最高星数
-                if (serverRule.LifeMaxWeaponStar != 0)
+            {// 限制玩家武器最高星数
+                if (serverRule.LifeMaxWeaponStar > 0)
                 {
-                    var name = ClientHelper.GetWeaponChsName(item);
-                    var weaponIndex = Globals.LifePlayerCacheDatas[lifeIndex].WeaponInfos.FindIndex(var => name.Contains(var.Name, StringComparison.OrdinalIgnoreCase));
-                    if (weaponIndex != -1)
+                    var weaponInfos = Globals.LifePlayerCacheDatas[lifeIndex].WeaponInfos;
+                    foreach (var weaponInfo in weaponInfos)
                     {
-                        if (Globals.LifePlayerCacheDatas[lifeIndex].WeaponInfos[weaponIndex].Star > serverRule.LifeMaxWeaponStar)
+                        if (weaponInfo.Star > serverRule.LifeMaxWeaponStar)
                         {
-                            AddBreakRulePlayerInfo(playerData, BreakType.LifeWeaponStar, $"Life Weapon Star Limit {serverRule.LifeMaxWeaponStar:0}");
+                            AddBreakRulePlayerInfo(
+                                playerData,
+                                BreakType.LifeWeaponStar,
+                                $"Life Weapon Star Limit {serverRule.LifeMaxWeaponStar:0}"
+                            );
+                            break; // 只需记录一次违规，不用继续检查
+                        }
+                    }
+                }
+
+            }
+            // 限制玩家飞机最高星数
+            if (serverRule.LifeMaxPlaneStar > 0)
+            {
+                // 列表
+                var planeKeywords = new[] { "伊利亚", "飞船", "攻击机", "战斗机", "L30", "轰炸机" };
+
+                foreach (var vehicleInfo in Globals.LifePlayerCacheDatas[lifeIndex].VehicleInfos)
+                {
+                    // 判断名称是否包含指定关键字
+                    if (planeKeywords.Any(keyword => vehicleInfo.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        // 检测是否超过星数限制
+                        if (vehicleInfo.Star > serverRule.LifeMaxPlaneStar)
+                        {
+                            AddBreakRulePlayerInfo(
+                                playerData,
+                                BreakType.LifeVehicleStar,
+                                $"Life Plane Star Limit {serverRule.LifeMaxPlaneStar:0}"
+                            );
+                            break; // 一旦发现违规，立即退出
                         }
                     }
                 }
             }
-
-            // 限制玩家载具最高星数
-            if (serverRule.LifeMaxVehicleStar != 0)
+            // 限制玩家坦克最高星数
+            if (serverRule.LifeMaxVehicleStar > 0)
             {
+                // 定义关键字列表
+                var excludedKeywords = new[] { "伊利亚", "飞船", "攻击机", "战斗机", "L30", "轰炸机" };
+
+                foreach (var vehicleInfo in Globals.LifePlayerCacheDatas[lifeIndex].VehicleInfos)
+                {
+                    // 判断名称是否不包含指定关键字
+                    if (!excludedKeywords.Any(keyword => vehicleInfo.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        // 检测是否超过星数限制
+                        if (vehicleInfo.Star > serverRule.LifeMaxVehicleStar)
+                        {
+                            AddBreakRulePlayerInfo(
+                                playerData,
+                                BreakType.LifeVehicleStar,
+                                $"Life Tank Star Limit {serverRule.LifeMaxVehicleStar:0}"
+                            );
+                            break; // 一旦发现违规，立即退出
+                        }
+                    }
+                }
+                /*
                 var name = ClientHelper.GetWeaponChsName(playerData.WeaponS0);
                 var vehicleIndex = Globals.LifePlayerCacheDatas[lifeIndex].VehicleInfos.FindIndex(var => name.Contains(var.Name, StringComparison.OrdinalIgnoreCase));
                 if (vehicleIndex != -1)
@@ -618,7 +667,7 @@ public partial class MonitView : UserControl
                     {
                         AddBreakRulePlayerInfo(playerData, BreakType.LifeVehicleStar, $"Life Vehicle Star Limit {serverRule.LifeMaxVehicleStar:0}");
                     }
-                }
+                }*/
             }
         }
 
@@ -1435,7 +1484,7 @@ public partial class MonitView : UserControl
         }
 
         AddRuleLog("👉 正在检查 SessionId是否有效...");
-        var result = await BF1API.GetWelcomeMessage(Globals.SessionId);
+        var result = await BF1API.GetWelcomeMessage(Globals.SessionId);//无效
         if (!result.IsSuccess)
         {
             AddRuleLog("❌ SessionId已过期，请重新获取");

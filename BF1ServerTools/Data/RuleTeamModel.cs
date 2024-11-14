@@ -65,10 +65,15 @@ public partial class RuleTeamModel : ObservableObject
     private int lifeMaxWeaponStar;
 
     /// <summary>
-    /// 最大生涯载具星数
+    /// 最大生涯坦克星数
     /// </summary>
     [ObservableProperty]
     private int lifeMaxVehicleStar;
+    /// <summary>
+    /// 最大生涯飞机星数
+    /// </summary>
+    [ObservableProperty]
+    private int lifeMaxPlaneStar;
     /// <summary>
     /// 最多侦察数
     /// </summary>

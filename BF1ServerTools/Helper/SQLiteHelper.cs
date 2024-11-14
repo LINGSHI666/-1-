@@ -15,7 +15,7 @@ public static class SQLiteHelper
     /// <summary>
     /// 数据库文件路径
     /// </summary>
-    private static string F_ServerDB_Path = FileUtil.D_Data_Path + @"\Server.db";
+    private static string F_ServerDB_Path = BF1ServerTools.Utils.FileUtil.D_Data_Path + @"\Server.db";
 
     /// <summary>
     /// 线程锁

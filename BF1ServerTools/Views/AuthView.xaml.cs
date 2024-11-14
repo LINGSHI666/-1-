@@ -32,16 +32,16 @@ public partial class AuthView : UserControl
     /// <summary>
     /// 配置文件路径
     /// </summary>
-    private readonly string F_Auth_Path = FileUtil.D_Config_Path + @"\AuthConfig.json";
+    private readonly string F_Auth_Path = BF1ServerTools.Utils.FileUtil.D_Config_Path + @"\AuthConfig.json";
 
     /// <summary>
     /// 配置文件，以json格式保存到本地
     /// </summary>
     private AuthConfig AuthConfig = new();
 
-   public static readonly string F_Auth_Path2 = FileUtil.D_Config_Path + @"\Scorelist.json";
+   public static readonly string F_Auth_Path2 = BF1ServerTools.Utils.FileUtil.D_Config_Path + @"\Scorelist.json";
 
-    public static readonly string F_Auth_Path3 = FileUtil.D_Config_Path + @"\Loadlist.json";
+    public static readonly string F_Auth_Path3 = BF1ServerTools.Utils.FileUtil.D_Config_Path + @"\Loadlist.json";
 
     private void TextBox_MessageContent_TextChanged(object sender, TextChangedEventArgs e)
     {
@@ -275,6 +275,79 @@ public partial class AuthView : UserControl
         }
         else
         {
+            if (string.IsNullOrEmpty(Globals.Remid) || string.IsNullOrEmpty(Globals.Sid))
+                return;
+
+            var respAuth = await EA1API.GetAuthCode(Globals.Remid, Globals.Sid);
+            if (respAuth.IsSuccess)
+            {
+                if (!string.IsNullOrEmpty(respAuth.Remid))
+                    Globals.Remid = respAuth.Remid;
+                if (!string.IsNullOrEmpty(respAuth.Sid))
+                    Globals.Sid = respAuth.Sid;
+
+                var result = await EA2API.GetAccessToken(Globals.Remid, Globals.Sid);
+                if (result.IsSuccess)
+                {
+                    var jNode = JsonNode.Parse(result.Content);
+                    Globals.AccessToken = jNode["access_token"].GetValue<string>();
+                    AuthModel.AccessToken = Globals.AccessToken;
+                    LoggerHelper.Info("刷新玩家access_token成功");
+                }
+
+                result = await BF1API.GetEnvIdViaAuthCode(respAuth.Code);
+                if (result.IsSuccess)
+                {
+                    var content = result.Content;
+                    // 使用正则表达式从字符串中提取 sessionId
+                    var match = Regex.Match(result.Content, @"sessionId:\s*([a-f0-9-]+)", RegexOptions.IgnoreCase);
+                    if (match.Success)
+                    {
+                        // 提取并存储到 Globals.SessionId2
+                        Globals.SessionId2 = match.Groups[1].Value;
+                    }
+                    result = await EA2API.GetPlayerPersonaId(Globals.AccessToken, Globals.DisplayName2);
+                    if (result.IsSuccess)
+                    {
+                        var jNode = JsonNode.Parse(result.Content);
+                        if (jNode["personas"]!["persona"] != null)
+                        {
+                            Globals.PersonaId2 = jNode["personas"]!["persona"][0]["personaId"].GetValue<long>();
+                        }
+                        else
+                        {
+                            LoggerHelper.Info("personid获取失败");
+                        }
+                    }
+                    else
+                    {
+                        LoggerHelper.Info("personid获取失败");
+                    }
+                    //Globals.PersonaId2 = long.Parse(envIdViaAuthCode.result.personaId);
+
+                    result = await BF1API.GetPersonasByIds(Globals.SessionId2, Globals.PersonaId);
+                    if (result.IsSuccess)
+                    {
+                        var jNode = JsonNode.Parse(result.Content);
+                        var personas = jNode["result"]![$"{Globals.PersonaId}"];
+                        if (personas != null)
+                        {
+                            Globals.Avatar2 = personas!["avatar"].GetValue<string>();
+                            Globals.DisplayName2 = personas!["displayName"].GetValue<string>();
+
+                            AuthModel.Avatar2 = Globals.Avatar2;
+                            AuthModel.DisplayName2 = Globals.DisplayName2;
+                            AuthModel.PersonaId2 = Globals.PersonaId2;
+
+                            AuthModel.Sid = Globals.Sid;
+                            AuthModel.Remid = Globals.Remid;
+                            AuthModel.SessionId2 = Globals.SessionId2;
+                            Globals.SessionId1 = Globals.SessionId2;
+                            LoggerHelper.Info("刷新玩家Cookies数据成功");
+                        }
+                    }
+                }
+            }
             LoggerHelper.Error("内存扫描SessionID失败");
         }
     }
@@ -583,7 +656,7 @@ public partial class AuthView : UserControl
     /// <param name="e"></param>
     private void Button_OpenConfigFolder_Click(object sender, RoutedEventArgs e)
     {
-        ProcessUtil.OpenPath(FileUtil.Default_Path);
+        ProcessUtil.OpenPath(BF1ServerTools.Utils.FileUtil.Default_Path);
     }
 
     /// <summary>

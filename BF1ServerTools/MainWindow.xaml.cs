@@ -49,6 +49,7 @@ public partial class MainWindow
 {
     public static UdpClientService udpchatrecive;
    public static UdpClientService udpchatsend;
+    
     /// <summary>
     /// 主窗口关闭委托
     /// </summary>
@@ -82,6 +83,7 @@ public partial class MainWindow
     private RobotView RobotView { get; set; } = new();
     private MoreView MoreView { get; set; } = new();
 
+   
     private Autobalance Autobalance { get; set; } = new();
 
     ///////////////////////////////////////////////////////
@@ -101,6 +103,7 @@ public partial class MainWindow
     public MainWindow()
     {
         InitializeComponent();
+        
         // 初始化 UDP 客户端
         udpchatrecive = new UdpClientService("127.0.0.1", 52001);
         udpchatsend = new UdpClientService("127.0.0.1", 51001);
@@ -165,8 +168,28 @@ public partial class MainWindow
                 Directory.CreateDirectory(tessDataPath);
             }
 
-            // eng.traineddata 文件的资源路径
-            string resourceName = "BF1ServerTools.eng.traineddata";
+            // num.traineddata 文件的资源路径
+            string resourceName = "BF1ServerTools.num.traineddata";
+
+            // 获取嵌入的资源流
+            using (Stream resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+            {
+                if (resourceStream == null)
+                {
+                    throw new FileNotFoundException("num.traineddata 文件未找到.");
+                }
+
+                // 目标路径（解压到 tessdata 目录）
+                string targetFilePath = Path.Combine(tessDataPath, "num.traineddata");
+
+                // 解压文件
+                using (FileStream fileStream = new FileStream(targetFilePath, FileMode.Create, FileAccess.Write))
+                {
+                    resourceStream.CopyTo(fileStream);
+                    
+                }
+            } // eng.traineddata 文件的资源路径
+            resourceName = "BF1ServerTools.eng.traineddata";
 
             // 获取嵌入的资源流
             using (Stream resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
@@ -183,7 +206,7 @@ public partial class MainWindow
                 using (FileStream fileStream = new FileStream(targetFilePath, FileMode.Create, FileAccess.Write))
                 {
                     resourceStream.CopyTo(fileStream);
-                    
+
                 }
             }
         }
@@ -250,6 +273,7 @@ public partial class MainWindow
         Autobalance.close();
         LoggerHelper.Info("关闭键盘钩子成功");
         Application.Current.Shutdown();
+        Memory.driverCommunication.Close();
         LoggerHelper.Info("程序关闭\n\n");
         
     }
