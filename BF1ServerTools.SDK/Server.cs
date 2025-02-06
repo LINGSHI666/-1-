@@ -22,7 +22,10 @@ public static class Server
     public static long GetGameId()
     {
         long pointer = Memory.Read<long>(0x143A20898);
-        return Memory.Read<long>(pointer + 0x100);
+        
+         var a=   Memory.Read<long>(pointer + 0x100);
+        
+        return a;
     }
 
     /// <summary>

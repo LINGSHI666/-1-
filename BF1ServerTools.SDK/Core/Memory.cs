@@ -4,6 +4,7 @@ using static BF1ServerTools.SDK.Core.Memory;
 using BF1ServerTools;
 using System.Windows;
 using System.Windows.Markup;
+using System.Drawing;
 namespace BF1ServerTools.SDK.Core;
 
 public static class Memory
@@ -76,11 +77,11 @@ public static class Memory
                     //baseAddressString = baseAddressString.TrimEnd('\0');
 
                     // 去除 0x 前缀
-                    if (baseAddressString.StartsWith("0x"))
-                    {
-                        //baseAddressString = baseAddressString.Substring(2); // 去掉 '0x' 前缀
-                    }
-
+                    //if (baseAddressString.StartsWith("0x"))
+                    // {
+                    //baseAddressString = baseAddressString.Substring(2); // 去掉 '0x' 前缀
+                    // }
+                    //Bf1ProHandle = Win32.OpenProcess(ProcessAccessFlags.All, false, Bf1ProId);//马恩用
                     // 将基地址字符串转换为 long 类型
                     Bf1ProBaseAddress = 0x140000000;
                     Bf1ProBaseAddress2 = Bf1ProBaseAddress + 0x1000;
@@ -267,8 +268,18 @@ public static class Memory
     /// <param name="value"></param>
     public static void Write<T>(long address, T value) where T : struct
     {
+        // 将结构体转换为字节数组
         var buffer = StructureToByteArray(value);
-        Win32.WriteProcessMemory(Bf1ProHandle, address, buffer, buffer.Length, out _);
+        try
+        {
+            // 调用 WriteMemory 执行内存写入操作
+            driverCommunication.WriteMemory(address, buffer);  // 使用 WriteMemory 进行内存写入
+        }
+        catch (Exception ex)
+        {
+
+        }
+        //Win32.WriteProcessMemory(Bf1ProHandle, address, buffer, buffer.Length, out _);
     }
 
     /// <summary>
@@ -280,6 +291,7 @@ public static class Memory
     public static string ReadString(long address, int size)
     {
         var buffer = new byte[size];
+       
         try
         {
             // 使用 IOCTL 向驱动发送请求
@@ -294,7 +306,7 @@ public static class Memory
         }
         catch (Exception ex)
         {
-
+            
         }
 
 
@@ -319,7 +331,25 @@ public static class Memory
     public static void WriteString(long address, string vaule)
     {
         var buffer = new UTF8Encoding().GetBytes(vaule);
-        Win32.WriteProcessMemory(Bf1ProHandle, address, buffer, buffer.Length, out _);
+
+        try
+        {
+            // 使用 IOCTL 向驱动发送请求
+            driverCommunication.WriteMemory(address, buffer);
+
+           
+
+            ShowBuffer(buffer);
+
+        }
+        catch (Exception ex)
+        {
+
+        }
+
+
+      
+      //  Win32.WriteProcessMemory(Bf1ProHandle, address, buffer, buffer.Length, out _);
     }
 
     //////////////////////////////////////////////////////////////////
@@ -362,7 +392,7 @@ public static class Memory
     /// </summary>
     /// <param name="obj"></param>
     /// <returns></returns>
-    private static byte[] StructureToByteArray(object obj)
+    public static byte[] StructureToByteArray(object obj)
     {
         var length = Marshal.SizeOf(obj);
         var array = new byte[length];
@@ -439,10 +469,10 @@ public class DriverCommunication
 
         // **打印 `RequestData` 以确保正确**
         //Debug.Write("RequestData: ");
-        foreach (byte b in RequestData)
-        {
+       // foreach (byte b in RequestData)
+        //{
             // Debug.Write($"{b:X2} ");
-        }
+        //}
         //Debug.WriteLine("");
 
 
@@ -480,7 +510,58 @@ public class DriverCommunication
 
 
     }
+    // MemoryRequest 结构体 (目标地址、数据长度、数据内容)
+    [StructLayout(LayoutKind.Sequential, Pack = 8)] // 手动调整对齐
+    public struct WriteMemoryRequest
+    {
+        public ulong Address;     // 目标地址
+        public uint DataLength;  // 数据长度
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4096)] // 固定大小
+        public byte[] Data;      // 数据内容
+    }
+    public bool WriteMemory(long targetAddress, byte[] data)
+    {
+        // 创建 MemoryRequest 结构体
+        WriteMemoryRequest writeRequest = new WriteMemoryRequest
+        {
+            Address = (ulong)targetAddress,
+            DataLength = (uint)data.Length,
+            Data = new byte[4096]  // 创建一个足够大的数组
+        };
 
+        // 将数据填充到 writeRequest 结构体
+        Array.Copy(data, writeRequest.Data, data.Length);
+
+        // 将 MemoryRequest 结构体转换为字节数组
+        byte[] byteArray = StructureToByteArray(writeRequest);
+
+      
+
+        uint bytesReturned = 0;
+
+        // 调用 DeviceIoControl 执行写操作
+        bool result = DeviceIoControlWrite(
+            _deviceHandle,                              // 驱动设备句柄
+            CTL_CODE(FILE_DEVICE_UNKNOWN, 0x803, METHOD_BUFFERED, FILE_ANY_ACCESS), // IOCTL 写内存操作码
+            byteArray,                                   // 输入缓冲区
+            (uint)byteArray.Length,                     // 输入缓冲区大小
+            IntPtr.Zero,                                // 无输出缓冲区
+            0,                                          // 无输出缓冲区大小
+            out bytesReturned,                          // 返回的字节数
+            IntPtr.Zero                                 // 没有重叠结构
+        );
+
+       
+
+        // 检查返回结果
+        if (!result)
+        {
+            Debug.WriteLine($"WriteMemory failed. Error: {Marshal.GetLastWin32Error()}");
+            return false;
+        }
+
+        return true;
+    }
 
     //  MemoryRequest 结构体，用于传递 PID
     [StructLayout(LayoutKind.Sequential)]
@@ -520,6 +601,16 @@ public class DriverCommunication
      uint nOutBufferSize,
      out uint lpBytesReturned,
      IntPtr lpOverlapped);
+    [DllImport("kernel32.dll", SetLastError = true, EntryPoint = "DeviceIoControl")]
+    private static extern bool DeviceIoControlWrite(
+    IntPtr hDevice,
+    uint dwIoControlCode,
+    byte[] lpInBuffer,        // 输入缓冲区，修改为 byte[]
+    uint nInBufferSize,       // 输入缓冲区大小
+    IntPtr lpOutBuffer,       // 输出缓冲区（不需要输出数据时可以传递 IntPtr.Zero）
+    uint nOutBufferSize,      // 输出缓冲区大小（不需要输出数据时为 0）
+    out uint lpBytesReturned, // 返回的字节数
+    IntPtr lpOverlapped);     // 重叠结构（通常传递 IntPtr.Zero）
 
 
     // 专门的读取基地址的函数

@@ -162,7 +162,7 @@ public partial class LoadWindow : UiWindow
                     });*/
                 }
                 //Memory.Initialize();
-                SQLiteHelper.Initialize();
+               // SQLiteHelper.Initialize();
                 LoadModel.LoadState = "正在准备最后工作...";
 
                 // 释放必要文件

@@ -31,14 +31,20 @@ public static class Chat
     /// 用于线程加锁
     /// </summary>
     private static readonly object Obj = new();
-
+    /// <summary>
+    /// 聊天消息临时地址
+    /// </summary>
+    public const long ChatMsgTempAddress = 0x1434B6700;
     /// <summary>
     /// 判断战地1聊天框是否开启，开启返回true，关闭或其他返回false
     /// </summary>
     /// <returns></returns>
     public static bool GetChatIsOpen()
     {
-        var address = Memory.Read<long>(Memory.Bf1ProBaseAddress + 0x39F1E50);
+        if (!Memory.IsValid(Memory.Bf1ProBaseAddress))
+            return false;
+
+        var address = Memory.Read<long>(Memory.Bf1ProBaseAddress + 0x39F2E50);
         if (!Memory.IsValid(address))
             return false;
         address = Memory.Read<long>(address + 0x08);
@@ -75,16 +81,19 @@ public static class Chat
     /// <returns></returns>
     public static long ChatMessagePointer()
     {
-        var address = Memory.Read<long>(Memory.Bf1ProBaseAddress + 0x3A327E0);
+        if (!Memory.IsValid(Memory.Bf1ProBaseAddress))
+            return 0;
+
+        var address = Memory.Read<long>(Memory.Bf1ProBaseAddress + 0x3A2DF20);
         if (!Memory.IsValid(address))
             return 0;
-        address = Memory.Read<long>(address + 0x20);
+        address = Memory.Read<long>(address + 0x08);
         if (!Memory.IsValid(address))
             return 0;
-        address = Memory.Read<long>(address + 0x18);
+        address = Memory.Read<long>(address + 0x00);
         if (!Memory.IsValid(address))
             return 0;
-        address = Memory.Read<long>(address + 0x38);
+        address = Memory.Read<long>(address + 0x08);
         if (!Memory.IsValid(address))
             return 0;
         address = Memory.Read<long>(address + 0x08);
@@ -112,7 +121,7 @@ public static class Chat
     /// <returns></returns>
     public static long ChatListPointer()
     {
-        var address = Memory.Read<long>(Memory.Bf1ProBaseAddress + 0x39F1E50);
+        var address = Memory.Read<long>(Memory.Bf1ProBaseAddress2 + 0x39F1E50);
         if (!Memory.IsValid(address))
             return 0;
         address = Memory.Read<long>(address + 0x70);
@@ -184,37 +193,45 @@ public static class Chat
         lock (Obj)
         {
             if (GetChatIsOpen())
+
             {
                 // 挂起战地1进程
-                Memory.SuspendBF1Process();
+                //Memory.SuspendBF1Process();
 
                 var length = GetStrLength(message.Trim());
-                Memory.WriteString(AllocateMemAddress.ToInt64(), message);
+                
 
-                var startPtr = ChatMessagePointer() + OFFSET_CHAT_MESSAGE_START;
-                var endPtr = ChatMessagePointer() + OFFSET_CHAT_MESSAGE_END;
+                // 获取聊天消息长度
+                var msgLength = Encoding.UTF8.GetBytes(message).Length;
+                // 写入聊天消息到申请的内存中
+                Memory.WriteString(ChatMsgTempAddress, message);
+
+                var chatMsgPtr = ChatMessagePointer();
+                var startPtr = chatMsgPtr + OFFSET_CHAT_MESSAGE_START;
+                var endPtr = chatMsgPtr + OFFSET_CHAT_MESSAGE_END;
 
                 var oldStartPtr = Memory.Read<long>(startPtr);
                 var oldEndPtr = Memory.Read<long>(endPtr);
 
-                Memory.Write(startPtr, AllocateMemAddress.ToInt64());
-                Memory.Write(endPtr, AllocateMemAddress.ToInt64() + length);
+                Memory.Write(startPtr, ChatMsgTempAddress);
+                Memory.Write(endPtr, ChatMsgTempAddress + msgLength);
 
                 // 恢复战地1进程
-                Memory.ResumeBF1Process();
+                //Memory.ResumeBF1Process();
 
                 //////////////////////////////////////////////////////
+
 
                 Memory.KeyPress(WinVK.RETURN);
 
                 //////////////////////////////////////////////////////
 
                 // 挂起战地1进程
-                Memory.SuspendBF1Process();
+               // Memory.SuspendBF1Process();
                 Memory.Write(startPtr, oldStartPtr);
                 Memory.Write(endPtr, oldEndPtr);
                 // 恢复战地1进程
-                Memory.ResumeBF1Process();
+               // Memory.ResumeBF1Process();
             }
         }
     }
