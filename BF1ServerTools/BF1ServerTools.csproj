@@ -8,8 +8,8 @@
 		<UseWPF>true</UseWPF>
 		<Platforms>x64;ARM64;x86</Platforms>
 		<StartupObject>BF1ServerTools.App</StartupObject>
-		<AssemblyVersion>2.2.3</AssemblyVersion>
-		<FileVersion>2.2.3</FileVersion>
+		<AssemblyVersion>2.2.5</AssemblyVersion>
+		<FileVersion>2.2.5</FileVersion>
 		<ApplicationManifest>Properties\app.manifest</ApplicationManifest>
 		<ApplicationIcon>Assets\Images\Favicon.ico</ApplicationIcon>
 		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>

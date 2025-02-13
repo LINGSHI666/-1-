@@ -348,7 +348,7 @@ public partial class AuthView : UserControl
                     }
                 }
             }
-            LoggerHelper.Error("内存扫描SessionID失败");
+            //LoggerHelper.Error("内存扫描SessionID失败");
         }
     }
 
@@ -476,7 +476,7 @@ public partial class AuthView : UserControl
     {
         if (Globals.IsUseMode1)
         {
-            NotifierHelper.Show(NotifierType.Information, "正在内存扫描中，请稍后...");
+            //NotifierHelper.Show(NotifierType.Information, "正在内存扫描中，请稍后...");
 
             var sessionId = await Scan.GetGatewaySession();
             if (sessionId != string.Empty)
@@ -486,7 +486,92 @@ public partial class AuthView : UserControl
             }
             else
             {
-                NotifierHelper.Show(NotifierType.Information, "内存扫描SessionId失败");
+                NotifierHelper.Show(NotifierType.Information, "正在刷新中，请稍后...");
+
+                var respAuth = await EA1API.GetAuthCode(Globals.Remid, Globals.Sid);
+                if (respAuth.IsSuccess)
+                {
+                    if (!string.IsNullOrEmpty(respAuth.Remid))
+                        Globals.Remid = respAuth.Remid;
+                    if (!string.IsNullOrEmpty(respAuth.Sid))
+                        Globals.Sid = respAuth.Sid;
+
+                    var result = await EA2API.GetAccessToken(Globals.Remid, Globals.Sid);
+                    if (result.IsSuccess)
+                    {
+                        var jNode = JsonNode.Parse(result.Content);
+                        Globals.AccessToken = jNode["access_token"].GetValue<string>();
+                        AuthModel.AccessToken = Globals.AccessToken;
+                        NotifierHelper.Show(NotifierType.Success, "刷新玩家access_token成功");
+                    }
+
+                    result = await BF1API.GetEnvIdViaAuthCode(respAuth.Code);
+                    if (result.IsSuccess)
+                    {
+                        var content = result.Content;
+                        // 使用正则表达式从字符串中提取 sessionId
+                        var match = Regex.Match(result.Content, @"sessionId:\s*([a-f0-9-]+)", RegexOptions.IgnoreCase);
+                        if (match.Success)
+                        {
+                            // 提取并存储到 Globals.SessionId2
+                            Globals.SessionId2 = match.Groups[1].Value;
+                            NotifierHelper.Show(NotifierType.Success, "SessionId获取成功");
+                        }
+                        result = await EA2API.GetPlayerPersonaId(Globals.AccessToken, Globals.DisplayName2);
+                        if (result.IsSuccess)
+                        {
+                            var jNode = JsonNode.Parse(result.Content);
+                            if (jNode["personas"]!["persona"] != null)
+                            {
+                                Globals.PersonaId2 = jNode["personas"]!["persona"][0]["personaId"].GetValue<long>();
+                            }
+                            else
+                            {
+                                NotifierHelper.Show(NotifierType.Error, "personid获取失败");
+                            }
+                        }
+                        else
+                        {
+                            NotifierHelper.Show(NotifierType.Error, "personid获取失败");
+                        }
+                        result = await BF1API.GetPersonasByIds(Globals.SessionId2, Globals.PersonaId);
+                        if (result.IsSuccess)
+                        {
+                            var jNode = JsonNode.Parse(result.Content);
+                            var personas = jNode["result"]![$"{Globals.PersonaId}"];
+                            if (personas != null)
+                            {
+                                Globals.Avatar2 = personas!["avatar"].GetValue<string>();
+                                Globals.DisplayName2 = personas!["displayName"].GetValue<string>();
+
+                                AuthModel.Avatar2 = Globals.Avatar2;
+                                AuthModel.DisplayName2 = Globals.DisplayName2;
+                                AuthModel.PersonaId2 = Globals.PersonaId2;
+
+                                AuthModel.Sid = Globals.Sid;
+                                AuthModel.Remid = Globals.Remid;
+                                AuthModel.SessionId2 = Globals.SessionId2;
+
+                                NotifierHelper.Show(NotifierType.Success, "刷新玩家Cookies数据成功");
+                            }
+                        }
+                        else
+                        {
+                            NotifierHelper.Show(NotifierType.Error, $"刷新失败\n{result.Content}");
+                        }
+                    }
+                    else
+                    {
+                        NotifierHelper.Show(NotifierType.Error, $"刷新失败\n{result.Content}");
+                    }
+                }
+                else
+                {
+                    NotifierHelper.Show(NotifierType.Error, "刷新失败，玩家Remid或Sid可能已过期");
+                }
+                Globals.SessionId1 = Globals.SessionId2;
+                NotifierHelper.Show(NotifierType.Information, "改为从网络获取sessionId");
+                //NotifierHelper.Show(NotifierType.Information, "内存扫描SessionId失败");
             }
         }
         else

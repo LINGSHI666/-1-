@@ -45,7 +45,7 @@ public static class Memory
         }
         catch (InvalidOperationException ex)
         {
-
+            return false;
         }
         try
         {
@@ -62,7 +62,12 @@ public static class Memory
                 }
 
                 if (Bf1Process == null)
+                {
+                    driverCommunication.Close();
                     return false;
+                    
+                }
+
 
                 Bf1WinHandle = Bf1Process.MainWindowHandle;
                 Bf1ProId = Bf1Process.Id;

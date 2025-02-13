@@ -222,6 +222,7 @@ public static class Globals
     /// 是否启用踢出非白名单玩家
     /// </summary>
     public static bool IsEnableKickNoWhites = false;
+    public static bool IsEnableKickNoWhites2 = false; //额外确认
     /// <summary>
     /// 是否启用踢出偷家玩家
     /// </summary>

@@ -63,21 +63,21 @@
                 x:Name="RadioButton_Mode1"
                 Margin="5"
                 Click="RadioButton_Mode12_Click"
-                Content="[模式1] 自动读取当前战地1游戏账号SessionId，开箱即用"
+                Content="[模式1] 驱动及DMA模式"
                 Foreground="#1E88E5"
                 GroupName="Mode" />
             <RadioButton
                 x:Name="RadioButton_Mode2"
                 Margin="5"
                 Click="RadioButton_Mode12_Click"
-                Content="[模式2] 需要玩家登录账号获取Cookies，支持多账号切换"
+                Content="[模式2] 虚拟机API或离线模式"
                 Foreground="#008000"
                 GroupName="Mode" />
             <ui:UiLabelIcon Content="Cookies获取" />
             <Button
                 x:Name="Button_GetPlayerCookies"
                 Click="Button_GetPlayerCookies_Click"
-                Content="获取玩家Cookies数据（模式2专用）" />
+                Content="获取玩家Cookies数据" />
             <!--  ###############  -->
             <!--  ###############  -->
             <ui:UiLabelIcon Content="验证权限" />

@@ -414,7 +414,7 @@ public partial class MonitView : UserControl
                 }
 
                 // 踢出非白名单玩家
-                if (Globals.IsEnableKickNoWhites)
+                if (Globals.IsEnableKickNoWhites&& Globals.IsEnableKickNoWhites2)
                 {
                     AddBreakRulePlayerInfo(item, BreakType.NoWhite, $"{KickNoWhitesReason}");
                 }
@@ -590,7 +590,23 @@ public partial class MonitView : UserControl
                 playerData.WeaponS6,
                 playerData.WeaponS7
             };
-
+            foreach (var item in tempData)
+            {
+                // 限制玩家武器最高星数
+                if (serverRule.LifeMaxWeaponStar != 0)
+                {
+                    var name = ClientHelper.GetWeaponChsName(item);
+                    var weaponIndex = Globals.LifePlayerCacheDatas[lifeIndex].WeaponInfos.FindIndex(var => name.Contains(var.Name, StringComparison.OrdinalIgnoreCase));
+                    if (weaponIndex != -1)
+                    {
+                        if (Globals.LifePlayerCacheDatas[lifeIndex].WeaponInfos[weaponIndex].Star > serverRule.LifeMaxWeaponStar)
+                        {
+                            AddBreakRulePlayerInfo(playerData, BreakType.LifeWeaponStar, $"武器星数限制{serverRule.LifeMaxWeaponStar:0}");
+                        }
+                    }
+                }
+            }
+            /*
             foreach (var item in tempData)
             {// 限制玩家武器最高星数
                 if (serverRule.LifeMaxWeaponStar > 0)
@@ -610,27 +626,21 @@ public partial class MonitView : UserControl
                     }
                 }
 
-            }
+            }*/
             // 限制玩家飞机最高星数
             if (serverRule.LifeMaxPlaneStar > 0)
             {
                 // 列表
                 var planeKeywords = new[] { "伊利亚", "飞船", "攻击机", "战斗机", "L30", "轰炸机" };
-
-                foreach (var vehicleInfo in Globals.LifePlayerCacheDatas[lifeIndex].VehicleInfos)
+                var name = ClientHelper.GetWeaponChsName(playerData.WeaponS0);
+                if (planeKeywords.Any(keyword => name.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
                 {
-                    // 判断名称是否包含指定关键字
-                    if (planeKeywords.Any(keyword => vehicleInfo.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
+                    var vehicleIndex = Globals.LifePlayerCacheDatas[lifeIndex].VehicleInfos.FindIndex(var => name.Contains(var.Name, StringComparison.OrdinalIgnoreCase));
+                    if (vehicleIndex != -1)
                     {
-                        // 检测是否超过星数限制
-                        if (vehicleInfo.Star > serverRule.LifeMaxPlaneStar)
+                        if (Globals.LifePlayerCacheDatas[lifeIndex].VehicleInfos[vehicleIndex].Star > serverRule.LifeMaxVehicleStar)
                         {
-                            AddBreakRulePlayerInfo(
-                                playerData,
-                                BreakType.LifeVehicleStar,
-                                $"Life Plane Star Limit {serverRule.LifeMaxPlaneStar:0}"
-                            );
-                            break; // 一旦发现违规，立即退出
+                            AddBreakRulePlayerInfo(playerData, BreakType.LifeVehicleStar, $"飞机星数限制{serverRule.LifeMaxVehicleStar:0}");
                         }
                     }
                 }
@@ -638,6 +648,7 @@ public partial class MonitView : UserControl
             // 限制玩家坦克最高星数
             if (serverRule.LifeMaxVehicleStar > 0)
             {
+                /*
                 // 定义关键字列表
                 var excludedKeywords = new[] { "伊利亚", "飞船", "攻击机", "战斗机", "L30", "轰炸机" };
 
@@ -657,17 +668,22 @@ public partial class MonitView : UserControl
                             break; // 一旦发现违规，立即退出
                         }
                     }
-                }
-                /*
-                var name = ClientHelper.GetWeaponChsName(playerData.WeaponS0);
-                var vehicleIndex = Globals.LifePlayerCacheDatas[lifeIndex].VehicleInfos.FindIndex(var => name.Contains(var.Name, StringComparison.OrdinalIgnoreCase));
-                if (vehicleIndex != -1)
-                {
-                    if (Globals.LifePlayerCacheDatas[lifeIndex].VehicleInfos[vehicleIndex].Star > serverRule.LifeMaxVehicleStar)
-                    {
-                        AddBreakRulePlayerInfo(playerData, BreakType.LifeVehicleStar, $"Life Vehicle Star Limit {serverRule.LifeMaxVehicleStar:0}");
-                    }
                 }*/
+                // 定义关键字列表
+                var excludedKeywords = new[] { "伊利亚", "飞船", "攻击机", "战斗机", "L30", "轰炸机" };
+                var name = ClientHelper.GetWeaponChsName(playerData.WeaponS0);
+                // 判断名称是否不包含指定关键字
+                if (!excludedKeywords.Any(keyword => name.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
+                {
+                    var vehicleIndex = Globals.LifePlayerCacheDatas[lifeIndex].VehicleInfos.FindIndex(var => name.Contains(var.Name, StringComparison.OrdinalIgnoreCase));
+                    if (vehicleIndex != -1)
+                    {
+                        if (Globals.LifePlayerCacheDatas[lifeIndex].VehicleInfos[vehicleIndex].Star > serverRule.LifeMaxVehicleStar)
+                        {
+                            AddBreakRulePlayerInfo(playerData, BreakType.LifeVehicleStar, $"坦克星数限制{serverRule.LifeMaxVehicleStar:0}");
+                        }
+                    }
+                }
             }
         }
 
@@ -836,6 +852,7 @@ public partial class MonitView : UserControl
         //偷家限制
         if (Globals.IsEnableKickInfiltration)
         {
+            goto TEST;
            int flags = 0;//对手占领的旗帜数
             if (Globals.userteamid == 2)
             {
@@ -886,6 +903,7 @@ public partial class MonitView : UserControl
             {
                 goto NEXT;
             }
+            TEST:
             var square = new List<PointXZ>();
             if (PolygonStorage.Polygons.TryGetValue(ScoreView.mapname + playerData.TeamId, out square))
             {
@@ -1581,6 +1599,10 @@ public partial class MonitView : UserControl
     private void CheckBox_IsEnableKickNoWhites_Click(object sender, RoutedEventArgs e)
     {
         Globals.IsEnableKickNoWhites = CheckBox_IsEnableKickNoWhites.IsChecked == true;
+    }
+    private void CheckBox_IsEnableKickNoWhites_Click2(object sender, RoutedEventArgs e)
+    {
+        Globals.IsEnableKickNoWhites2 = CheckBox_IsEnableKickNoWhites2.IsChecked == true;
     }
     /// <summary>
     /// 启用踢出偷家玩家

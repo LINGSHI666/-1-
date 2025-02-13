@@ -46,6 +46,11 @@ using Tesseract;
 using OpenCvSharp;
 using drawcolor = System.Drawing.Color;
 using OpenCvSharp.DnnSuperres;
+using Newtonsoft.Json;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
+using Newtonsoft.Json.Serialization;
+using System.Net.Http;
+using static BF1ServerTools.Views.ScoreView;
 
 
 
@@ -686,8 +691,35 @@ public partial class Autobalance : UserControl
         }
        
     }
+    static async Task UploadJsonAsync(string url, string json)
+    {
+        using (HttpClient client = new HttpClient())
+        {
+            // 创建HttpContent对象，指定内容类型为application/json
+            HttpContent content = new StringContent(json, Encoding.UTF8, "application/json");
 
-    
+            try
+            {
+                // 发送POST请求
+                HttpResponseMessage response = await client.PostAsync(url, content);
+
+                // 检查响应状态
+                if (response.IsSuccessStatusCode)
+                {
+                    Debug.WriteLine("上传成功！");
+                }
+                else
+                {
+                  Debug.WriteLine($"上传失败，状态码: {response.StatusCode}");
+                }
+            }
+            catch (Exception ex)
+            {
+               Debug.WriteLine($"发生错误: {ex.Message}");
+            }
+        }
+    }
+
     /// <summary>
     /// 停止自动平衡
     /// </summary>
@@ -696,6 +728,56 @@ public partial class Autobalance : UserControl
     private bool stopbalanceflag = false;
     private async void Button_StopWebsocketServer_Click(object sender, RoutedEventArgs e)
     {
+        if (Player.IsUseMode1) {
+            string servername = Server.GetServerName();
+            long gameid = string.IsNullOrEmpty(servername) ? 0 : Globals.GameId;          
+        List<PlayerData> playerlist = Player.GetPlayerList();
+            foreach (var player in playerlist)
+            {
+               
+                if (player.SquadId == 0)
+                    player.SquadId = 99;
+                player.SquadId2 = ClientHelper.GetSquadChsName(player.SquadId);
+
+                player.Kd = PlayerUtil.GetPlayerKD(player.Kill, player.Dead);
+             
+
+                if (player.LifeKd == 0 || player.LifeKpm == 0)
+                {
+                    player.LifeKd = PlayerUtil.GetLifeKD(player.PersonaId);
+                    player.LifeKpm = PlayerUtil.GetLifeKPM(player.PersonaId);
+                }
+                player.LifeTime = PlayerUtil.GetLifeTime(player.PersonaId);
+
+                player.Admin = PlayerUtil.IsAdminVIP(player.PersonaId, Globals.ServerAdmins_PID);
+                player.Vip = PlayerUtil.IsAdminVIP(player.PersonaId, Globals.ServerVIPs_PID);
+                player.White = PlayerUtil.IsWhite(player.Name, Globals.CustomWhites_Name);
+
+                player.Kit2 = ClientHelper.GetPlayerKitImage(player.Kit);
+                player.Kit3 = ClientHelper.GetPlayerKitName(player.Kit);
+            }
+            
+            var gameData = new
+            {
+                Servername = servername,
+                GameId = gameid,
+                PlayerList = playerlist
+            };
+
+            // 将匿名对象序列化为 JSON 格式
+            string jsonData = JsonConvert.SerializeObject(gameData,
+     new JsonSerializerSettings
+     {
+         ContractResolver = new CamelCasePropertyNamesContractResolver(),
+         Formatting = Newtonsoft.Json.Formatting.Indented
+     });
+            // 指定文件路径
+            string filePath = "gameData.json";
+            string url = "https://data.bf1robot.com/rec/tool/game/data";
+            await UploadJsonAsync(url, jsonData);
+            // 将 JSON 数据写入文件
+            File.WriteAllText(filePath, jsonData);
+        }
         //Capture();
         stopbalanceflag = true;
         if (timer != null)

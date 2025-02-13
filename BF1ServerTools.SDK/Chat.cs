@@ -198,7 +198,7 @@ public static class Chat
                 // 挂起战地1进程
                 //Memory.SuspendBF1Process();
 
-                var length = GetStrLength(message.Trim());
+                
                 
 
                 // 获取聊天消息长度

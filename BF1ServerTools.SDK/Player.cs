@@ -872,7 +872,7 @@ public static class Player
                             continue;
 
                         var vtable = Memory.Read<long>(tempMultiUnlockAsset);
-                        if (vtable == 0x142B8CFA8)
+                        if (vtable == 0x142B8E188)
                         {
                             var tempVehicleName = Memory.ReadString(Memory.Read<long>(tempMultiUnlockAsset + 0x20), 64);
                             if (FixVehicleKits(_weaponSlot[0], tempVehicleName))
@@ -882,7 +882,33 @@ public static class Player
                             }
                         }
                     }
-                }
+                        // 载具武器组件数量
+                        var componentCount = Memory.Read<byte>(pClientVehicleEntity + 0x570 + 0x09);
+                        // 临时存放载具武器名称
+                        var componentNames = new List<string>();
+                        for (var count = 0; count < componentCount; count++)
+                        {
+                            var testActive = Memory.Read<short>(pClientVehicleEntity + 0x570 + count * 0x20 - 0x08);
+                            if (testActive != 2056)
+                                continue;
+
+                            var pointer = Memory.Read<long>(pClientVehicleEntity + 0x570 + count * 0x20);
+                            if (!Memory.IsValid(pointer))
+                                continue;
+                            var weaponComponentData = Memory.Read<long>(pointer + 0x10);
+                            if (!Memory.IsValid(weaponComponentData))
+                                continue;
+                            var weaponPointer = Memory.Read<long>(weaponComponentData + 0x120);
+                            if (!Memory.IsValid(weaponPointer))
+                                continue;
+
+                            var weaponName = Memory.ReadString(weaponPointer, 64);
+                            if (!string.IsNullOrWhiteSpace(weaponName))
+                                componentNames.Add(weaponName);
+                        }
+
+                        _weaponSlot[2] = string.Join(",", componentNames);
+                    }
                 else
                 {
                     var _pClientSoldierEntity = Memory.Read<long>(_baseAddress + 0x1D48);

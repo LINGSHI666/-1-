@@ -126,7 +126,11 @@
                 <CheckBox
                     x:Name="CheckBox_IsEnableKickNoWhites"
                     Click="CheckBox_IsEnableKickNoWhites_Click"
-                    Content="启用踢出非白名单玩家" />
+                    Content="启用踢出非白名单玩家（两个都勾选则启用）" />
+                <CheckBox
+    x:Name="CheckBox_IsEnableKickNoWhites2"
+    Click="CheckBox_IsEnableKickNoWhites_Click2"
+    Content="启用踢出非白名单玩家（两个都勾选则启用）" />
                 <CheckBox
     x:Name="CheckBox_IsEnableKickInfiltration"
     Click="CheckBox_IsEnableKickInfiltration_Click"

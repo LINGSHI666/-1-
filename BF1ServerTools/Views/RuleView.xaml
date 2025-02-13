@@ -252,7 +252,7 @@ Value="{Binding RuleTeam1Model.MaxScout, Mode=TwoWay}" />
                                 Value="{Binding RuleTeam1Model.LifeMaxVehicleStar, Mode=TwoWay}" />
                             
                             <TextBlock Style="{StaticResource TextBlockStyle_Hint}">
-                                说明：生涯武器和载具星数不携带也会检测
+                                说明：生涯武器和载具星数只有携带才会检测
                             </TextBlock>
                         </StackPanel>
                     </StackPanel>
