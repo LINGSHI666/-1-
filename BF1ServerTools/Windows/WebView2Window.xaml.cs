@@ -105,11 +105,18 @@ public partial class WebView2Window
         var result = await EA2API.GetAccessToken(Globals.Remid, Globals.Sid);
         if (result.IsSuccess)
         {
-            var jNode = JsonNode.Parse(result.Content);
-            Globals.AccessToken = jNode["access_token"].GetValue<string>();
+            try
+            {
+                var jNode = JsonNode.Parse(result.Content);
+                Globals.AccessToken = jNode["access_token"].GetValue<string>();
 
-            TextBox_AccessToken.Text = jNode["access_token"].GetValue<string>();
-            TextBlock_Log.Text = "获取access_token成功";
+                TextBox_AccessToken.Text = jNode["access_token"].GetValue<string>();
+                TextBlock_Log.Text = "获取access_token成功";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"获取access_token出错：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         // 获取SessionId

@@ -37,12 +37,12 @@ public static class WeaponData
         new WeaponName(){ Kind="手榴弹", English="U_FragGrenade", Chinese="棒式手榴弹", ShortName="Frag Grenade", ImageName="GadgetFragmented-8c15152e.png" },
         new WeaponName(){ Kind="手榴弹", English="U_GasGrenade", Chinese="毒气手榴弹", ShortName="Gas Grenade", ImageName="GadgetGas-2bee4386.png" },
         new WeaponName(){ Kind="手榴弹", English="U_ImpactGrenade", Chinese="冲击手榴弹", ShortName="Impact Grenade", ImageName="GadgetImpact-f0c7f39e.png" },
-        new WeaponName(){ Kind="手榴弹", English="U_Incendiary", Chinese="燃烧手榴弹", ShortName="Incendiary", ImageName="GadgetIncindiary-68d49a3a.png" },
+        new WeaponName(){ Kind="手榴弹", English="U_Incendiary", Chinese="燃烧手榴弹", ShortName="Fire Bomb", ImageName="GadgetIncindiary-68d49a3a.png" },
         new WeaponName(){ Kind="手榴弹", English="U_MiniGrenade", Chinese="小型手榴弹", ShortName="Mini Grenade", ImageName="GadgetMiniOffensive-2d19e08a.png" },
         new WeaponName(){ Kind="手榴弹", English="U_SmokeGrenade", Chinese="烟雾手榴弹", ShortName="Smoke Grenade", ImageName="GadgetSmoke-af84f434.png" },
         new WeaponName(){ Kind="手榴弹", English="U_Grenade_AT", Chinese="轻型反坦克手榴弹", ShortName="Grenade AT", ImageName="GadgetTrooperATGrenade-a6575030.png" },
         new WeaponName(){ Kind="手榴弹", English="U_ImprovisedGrenade", Chinese="土制手榴弹", ShortName="Imsp Grenade", ImageName="ImprovisedGrenade-fea87071.png" },
-        new WeaponName(){ Kind="手榴弹", English="U_RussianBox", Chinese="俄罗斯标准手榴弹", ShortName="Russian Box", ImageName="RU_Grenade-a7e29a54.png" },
+        new WeaponName(){ Kind="手榴弹", English="U_RussianBox", Chinese="俄罗斯标准手榴弹", ShortName="Russian Bomb", ImageName="RU_Grenade-a7e29a54.png" },
 
         ////////////////////////////////// 突击兵 Assault //////////////////////////////////
 
@@ -361,7 +361,7 @@ public static class WeaponData
 
         ////////////////
         
-        new WeaponName(){ Kind="特殊载具", English="ID_P_INAME_U_MORTAR", Chinese="特殊载具 空爆迫击炮", ShortName="MORTAR", ImageName="MortarAirburst-77c9647f.png" },
+        new WeaponName(){ Kind="特殊载具", English="ID_P_INAME_U_MORTAR", Chinese="特殊载具 空爆迫击炮", ShortName="MORTAR AIR", ImageName="MortarAirburst-77c9647f.png" },
         new WeaponName(){ Kind="特殊载具", English="ID_P_INAME_MORTAR_HE", Chinese="特殊载具 高爆迫击炮", ShortName="MORTAR HE", ImageName="GadgetMortar-84e30045.png" },
 
         /////////////////////////////////////////////////////////////////////////////
@@ -399,7 +399,7 @@ public static class WeaponData
         new WeaponName(){ Kind="机械巨兽", English="ID_P_VNAME_ZEPPELIN", Chinese="机械巨兽 飞船 l30", ShortName="ZEPPELIN", ImageName="GERZeppelinL30-62618731.png" },
         new WeaponName(){ Kind="机械巨兽", English="ID_P_VNAME_ARMOREDTRAIN", Chinese="机械巨兽 装甲列车", ShortName="ARMOREDTRAIN", ImageName="RUSArmoredTrain-564a4e48.png" },
         new WeaponName(){ Kind="机械巨兽", English="ID_P_VNAME_IRONDUKE", Chinese="机械巨兽 无畏舰", ShortName="IRONDUKE", ImageName="GBRHMSIronDuke-3b82016f.png" },
-        new WeaponName(){ Kind="机械巨兽", English="ID_P_VNAME_CHAR", Chinese="机械巨兽 Char 2C", ShortName="CHAR", ImageName="FRAChar2C-b8f3c0e2.png" },
+        new WeaponName(){ Kind="机械巨兽", English="ID_P_VNAME_CHAR", Chinese="机械巨兽 Char 2C", ShortName="CHAR2C", ImageName="FRAChar2C-b8f3c0e2.png" },
 
         /////////////////////////////////////////////////////////////////////////////
         

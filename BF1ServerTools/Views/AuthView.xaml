@@ -15,7 +15,7 @@
             <ColumnDefinition Width="400" />
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
-        <!--  ******************************  -->
+        <!-- 第一列：配置文件及用户数据 -->
         <StackPanel Grid.Column="0">
             <ui:UiLabelIcon Content="配置文件" />
             <DockPanel>
@@ -45,7 +45,7 @@
                 x:Name="Button_SaveConfig"
                 Click="Button_SaveConfig_Click"
                 Content="保存配置文件" />
-            <!--  ###############  -->
+            <!-- 配置数据 -->
             <ui:UiLabelIcon Content="配置数据" />
             <TextBlock Margin="5" Text="Remid" />
             <TextBox Style="{StaticResource TextBoxStyle_AuthInfo}" Text="{Binding AuthModel.Remid}" />
@@ -56,7 +56,7 @@
             <TextBlock Margin="5" Text="SessionId" />
             <TextBox Style="{StaticResource TextBoxStyle_AuthInfo}" Text="{Binding AuthModel.SessionId2}" />
         </StackPanel>
-        <!--  ******************************  -->
+        <!-- 第二列：工作模式、Cookies、验证、网络检测等 -->
         <StackPanel Grid.Column="1">
             <ui:UiLabelIcon Content="工作模式" />
             <RadioButton
@@ -78,8 +78,7 @@
                 x:Name="Button_GetPlayerCookies"
                 Click="Button_GetPlayerCookies_Click"
                 Content="获取玩家Cookies数据" />
-            <!--  ###############  -->
-            <!--  ###############  -->
+            <!-- 验证权限 -->
             <ui:UiLabelIcon Content="验证权限" />
             <Button
                 x:Name="Button_RefreshAuthInfo"
@@ -103,7 +102,7 @@
                 x:Name="Button_VerifySessionId"
                 Click="Button_VerifySessionId_Click"
                 Content="验证玩家SessionId有效性" />
-            <!--  ###############  -->
+            <!-- 网络检测 -->
             <ui:UiLabelIcon Content="网络检测" />
             <WrapPanel Margin="0,0,5,5">
                 <Button
@@ -127,87 +126,103 @@
                     Click="Button_DNS_Click"
                     Content="编辑Host文件" />
             </WrapPanel>
-            <!--  ###############  -->
+            <!-- 其他 -->
             <ui:UiLabelIcon Content="其他" />
             <Button
                 x:Name="Button_OpenConfigFolder"
                 Click="Button_OpenConfigFolder_Click"
                 Content="打开配置文件夹" />
             <ui:UiTextBoxHint
-    x:Name="TextBox_MessageContent"
-    Height="30"
-    Margin="5,0,5,0"
-    Padding="5"
-    VerticalContentAlignment="Top"
-    Hint="请输入能找到服务器的唯一gameid"
-    InputLanguageManager.InputLanguage="zh-CN"
-    TextChanged="TextBox_MessageContent_TextChanged" 
-    TextWrapping="Wrap"
-    ToolTip=" ">
-            </ui:UiTextBoxHint>
+                x:Name="TextBox_MessageContent"
+                Height="30"
+                Margin="5,0,5,0"
+                Padding="5"
+                VerticalContentAlignment="Top"
+                Hint="请输入能找到服务器的唯一gameid"
+                InputLanguageManager.InputLanguage="zh-CN"
+                TextChanged="TextBox_MessageContent_TextChanged"
+                TextWrapping="Wrap"
+                ToolTip=" " />
+        </StackPanel>
+        <!-- 第三列：5个槽位配置相关 -->
+        <StackPanel Grid.Column="2" Margin="5">
+            <ui:UiLabelIcon Content="API上报" />
+            <!-- 选择槽位 -->
+            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                <Label Content="选择槽位:" VerticalAlignment="Center" Margin="0,0,5,0" />
+                <ComboBox x:Name="ComboBox_Slot" Width="120" IsEditable="False">
+                    <ComboBoxItem Content="槽位1" />
+                    <ComboBoxItem Content="槽位2" />
+                    <ComboBoxItem Content="槽位3" />
+                    <ComboBoxItem Content="槽位4" />
+                    <ComboBoxItem Content="槽位5" />
+                </ComboBox>
+            </StackPanel>
+            <!-- URL 输入 -->
+            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                <Label Content="URL:" VerticalAlignment="Center" Margin="0,0,5,0" />
+                <TextBox x:Name="TextBox_SlotUrl" Width="200" />
+            </StackPanel>
+            <!-- 保存按钮 -->
+            <Button x:Name="Button_SaveSlotUrl" Content="保存槽位URL" Margin="0,5,0,0" Click="Button_SaveSlotUrl_Click" />
+            <!-- 当前配置展示 -->
+            <Label Content="当前配置:" Margin="0,10,0,0" />
+            <ListBox x:Name="ListBox_SlotConfig" Height="200" />
+            <Button
+    x:Name="Button_APIRUN"
+    Click="Button_WebApi_Click"
+    Content="开始上报" />
+            
+            <Button Content="阅读工具手册" Click="Hyperlink_Click" Tag="https://www.iryougi.com/index.php/2024/07/27/%e6%88%98%e5%9c%b0%e4%b8%80%e6%9c%8d%e5%8a%a1%e5%99%a8%e7%ae%a1%e7%90%86%e5%b7%a5%e5%85%b7%ef%bc%88v2-0-9-0%ef%bc%89%e4%bd%bf%e7%94%a8%e6%8c%87%e5%8d%97/" />
+            <ui:UiLabelIcon Content="刷分服" />
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10">
+                <!-- 标签 -->
+                <TextBlock x:Name="SwitchLabel" 
+               Text="刷分自动换边关闭" 
+               VerticalAlignment="Center"
+               FontSize="16"
+               Margin="0,0,10,0"/>
+
+                <!-- 滑动开关 -->
+                <ToggleButton x:Name="ScoreSwitch"
+                  Width="60" Height="30"
+                  Background="LightGray"
+                  BorderBrush="Gray"
+                  BorderThickness="1"
+                  Checked="ScoreSwitch_Checked"
+                  Unchecked="ScoreSwitch_Unchecked">
+                    <ToggleButton.Template>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Grid>
+                                <!-- 背景 -->
+                                <Border x:Name="SwitchBackground"
+                            Background="LightGray"
+                            CornerRadius="15"
+                            BorderBrush="DarkGray"
+                            BorderThickness="1"/>
+
+                                <!-- 滑块 -->
+                                <Ellipse x:Name="SwitchKnob"
+                             Width="26" Height="26"
+                             Fill="White"
+                             Margin="2"
+                             HorizontalAlignment="Left"
+                             VerticalAlignment="Center"/>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <!-- 开启状态 -->
+                                <Trigger Property="IsChecked" Value="True">
+                                    <!-- 设置为深灰色背景 -->
+                                    <Setter TargetName="SwitchBackground" Property="Background" Value="#444444"/>
+                                    <Setter TargetName="SwitchKnob" Property="HorizontalAlignment" Value="Right"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </ToggleButton.Template>
+                </ToggleButton>
+            </StackPanel>
 
         </StackPanel>
-        <!--  ******************************  -->
-        <RichTextBox
-            Grid.Column="2"
-            Margin="5"
-            Style="{StaticResource RichTextBoxStyle_Normal}">
-            <FlowDocument>
-                <Paragraph Style="{StaticResource ParagraphStyle_H18}">
-                    网络优化指南
-                </Paragraph>
-
-                <Paragraph Style="{StaticResource ParagraphStyle_H16}">
-                    ● EA登录
-                </Paragraph>
-                <Paragraph Style="{StaticResource ParagraphStyle_Content}">
-                    主要用于登录EA账号获取Cookies<LineBreak />
-                    ————————————————<LineBreak />
-                    accounts.ea.com<LineBreak />
-                    signin.ea.com<LineBreak />
-                    gateway.ea.com</Paragraph>
-
-                <Paragraph Style="{StaticResource ParagraphStyle_H16}">
-                    ● EA静态资源
-                </Paragraph>
-                <Paragraph Style="{StaticResource ParagraphStyle_Content}">
-                    主要用于获取EA服务器静态资源，如玩家头像，武器图标等<LineBreak />
-                    ————————————————<LineBreak />
-                    eaassets-a.akamaihd.net</Paragraph>
-
-                <Paragraph Style="{StaticResource ParagraphStyle_H16}">
-                    ● 战地1 API
-                </Paragraph>
-                <Paragraph Style="{StaticResource ParagraphStyle_Content}">
-                    主要用于操作服务器，如踢人、换图等管理员操作（此域名禁Ping）<LineBreak />
-                    ————————————————<LineBreak />
-                    sparta-gw.battlelog.com</Paragraph>
-
-                <Paragraph Style="{StaticResource ParagraphStyle_H18}">
-                    Host优化
-                </Paragraph>
-                <Paragraph Style="{StaticResource ParagraphStyle_Content}">
-                    若EA服务访问正常，请忽略以下操作（否则可能会导致更慢）<LineBreak />
-                    ————————————————<LineBreak />
-                    23.2.16.51 eaassets-a.akamaihd.net<LineBreak />
-                    103.151.179.4 accounts.ea.com<LineBreak />
-                    103.151.179.4 signin.ea.com<LineBreak />
-                    103.151.179.4 gateway.ea.com<LineBreak />
-                    103.151.179.4 sparta-gw.battlelog.com</Paragraph>
-
-                <Paragraph Style="{StaticResource ParagraphStyle_H18}">
-                    Host编辑器
-                </Paragraph>
-                <Paragraph Style="{StaticResource ParagraphStyle_Content}">
-                    <Hyperlink
-                        Click="Hyperlink_Click"
-                        NavigateUri="https://www.dogfight360.com/blog/475/"
-                        Style="{StaticResource HyperlinkStyle_Base}">
-                        UsbEAm Hosts Editor [多平台hosts修改] V3.63
-                    </Hyperlink>
-                </Paragraph>
-            </FlowDocument>
-        </RichTextBox>
+        
     </Grid>
-
 </UserControl>

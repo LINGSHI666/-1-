@@ -1140,11 +1140,17 @@ public partial class ScoreView : UserControl
     #region 队伍1 右键菜单事件
     private void MenuItem_Team1_KickPlayerCustom_Click(object sender, RoutedEventArgs e)
     {
+
         if (!PlayerUtil.CheckAuth())
             return;
 
         if (ListView_Team1.SelectedItem is PlayerDataModel item)
         {
+            if (item == null || string.IsNullOrEmpty(item.Name) || item.PersonaId <= 0)
+            {
+                NotifierHelper.Show(NotifierType.Warning, "选中的玩家信息无效");
+                return;
+            }
             var customKickWindow = new CustomKickWindow(item.Rank, item.Name, item.PersonaId)
             {
                 Owner = MainWindow.MainWindowInstance
@@ -1191,8 +1197,15 @@ public partial class ScoreView : UserControl
 
     private async void MenuItem_Team1_ChangePlayerTeam_Click(object sender, RoutedEventArgs e)
     {
+        
+
         if (ListView_Team1.SelectedItem is PlayerDataModel item)
         {
+            if (item == null || string.IsNullOrEmpty(item.Name) || item.PersonaId <= 0)
+            {
+                NotifierHelper.Show(NotifierType.Warning, "选中的玩家信息无效");
+                return;
+            }
             if (!PlayerUtil.CheckAuth())
                 return;
 
@@ -1298,7 +1311,11 @@ public partial class ScoreView : UserControl
         {
             if (!PlayerUtil.CheckAuth())
                 return;
-
+            if (item == null || string.IsNullOrEmpty(item.Name) || item.PersonaId <= 0)
+            {
+                NotifierHelper.Show(NotifierType.Warning, "选中的玩家信息无效");
+                return;
+            }
             var customKickWindow = new CustomKickWindow(item.Rank, item.Name, item.PersonaId)
             {
                 Owner = MainWindow.MainWindowInstance
@@ -1349,7 +1366,11 @@ public partial class ScoreView : UserControl
         {
             if (!PlayerUtil.CheckAuth())
                 return;
-
+            if (item == null || string.IsNullOrEmpty(item.Name) || item.PersonaId <= 0)
+            {
+                NotifierHelper.Show(NotifierType.Warning, "选中的玩家信息无效");
+                return;
+            }
             NotifierHelper.Show(NotifierType.Information, $"正在更换玩家 {item.Name} 队伍中...");
 
             var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, item.PersonaId, 2);

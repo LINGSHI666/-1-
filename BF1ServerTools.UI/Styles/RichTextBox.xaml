@@ -7,6 +7,7 @@
         <Setter Property="Padding" Value="5" />
         <Setter Property="VerticalScrollBarVisibility" Value="Disabled" />
         <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
+        <Setter Property="Background" Value="White"/>
     </Style>
 
     <Style x:Key="ParagraphStyle_H18" TargetType="{x:Type Paragraph}">

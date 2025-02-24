@@ -188,7 +188,11 @@ public partial class MonitView : UserControl
 
                             int kills = detailedStats.result.basicStats.kills;
                             int deaths = detailedStats.result.basicStats.deaths;
-                            float kd = PlayerUtil.GetPlayerKD(kills, deaths);
+                            float kd = 0.0f;
+                            if (kills > 100)
+                            {
+                                 kd = PlayerUtil.GetPlayerKD(kills, deaths);
+                            }
                             float kpm = detailedStats.result.basicStats.kpm;
                             int time = PlayerUtil.GetPlayHours(detailedStats.result.basicStats.timePlayed);
                             float skill = detailedStats.result.basicStats.skill;
@@ -347,6 +351,7 @@ public partial class MonitView : UserControl
             ScoutListTeacm1 = RemoveDuplicates(ScoutListTeacm1);
             ScoutListTeacm2 = RemoveDuplicates(ScoutListTeacm2);
 
+           
             // 将 List 转换为 HashSet 以优化查找效率
             HashSet<long> playerIdSet = new HashSet<long>(playerList.Select(p => p.PersonaId));
 
@@ -383,7 +388,7 @@ public partial class MonitView : UserControl
 
                 }
             }
-           
+            
             foreach (var item in playerList)
             {
                 item.Kd = PlayerUtil.GetPlayerKD(item.Kill, item.Dead);
@@ -444,7 +449,16 @@ public partial class MonitView : UserControl
             {
                 item.Reason = item.BreakInfos[0].Reason;
             }
+            //刷分换边
+            if (AuthView.scorechangesite)
+            {
 
+                _ = Task.Run(async () =>
+                {
+                   
+                    await ChangesiteTeamsAsync(playerList);
+                });
+            }
             ////////////////////////////////////////////////////////////////////////////////
 
             this.Dispatcher.BeginInvoke(() =>
@@ -465,6 +479,75 @@ public partial class MonitView : UserControl
             /////////////////////////////////////////////////////////////////////////
 
             Thread.Sleep(1000);
+        }
+    }
+    // 锁
+    private static readonly SemaphoreSlim _balanceLock = new SemaphoreSlim(1, 1);
+    /// <summary>
+    /// 自动换边
+    /// </summary>
+    /// <param name="playerList"></param>
+    /// <returns></returns>
+    public static async Task ChangesiteTeamsAsync(List<PlayerData> playerList)
+    {
+        // 尝试获取锁
+        if (!await _balanceLock.WaitAsync(0))
+        {
+            Console.WriteLine("队伍平衡已在运行中，跳过此次调用。");
+            return;
+        }
+
+        try
+        {
+            int team1Count = playerList.Count(p => p.TeamId == 1);
+            int team2Count = playerList.Count(p => p.TeamId == 2);
+
+            var pendingSwitchTeam1 = playerList
+                .Where(p => p.TeamId == 1 && p.Score > 25000 && !p.Admin && !p.Vip && !p.White)
+                .OrderByDescending(p => p.Score)
+                .ToList();
+
+            var pendingSwitchTeam2 = playerList
+                .Where(p => p.TeamId == 2 && p.Score < 25000 && !p.Admin && !p.Vip && !p.White)
+                .OrderBy(p => p.Score)
+                .ToList();
+
+            if (team2Count < 32)
+            {
+                foreach (var playerToMove in pendingSwitchTeam1)
+                {
+                    var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, 1);
+                    if (result.IsSuccess)
+                    {
+                        team1Count--;
+                        team2Count++;
+                    }
+                    if (team2Count >= 32)
+                        break;
+                }
+            }
+            else if (team1Count < 32)
+            {
+                foreach (var playerToMove in pendingSwitchTeam2)
+                {
+                    var result = await BF1API.RSPMovePlayer(Globals.SessionId, Globals.GameId, playerToMove.PersonaId, 2);
+                    if (result.IsSuccess)
+                    {
+                        team2Count--;
+                        team1Count++;
+                    }
+                    if (team1Count >= 32)
+                        break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("平衡线程异常：" + ex.Message);
+        }
+        finally
+        {
+            _balanceLock.Release();
         }
     }
 
@@ -633,14 +716,14 @@ public partial class MonitView : UserControl
                 // 列表
                 var planeKeywords = new[] { "伊利亚", "飞船", "攻击机", "战斗机", "L30", "轰炸机" };
                 var name = ClientHelper.GetWeaponChsName(playerData.WeaponS0);
-                if (planeKeywords.Any(keyword => name.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
+                if (planeKeywords.Any(keyword => name.Contains(keyword, StringComparison.OrdinalIgnoreCase)) && playerData.Kit == "ID_M_PILOT")
                 {
                     var vehicleIndex = Globals.LifePlayerCacheDatas[lifeIndex].VehicleInfos.FindIndex(var => name.Contains(var.Name, StringComparison.OrdinalIgnoreCase));
                     if (vehicleIndex != -1)
                     {
-                        if (Globals.LifePlayerCacheDatas[lifeIndex].VehicleInfos[vehicleIndex].Star > serverRule.LifeMaxVehicleStar)
+                        if (Globals.LifePlayerCacheDatas[lifeIndex].VehicleInfos[vehicleIndex].Star > serverRule.LifeMaxPlaneStar)
                         {
-                            AddBreakRulePlayerInfo(playerData, BreakType.LifeVehicleStar, $"飞机星数限制{serverRule.LifeMaxVehicleStar:0}");
+                            AddBreakRulePlayerInfo(playerData, BreakType.LifeVehicleStar, $"飞机星数限制{serverRule.LifeMaxPlaneStar:0}");
                         }
                     }
                 }
@@ -673,7 +756,7 @@ public partial class MonitView : UserControl
                 var excludedKeywords = new[] { "伊利亚", "飞船", "攻击机", "战斗机", "L30", "轰炸机" };
                 var name = ClientHelper.GetWeaponChsName(playerData.WeaponS0);
                 // 判断名称是否不包含指定关键字
-                if (!excludedKeywords.Any(keyword => name.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
+                if (!excludedKeywords.Any(keyword => name.Contains(keyword, StringComparison.OrdinalIgnoreCase)) && playerData.Kit == "ID_M_TANKER")
                 {
                     var vehicleIndex = Globals.LifePlayerCacheDatas[lifeIndex].VehicleInfos.FindIndex(var => name.Contains(var.Name, StringComparison.OrdinalIgnoreCase));
                     if (vehicleIndex != -1)

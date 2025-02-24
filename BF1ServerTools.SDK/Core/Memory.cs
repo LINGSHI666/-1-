@@ -287,6 +287,12 @@ public static class Memory
         //Win32.WriteProcessMemory(Bf1ProHandle, address, buffer, buffer.Length, out _);
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MemoryReadRequest
+    {
+        public ulong Address;     // 传递的内存地址
+        public uint ReadLength;   // 要读取的内存长度
+    }
     /// <summary>
     /// 读取字符串
     /// </summary>
@@ -515,7 +521,7 @@ public class DriverCommunication
 
 
     }
-    // MemoryRequest 结构体 (目标地址、数据长度、数据内容)
+    // MemoryRequest 结构体 
     [StructLayout(LayoutKind.Sequential, Pack = 8)] // 手动调整对齐
     public struct WriteMemoryRequest
     {

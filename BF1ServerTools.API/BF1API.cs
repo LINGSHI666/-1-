@@ -376,8 +376,16 @@ private static void SaveResponseToFile(string fileName, string content)
             }
             else
             {
-                var respError = JsonHelper.JsonDese<RespError>(response.Content);
-                respContent.Content = $"{respError.error.code} {respError.error.message}";
+                try
+                {
+                    var respError = JsonHelper.JsonDese<RespError>(response.Content);
+                    respContent.Content = $"{respError.error.code} {respError.error.message}";
+                }
+                catch (Exception jsonEx)
+                {
+                    respContent.Content = $"JSON Ω‚Œˆ ß∞‹£∫{jsonEx.Message}\n∑µªÿƒ⁄»›: {response.Content}";
+                }
+
             }
         }
         catch (Exception ex)

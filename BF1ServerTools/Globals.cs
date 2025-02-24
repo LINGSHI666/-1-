@@ -33,7 +33,7 @@ public static class Globals
     {
         get
         {
-            return IsUseMode1 ? Avatar1 : Avatar2;
+            return Avatar2;
         }
     }
 
@@ -52,7 +52,7 @@ public static class Globals
     {
         get
         {
-            return IsUseMode1 ? DisplayName1 : DisplayName2;
+            return  DisplayName2;
         }
     }
 
@@ -71,7 +71,7 @@ public static class Globals
     {
         get
         {
-            return IsUseMode1 ? PersonaId1 : PersonaId2;
+            return PersonaId2;
         }
     }
 
@@ -135,7 +135,7 @@ public static class Globals
         get
         {
             if (IsUseMode1)
-                return ServerAdmins_PID.Contains(PersonaId1);
+                return ServerAdmins_PID.Contains(PersonaId2);
             else
                 return ServerAdmins_PID.Contains(PersonaId2);
         }

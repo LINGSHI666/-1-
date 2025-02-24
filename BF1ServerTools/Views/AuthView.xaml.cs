@@ -13,6 +13,11 @@ using System.Xml.Linq;
 using System;
 using Newtonsoft.Json;
 using System.Reflection.Metadata;
+using BF1ServerTools.RES;
+using BF1ServerTools.SDK.Data;
+using Newtonsoft.Json.Serialization;
+using System.Net.Http;
+using System.ComponentModel;
 namespace BF1ServerTools.Views;
 public class Config
 {
@@ -35,6 +40,10 @@ public partial class AuthView : UserControl
     private readonly string F_Auth_Path = BF1ServerTools.Utils.FileUtil.D_Config_Path + @"\AuthConfig.json";
 
     /// <summary>
+    /// 刷分自动换边
+    /// </summary>
+    public static bool scorechangesite = false;
+    /// <summary>
     /// 配置文件，以json格式保存到本地
     /// </summary>
     private AuthConfig AuthConfig = new();
@@ -42,7 +51,12 @@ public partial class AuthView : UserControl
    public static readonly string F_Auth_Path2 = BF1ServerTools.Utils.FileUtil.D_Config_Path + @"\Scorelist.json";
 
     public static readonly string F_Auth_Path3 = BF1ServerTools.Utils.FileUtil.D_Config_Path + @"\Loadlist.json";
-
+    // 配置文件路径
+    private readonly string F_Auth_Path4 = BF1ServerTools.Utils.FileUtil.D_Config_Path + @"\APIConfig.json";
+    // 固定5个槽位，用于保存 URL
+    private string[] urls = new string[5];
+    // 默认 URL
+    private const string defaultUrl = "https://data.bf1robot.com/rec/tool/game/data";
     private void TextBox_MessageContent_TextChanged(object sender, TextChangedEventArgs e)
     {
         TextBox textBox = sender as TextBox;
@@ -73,6 +87,7 @@ public partial class AuthView : UserControl
     public AuthView()
     {
         InitializeComponent();
+
         this.DataContext = this;
         MainWindow.WindowClosingEvent += MainWindow_WindowClosingEvent;
 
@@ -113,7 +128,14 @@ public partial class AuthView : UserControl
             ComboBox_ConfigNames.SelectedIndex = AuthConfig.SelectedIndex;
         }
         #endregion
+        // 设置默认选择第一个槽位（确保 ComboBox_Slot 已加载）
+        if (ComboBox_Slot != null)
+        {
+            ComboBox_Slot.SelectedIndex = 0;
+        }
 
+        // 加载配置文件（如果不存在则填充为默认 URL）
+        LoadConfig();
         /////////////////////////////////////////////////////////////////////
 
         // 用于接收WebView2传回的数据
@@ -158,8 +180,117 @@ public partial class AuthView : UserControl
             AutoRefreshTimerModel1_Elapsed(null, null);
         else
             AutoRefreshTimerModel2_Elapsed(null, null);
+
     }
 
+    /// <summary>
+    /// 加载 JSON 配置文件，如果不存在或格式不正确，则填充为默认配置
+    /// </summary>
+    private void LoadConfig()
+    {
+        if (File.Exists(F_Auth_Path4))
+        {
+            try
+            {
+                string json = File.ReadAllText(F_Auth_Path4);
+                urls = JsonConvert.DeserializeObject<string[]>(json);
+                if (urls == null || urls.Length != 5)
+                {
+                    // 若数组为空或长度不为5，则创建默认配置
+                    CreateDefaultConfig();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("加载配置文件失败: " + ex.Message);
+                CreateDefaultConfig();
+            }
+        }
+        else
+        {
+            CreateDefaultConfig();
+        }
+        UpdateSlotConfigDisplay();
+    }
+
+    /// <summary>
+    /// 填充 5 个默认 URL，并保存配置
+    /// </summary>
+    private void CreateDefaultConfig()
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            urls[i] = defaultUrl;
+        }
+        SaveConfig2();
+    }
+
+    /// <summary>
+    /// 将当前的 5 个槽位 URL 配置保存到 JSON 文件
+    /// </summary>
+    private void SaveConfig2()
+    {
+        try
+        {
+            string json = JsonConvert.SerializeObject(urls, Formatting.Indented);
+            File.WriteAllText(F_Auth_Path4, json);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("保存配置文件失败: " + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// 更新 ListBox 显示当前槽位配置情况
+    /// </summary>
+    private void UpdateSlotConfigDisplay()
+    {
+        if (ListBox_SlotConfig != null)
+        {
+            ListBox_SlotConfig.Items.Clear();
+            for (int i = 0; i < 5; i++)
+            {
+                ListBox_SlotConfig.Items.Add($"槽位{i + 1}: {urls[i]}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// 点击“保存槽位URL”按钮后，更新选定槽位的 URL 并保存到文件
+    /// </summary>
+    private void Button_SaveSlotUrl_Click(object sender, RoutedEventArgs e)
+    {
+        int slotIndex = ComboBox_Slot.SelectedIndex;
+        if (slotIndex < 0 || slotIndex >= 5)
+        {
+            MessageBox.Show("请选择有效的槽位！");
+            return;
+        }
+
+        string newUrl = TextBox_SlotUrl.Text.Trim();
+        if (string.IsNullOrEmpty(newUrl))
+        {
+            MessageBox.Show("请输入有效的 URL！");
+            return;
+        }
+
+        // 弹出确认对话框
+        var result = MessageBox.Show(
+            $"是否覆盖槽位{slotIndex + 1}的 URL？\n旧 URL: {urls[slotIndex]}\n新 URL: {newUrl}",
+            "确认覆盖",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (result == MessageBoxResult.Yes)
+        {
+            urls[slotIndex] = newUrl;
+            SaveConfig2();
+            UpdateSlotConfigDisplay();
+            MessageBox.Show("槽位 URL 保存成功！");
+        }
+    }
+    
     /// <summary>
     /// 主窗口关闭事件
     /// </summary>
@@ -342,6 +473,12 @@ public partial class AuthView : UserControl
                             AuthModel.Sid = Globals.Sid;
                             AuthModel.Remid = Globals.Remid;
                             AuthModel.SessionId2 = Globals.SessionId2;
+
+                            Globals.Avatar1 = personas!["avatar"].GetValue<string>();
+                            Globals.DisplayName1 = personas!["displayName"].GetValue<string>();
+
+                           
+
                             Globals.SessionId1 = Globals.SessionId2;
                             LoggerHelper.Info("刷新玩家Cookies数据成功");
                         }
@@ -751,7 +888,155 @@ public partial class AuthView : UserControl
     /// <param name="e"></param>
     private void Hyperlink_Click(object sender, RoutedEventArgs e)
     {
+        string url = null;
         if (sender is Hyperlink link)
-            ProcessUtil.OpenPath(link.NavigateUri.AbsoluteUri);
+        {
+            url = link.NavigateUri.AbsoluteUri;
+        }
+        else if (sender is Button btn && btn.Tag is string tagUrl)
+        {
+            url = tagUrl;
+        }
+
+        if (!string.IsNullOrEmpty(url))
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            });
+        }
+    }
+    //刷分模式开关
+    private void ScoreSwitch_Checked(object sender, RoutedEventArgs e)
+    {
+        SwitchLabel.Text = "刷分自动换边开启";
+        scorechangesite = true;
+    }
+
+    private void ScoreSwitch_Unchecked(object sender, RoutedEventArgs e)
+    {
+        SwitchLabel.Text = "刷分自动换边关闭";
+        scorechangesite = false;
+    }
+
+    /// <summary>
+    /// API上传数据
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private bool apiupdate = false;
+    private void Button_WebApi_Click(object sender, RoutedEventArgs e)
+    {
+        int slotIndex = ComboBox_Slot.SelectedIndex;
+        if (slotIndex < 0 || slotIndex >= urls.Length)
+        {
+            MessageBox.Show("请选择一个有效的槽位！");
+            return;
+        }
+        if (apiupdate)
+        {
+            NotifierHelper.Show(NotifierType.Error, "已经开始上报了，请勿重复点击"); 
+            return; }
+        else
+        {
+            NotifierHelper.Show(NotifierType.Success, "开始上报");
+            apiupdate = true;
+        }
+        // 从 urls 数组中读取选中槽位的 URL
+        string url = urls[slotIndex];
+
+        Thread backgroundThread = new Thread(async () =>
+        {
+            while (true)
+            {
+                if (Player.IsUseMode1)
+                {
+                    string servername = Server.GetServerName();
+                    long gameid = string.IsNullOrEmpty(servername) ? 0 : Globals.GameId;
+                    List<PlayerData> playerlist = Player.GetPlayerList();
+                    foreach (var player in playerlist)
+                    {
+
+                        if (player.SquadId == 0)
+                            player.SquadId = 99;
+                        player.SquadId2 = ClientHelper.GetSquadChsName(player.SquadId);
+
+                        player.Kd = PlayerUtil.GetPlayerKD(player.Kill, player.Dead);
+
+
+                        if (player.LifeKd == 0 || player.LifeKpm == 0)
+                        {
+                            player.LifeKd = PlayerUtil.GetLifeKD(player.PersonaId);
+                            player.LifeKpm = PlayerUtil.GetLifeKPM(player.PersonaId);
+                        }
+                        player.LifeTime = PlayerUtil.GetLifeTime(player.PersonaId);
+
+                        player.Admin = PlayerUtil.IsAdminVIP(player.PersonaId, Globals.ServerAdmins_PID);
+                        player.Vip = PlayerUtil.IsAdminVIP(player.PersonaId, Globals.ServerVIPs_PID);
+                        player.White = PlayerUtil.IsWhite(player.Name, Globals.CustomWhites_Name);
+
+                        player.Kit2 = ClientHelper.GetPlayerKitImage(player.Kit);
+                        player.Kit3 = ClientHelper.GetPlayerKitName(player.Kit);
+                    }
+
+                    var gameData = new
+                    {
+                        Servername = servername,
+                        GameId = gameid,
+                        PlayerList = playerlist
+                    };
+
+                    // 将匿名对象序列化为 JSON 格式
+                    string jsonData = JsonConvert.SerializeObject(gameData,
+             new JsonSerializerSettings
+             {
+                 ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                 Formatting = Newtonsoft.Json.Formatting.Indented
+             });
+                    // 指定文件路径
+                    string filePath = "gameData.json";
+
+                    await UploadJsonAsync(url, jsonData);
+                    // 将 JSON 数据写入文件
+                    //File.WriteAllText(filePath, jsonData);
+                }
+                Thread.Sleep(1000);  // 暂停1秒
+            }
+        });
+        backgroundThread.IsBackground = true;  // 设置为后台线程
+        backgroundThread.Start();
+
+        // 上传数据
+
+    }
+
+    static async Task UploadJsonAsync(string url, string json)
+    {
+        using (HttpClient client = new HttpClient())
+        {
+            // 创建HttpContent对象，指定内容类型为application/json
+            HttpContent content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            try
+            {
+                // 发送POST请求
+                HttpResponseMessage response = await client.PostAsync(url, content);
+
+                // 检查响应状态
+                if (response.IsSuccessStatusCode)
+                {
+                    Debug.WriteLine("上传成功！");
+                }
+                else
+                {
+                    Debug.WriteLine($"上传失败，状态码: {response.StatusCode}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"发生错误: {ex.Message}");
+            }
+        }
     }
 }
