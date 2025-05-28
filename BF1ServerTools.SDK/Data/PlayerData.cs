@@ -1,4 +1,6 @@
-﻿namespace BF1ServerTools.SDK.Data;
+﻿using System.Numerics;
+
+namespace BF1ServerTools.SDK.Data;
 
 public class PlayerData
 {
@@ -15,6 +17,12 @@ public class PlayerData
     public double X {  get; set; }
     public double Y { get; set; }
     public double Z { get; set; }
+    public float AuthorativeYaw { get; set; }
+
+    public float AuthorativePitch { get; set; }
+    public byte PoseType { get; set; }
+    public string PoseName { get; set; }
+    public Matrix4x4 Transform { get; set; }
 
     public int SquadId { get; set; }
     public string SquadId2 { get; set; }

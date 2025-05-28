@@ -33,6 +33,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="pythonnet" Version="3.0.5" />
     <PackageReference Include="RestSharp" Version="108.0.3" />
   </ItemGroup>
 

@@ -848,22 +848,36 @@ public static class Player
                     var offset = Memory.Read<long>(_baseAddress + 0x11A8);
                 offset = Memory.Read<long>(offset + 0x28);
                 var _kit = Memory.ReadString(offset, 64);
-
-                for (int j = 0; j < 8; j++)
+                    // 玩家角度
+                    var authorativeYaw = 0.0f;
+                    // 玩家角度2
+                    var authorativePitch = 0.0f;
+                    // 玩家姿态
+                    var poseType = (byte)0x00;
+                    // 玩家坐标
+                   
+                    // 玩家Transform
+                    var transform = new Matrix4x4();
+                    for (int j = 0; j < 8; j++)
                     _weaponSlot[j] = string.Empty;
 
-                var _pClientVehicleEntity = Memory.Read<long>(_baseAddress + 0x1D38);
-                if (Memory.IsValid(_pClientVehicleEntity))//测试时改为true
+                
+                    if (Memory.IsValid(pClientVehicleEntity))//测试时改为true
                     {
-                    var _pVehicleHealthComponent = Memory.Read<long>(_pClientVehicleEntity + 0x1D0);
-                    if (!Memory.IsValid(_pVehicleHealthComponent))
-                        goto NOWEAPON;
-                    var _health = Memory.Read<float>(_pVehicleHealthComponent + 0x40);
-                    if (_health <= 0)
-                        goto NOWEAPON;
+                        var _pVehicleHealthComponent = Memory.Read<long>(pClientVehicleEntity + 0x1D0);
+                        if (!Memory.IsValid(_pVehicleHealthComponent))
+                            goto NOWEAPON;
+                        var _health = Memory.Read<float>(_pVehicleHealthComponent + 0x40);
+                        if (_health <= 0)
+                        { goto NOWEAPON;}
 
-                    var _pVehicleEntityData = Memory.Read<long>(_pClientVehicleEntity + 0x30);
-                    _weaponSlot[0] = Memory.ReadString(Memory.Read<long>(_pVehicleEntityData + 0x2F8), 64);
+                        var m_collection = Memory.Read<long>(pClientVehicleEntity + 0x38);
+                        var _9 = Memory.Read<byte>(m_collection + 0x09);
+                        var _10 = Memory.Read<byte>(m_collection + 0x0A);
+                        var componentCollectionOffset = 0x20 * (_10 + (0x02 * _9));
+                    transform = Memory.Read<Matrix4x4>(m_collection + componentCollectionOffset + 0x10);
+                        var pVehicleEntityData = Memory.Read<long>(pClientVehicleEntity + 0x30);
+                    _weaponSlot[0] = Memory.ReadString(Memory.Read<long>(pVehicleEntityData + 0x2F8), 64);
 
                     for (int j = 0; j < 100; j++)
                     {
@@ -922,7 +936,17 @@ public static class Player
                     if (_health <= 0)
                         goto NOWEAPON;
 
-                    var _pClientSoldierWeaponComponent = Memory.Read<long>(_pClientSoldierEntity + 0x698);
+                        // 玩家角度
+                        authorativeYaw = Memory.Read<float>(pClientSoldierEntity + 0x0604);
+                        // 玩家角度2
+                        authorativePitch = Memory.Read<float>(pClientSoldierEntity + 0x0634);
+                        // 玩家姿态
+                        poseType = Memory.Read<byte>(pClientSoldierEntity + 0x0638);
+                        
+                        
+                        // 玩家Transform
+                        transform = Memory.Read<Matrix4x4>(pClientSoldierEntity + 0x0960);
+                        var _pClientSoldierWeaponComponent = Memory.Read<long>(_pClientSoldierEntity + 0x698);
                     var _m_handler = Memory.Read<long>(_pClientSoldierWeaponComponent + 0x8A8);
 
                     for (int j = 0; j < 8; j++)
@@ -957,7 +981,11 @@ public static class Player
                             Kill = 0,
                             Dead = 0,
                             Score = 0,
-
+                            AuthorativeYaw = authorativeYaw,
+                            AuthorativePitch = authorativePitch,
+                            PoseType = poseType,
+                            PoseName = GetPlayerPoseTypeName(poseType),
+                            Transform = transform,
                             WeaponS0 = _weaponSlot[0],
                             WeaponS1 = _weaponSlot[1],
                             WeaponS2 = _weaponSlot[2],
@@ -1000,6 +1028,16 @@ public static class Player
 
 
             return _playerList;
+        }
+    }
+    public static string GetPlayerPoseTypeName(byte poseType)
+    {
+        switch (poseType)
+        {
+            case 0: return "Stand";
+            case 1: return "Crouch";
+            case 2: return "Prone";
+            default: return string.Empty;
         }
     }
 

@@ -979,15 +979,27 @@ public partial class AuthView : UserControl
                         player.Kit2 = ClientHelper.GetPlayerKitImage(player.Kit);
                         player.Kit3 = ClientHelper.GetPlayerKitName(player.Kit);
                     }
+                    // 服务器地图名称
+                    var MapName = Server.GetMapName();
+                    var Team1Name = ClientHelper.GetTeamChsName(MapName, 1);
+                    var Team2Name = ClientHelper.GetTeamChsName(MapName, 2);
 
+                    MapName = string.IsNullOrEmpty(MapName) ? "未知" : MapName;
+                    
+
+                    // 服务器游戏模式
+                    var GameMode = Server.GetGameMode();
+                    GameMode = ClientHelper.GetGameMode3(GameMode);
                     var gameData = new
                     {
                         Servername = servername,
+                        MapName,
+                        GameMode,
                         GameId = gameid,
-                        PlayerList = playerlist
+                        PlayerList = playerlist                  
                     };
 
-                    // 将匿名对象序列化为 JSON 格式
+                    // 将对象序列化为 JSON 格式
                     string jsonData = JsonConvert.SerializeObject(gameData,
              new JsonSerializerSettings
              {
@@ -999,7 +1011,7 @@ public partial class AuthView : UserControl
 
                     await UploadJsonAsync(url, jsonData);
                     // 将 JSON 数据写入文件
-                    //File.WriteAllText(filePath, jsonData);
+                    File.WriteAllText(filePath, jsonData);
                 }
                 Thread.Sleep(1000);  // 暂停1秒
             }
