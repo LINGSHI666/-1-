@@ -8,8 +8,8 @@
 		<UseWPF>true</UseWPF>
 		<Platforms>x64;ARM64;x86</Platforms>
 		<StartupObject>BF1ServerTools.App</StartupObject>
-		<AssemblyVersion>2.2.7.3</AssemblyVersion>
-		<FileVersion>2.2.7.3</FileVersion>
+		<AssemblyVersion>2.3.0</AssemblyVersion>
+		<FileVersion>2.3.0</FileVersion>
 		<ApplicationManifest>Properties\app.manifest</ApplicationManifest>
 		<ApplicationIcon>Assets\Images\Favicon.ico</ApplicationIcon>
 		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
@@ -40,12 +40,44 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <None Remove="dll\concrt140d.dll" />
+	  <None Remove="dll\FTD3XX.dll" />
+	  <None Remove="dll\leechcore.dll" />
+	  <None Remove="dll\msvcp140d.dll" />
+	  <None Remove="dll\msvcp140d_atomic_wait.dll" />
+	  <None Remove="dll\msvcp140d_codecvt_ids.dll" />
+	  <None Remove="dll\msvcp140_1d.dll" />
+	  <None Remove="dll\msvcp140_2d.dll" />
+	  <None Remove="dll\m_vmemd.dll" />
+	  <None Remove="dll\readmem.dll" />
+	  <None Remove="dll\ucrtbased.dll" />
+	  <None Remove="dll\vccorlib140d.dll" />
+	  <None Remove="dll\vcruntime140d.dll" />
+	  <None Remove="dll\vcruntime140_1d.dll" />
+	  <None Remove="dll\vcruntime140_threadsd.dll" />
+	  <None Remove="dll\vmm.dll" />
 	  <None Remove="eng.traineddata" />
 	  <None Remove="ffmpeg.zip" />
 	  <None Remove="num.traineddata" />
 	</ItemGroup>
 
 	<ItemGroup>
+		<EmbeddedResource Include="dll\concrt140d.dll" />
+		<EmbeddedResource Include="dll\FTD3XX.dll" />
+		<EmbeddedResource Include="dll\leechcore.dll" />
+		<EmbeddedResource Include="dll\msvcp140d.dll" />
+		<EmbeddedResource Include="dll\msvcp140d_atomic_wait.dll" />
+		<EmbeddedResource Include="dll\msvcp140d_codecvt_ids.dll" />
+		<EmbeddedResource Include="dll\msvcp140_1d.dll" />
+		<EmbeddedResource Include="dll\msvcp140_2d.dll" />
+		<EmbeddedResource Include="dll\m_vmemd.dll" />
+		<EmbeddedResource Include="dll\readmem.dll" />
+		<EmbeddedResource Include="dll\ucrtbased.dll" />
+		<EmbeddedResource Include="dll\vccorlib140d.dll" />
+		<EmbeddedResource Include="dll\vcruntime140d.dll" />
+		<EmbeddedResource Include="dll\vcruntime140_1d.dll" />
+		<EmbeddedResource Include="dll\vcruntime140_threadsd.dll" />
+		<EmbeddedResource Include="dll\vmm.dll" />
 		<EmbeddedResource Include="eng.traineddata" />
 		<EmbeddedResource Include="ffmpeg.zip" />
 		<EmbeddedResource Include="Files\config.yml" />
@@ -92,6 +124,7 @@
 		<PackageReference Include="OpenCvSharp4" Version="4.10.0.20241108" />
 		<PackageReference Include="OpenCvSharp4.Extensions" Version="4.10.0.20241108" />
 		<PackageReference Include="OpenCvSharp4.runtime.win" Version="4.10.0.20241108" />
+		<PackageReference Include="pythonnet" Version="3.0.5" />
 		<PackageReference Include="SharpAvi" Version="3.0.1" />
 		<PackageReference Include="SharpDX" Version="4.2.0" />
 		<PackageReference Include="SharpDX.Direct2D1" Version="4.2.0" />

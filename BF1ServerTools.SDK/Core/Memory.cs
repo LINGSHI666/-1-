@@ -1,15 +1,13 @@
-﻿using System.IO;
-using System.Windows.Media.Media3D;
+﻿using System.Buffers;
+using System.IO;
 using static BF1ServerTools.SDK.Core.Memory;
-using BF1ServerTools;
-using System.Windows;
-using System.Windows.Markup;
-using System.Drawing;
 namespace BF1ServerTools.SDK.Core;
 
 public static class Memory
 {
     public static DriverCommunication driverCommunication;
+    public static Bf1MemoryReader bf1MemoryReader;
+    
     /// <summary>
     /// 战地1进程类
     /// </summary>
@@ -38,6 +36,12 @@ public static class Memory
     /// <returns></returns>
     public static bool Initialize()
     {
+        Bf1ProBaseAddress = 0x140000000;
+        Bf1ProBaseAddress2 = Bf1ProBaseAddress + 0x1000;
+        //ExtractAllDlls(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dll"));
+        bf1MemoryReader = new Bf1MemoryReader();
+
+        
         try
         {
             driverCommunication = new DriverCommunication();
@@ -88,8 +92,7 @@ public static class Memory
                     // }
                     //Bf1ProHandle = Win32.OpenProcess(ProcessAccessFlags.All, false, Bf1ProId);//马恩用
                     // 将基地址字符串转换为 long 类型
-                    Bf1ProBaseAddress = 0x140000000;
-                    Bf1ProBaseAddress2 = Bf1ProBaseAddress + 0x1000;
+                    
                     byte a = Read<byte>(Bf1ProBaseAddress);
                     return true;
                 }
@@ -99,7 +102,7 @@ public static class Memory
         }
         catch { return false; }
     }
-
+    
     /// <summary>
     /// 释放内存模块
     /// </summary>
@@ -236,33 +239,43 @@ public static class Memory
     /// <returns></returns>
     public static T Read<T>(long address) where T : struct
     {
-        
-        // 计算结构体 T 的大小
-        var buffer = new byte[Marshal.SizeOf(typeof(T))];
+        int size = Marshal.SizeOf<T>();
 
-        // 使用 IOCTL 向驱动发送内存读取请求
-        MemoryRequest request = new MemoryRequest
-        {
-            Address = (ulong)address, // 传递要读取的地址
-            Size = (uint)buffer.Length // 传递要读取的大小
-        };
+        // 避免频繁 GC
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(size);
 
         try
         {
-            // 使用 IOCTL 向驱动发送请求
-            MemoryData memoryData = driverCommunication.ReadMemory(address, (uint)buffer.Length);
+            // 优先尝试 VMM 读取
+            if (bf1MemoryReader.IsReady)
+            {
+                byte[]? data = bf1MemoryReader.ReadMemory((ulong)address, (uint)size);
+                if (data != null && data.Length >= size)
+                {
+                    Buffer.BlockCopy(data, 0, buffer, 0, size);
+                    return ByteArrayToStructure<T>(buffer);
+                }
+            }
 
-            // 将返回的内存数据转换为结构体 T
-            buffer = memoryData.Data;
-
-            // 将字节数组转换为结构体 T
-            return ByteArrayToStructure<T>(buffer);
+            // 使用 IOCTL 驱动方式读取
+            MemoryData memoryData = driverCommunication.ReadMemory(address, (uint)size);
+            if (memoryData.Data != null && memoryData.Data.Length >= size)
+            {
+                Buffer.BlockCopy(memoryData.Data, 0, buffer, 0, size);
+                return ByteArrayToStructure<T>(buffer);
+            }
         }
         catch (Exception ex)
         {
-           
+            
         }
-        return default(T);
+        finally
+        {
+            // 释放 buffer 回数组池
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+
+        return default;
     }
 
     /// <summary>
@@ -299,40 +312,47 @@ public static class Memory
     /// <param name="address"></param>
     /// <param name="size"></param>
     /// <returns></returns>
-    public static string ReadString(long address, int size)
+    public static string ReadString(long address, int size, Encoding? encoding = null)
     {
-        var buffer = new byte[size];
-       
+        encoding ??= Encoding.UTF8;
+        byte[] buffer = null;
+
         try
         {
-            // 使用 IOCTL 向驱动发送请求
-            MemoryData memoryData = driverCommunication.ReadMemory(address, (uint)size);
-
-            // 将返回的内存数据转换为结构体 T
-            buffer = memoryData.Data;
-            //Array.Reverse(buffer);
-
-            ShowBuffer(buffer);
-
+            if (bf1MemoryReader.IsReady)
+            {
+                buffer = bf1MemoryReader.ReadMemory((ulong)address, (uint)size);
+            }
         }
         catch (Exception ex)
         {
-            
+            // 可选：日志记录
         }
 
-
-        for (int i = 0; i < buffer.Length; i++)
+        // 如果 VMM 读取失败，尝试驱动读取
+        if (buffer == null)
         {
-            if (buffer[i] == 0)
+            try
             {
-                byte[] _buffer = new byte[i];
-                Buffer.BlockCopy(buffer, 0, _buffer, 0, i);
-                return Encoding.UTF8.GetString(_buffer);
+                buffer = driverCommunication.ReadMemory(address, (uint)size).Data;
+            }
+            catch (Exception ex)
+            {
+                // 可选：日志记录
+                return string.Empty;
             }
         }
 
-        return Encoding.UTF8.GetString(buffer);
+        if (buffer == null || buffer.Length == 0)
+            return string.Empty;
+
+        // 查找 null 终止符（C风格字符串）
+        int nullIndex = Array.IndexOf(buffer, (byte)0);
+        int actualLength = nullIndex >= 0 ? nullIndex : buffer.Length;
+
+        return encoding.GetString(buffer, 0, actualLength);
     }
+
 
     /// <summary>
     /// 写入字符串
@@ -681,4 +701,75 @@ public class DriverCommunication
         uint nOutBufferSize,
         out uint lpBytesReturned,
         IntPtr lpOverlapped);
+}
+public class Bf1MemoryReader
+{
+    private static readonly string NativeDllPath = Path.Combine(AppContext.BaseDirectory, "dll");
+
+    [DllImport("readmem.dll", CallingConvention = CallingConvention.StdCall)]
+    private static extern bool InitVMM();
+
+    [DllImport("readmem.dll", CallingConvention = CallingConvention.StdCall)]
+    private static extern void CloseVMM();
+
+    [DllImport("readmem.dll", CallingConvention = CallingConvention.StdCall)]
+    private static extern bool IsBattlefieldFound();
+
+    [DllImport("readmem.dll", CallingConvention = CallingConvention.StdCall)]
+    private static extern bool ReadMemory(ulong address, byte[] buffer, uint size);
+
+    [DllImport("kernel32.dll")]
+    private static extern bool SetDllDirectory(string lpPathName);
+
+    public bool _isInitialized = false;
+
+    /// <summary>
+    /// 初始化内存读取器：解压嵌入资源、设置路径、初始化 VMM
+    /// </summary>
+    public bool Init()
+    {
+        try
+        {
+            
+            
+            _isInitialized = InitVMM();
+            return _isInitialized;
+        }
+        catch (Exception ex)
+        {
+            
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 是否已检测到 bf1.exe 进程
+    /// </summary>
+    public bool IsReady => _isInitialized && IsBattlefieldFound();
+
+    /// <summary>
+    /// 读取 Battlefield1 内存
+    /// </summary>
+    public byte[]? ReadMemory(ulong address, uint size)
+    {
+        if (!IsReady) return null;
+
+        var buffer = new byte[size];
+        if (ReadMemory(address, buffer, size))
+            return buffer;
+        return null;
+    }
+
+    /// <summary>
+    /// 释放所有资源
+    /// </summary>
+    public void Shutdown()
+    {
+        if (_isInitialized)
+        {
+            CloseVMM();
+            _isInitialized = false;
+        }
+    }
+
 }

@@ -26,6 +26,7 @@ public static class ClientHelper
         else
             return originMapName;
     }
+    
     /// <summary>
     /// 获取地图对应预览图
     /// </summary>
@@ -287,6 +288,14 @@ public static class ClientHelper
         var index = ModeData.AllModeInfo2.FindIndex(var => var.Mark.Equals(modeName));
         if (index != -1)
             return ModeData.AllModeInfo2[index].Chinese;
+        else
+            return string.Empty;
+    }
+    public static string GetGameMode3(string modeName)
+    {
+        var index = ModeData.AllModeInfo.FindIndex(var => var.Mark.Equals(modeName));
+        if (index != -1)
+            return ModeData.AllModeInfo[index].English;
         else
             return string.Empty;
     }

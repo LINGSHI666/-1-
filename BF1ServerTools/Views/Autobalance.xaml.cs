@@ -51,6 +51,7 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 using Newtonsoft.Json.Serialization;
 using System.Net.Http;
 using static BF1ServerTools.Views.ScoreView;
+using Python.Runtime;
 
 
 
@@ -719,13 +720,43 @@ public partial class Autobalance : UserControl
         }
         await Task.Delay(3000);
         stopbalanceflag = false;
+        if (Memory.bf1MemoryReader._isInitialized)
+        { MessageBox.Show("ok"); }
+        else
+        { MessageBox.Show("notok"); }
         //FFmpegBinariesHelper.RegisterFFmpegBinaries();
         // DynamicallyLoadedBindings.Initialize();
 
         // await Autowatch("ZED234");
+        //ShowBalanceStatsGraph();
 
 
+    }
+    //自动加载python路径
+    static string FindPythonDllFromEnvironment()
+    {
+        var pathEnv = Environment.GetEnvironmentVariable("PATH");
+        if (pathEnv == null) return null;
 
+        foreach (var path in pathEnv.Split(';'))
+        {
+            if (!Directory.Exists(path))
+                continue;
+
+            // 获取所有匹配 pythonXY.dll 的文件（排除 python3.dll）
+            var dlls = Directory.GetFiles(path, "python*.dll")
+                                .Where(file =>
+                                {
+                                    var name = Path.GetFileNameWithoutExtension(file)?.ToLower();
+                                    // 匹配 python38、python39、python310 等
+                                    return name != "python3" && System.Text.RegularExpressions.Regex.IsMatch(name, @"^python\d{2,3}$");
+                                });
+
+            if (dlls.Any())
+                return dlls.First();
+        }
+
+        return null;
     }
     private void Reportmapinfo_Click(object sender, RoutedEventArgs e)
     {
@@ -734,6 +765,7 @@ public partial class Autobalance : UserControl
 
 
     }
+
     public static bool IsOrange(System.Drawing.Color color)
     {
         // 设定橙色的 RGB 范围
@@ -1020,7 +1052,7 @@ public partial class Autobalance : UserControl
                 await Task.Delay(200);
                 if (IsOrange(color))
                 {
-                    Dispatcher dispatcher = Application.Current.Dispatcher;
+                    System.Windows.Threading.Dispatcher dispatcher = Application.Current.Dispatcher;
                     dispatcher.Invoke(() =>
                     {
                         NotifierHelper.Show(NotifierType.Success, "成功观战");
@@ -1030,7 +1062,7 @@ public partial class Autobalance : UserControl
                 }
                 else
                 {
-                    Dispatcher dispatcher = Application.Current.Dispatcher;
+                    System.Windows.Threading.Dispatcher dispatcher = Application.Current.Dispatcher;
                     dispatcher.Invoke(() =>
                     {
                         NotifierHelper.Show(NotifierType.Error, $"玩家可能处于死亡状态，颜色 RGB: ({color.R}, {color.G}, {color.B})");
@@ -1054,6 +1086,126 @@ public partial class Autobalance : UserControl
             return 2;//未找到玩家    
         }
     }
+
+    public static void ShowBalanceStatsGraph()
+    {
+        string pythonDll = FindPythonDllFromEnvironment();
+        if (pythonDll == null)
+        {
+           Debug.WriteLine("未找到 Python DLL，请确保 Python 安装并添加到系统 PATH");
+            return;
+        }
+
+        // 设置并初始化 Python 环境
+        Runtime.PythonDLL = pythonDll;
+        PythonEngine.Initialize();
+
+        List<PlayerData> playerList = Player.GetPlayerList()
+            .Where(p => p.Kill >= 1 || p.Dead >= 2) // 排除机器人
+            .ToList();
+
+        if (playerList.Count == 0)
+        {
+            Debug.WriteLine("无有效玩家数据，无法绘图。");
+            PythonEngine.Shutdown();
+            return;
+        }
+
+        // 获取每个玩家的 KD/KPM/Skill
+        foreach (var item in playerList)
+        {
+            try
+            {
+                float kd = PlayerUtil.GetLifeKD(item.PersonaId);
+                item.LifeKd = (float)Math.Min(kd, 4.0);
+
+                float kpm = PlayerUtil.GetLifeKPM(item.PersonaId);
+                item.LifeKpm = (float)Math.Min(kpm, 4.0);
+
+                float skill = PlayerUtil.GetSkill(item.PersonaId)/100;
+                item.Skill = Math.Min(skill, 9);
+            }
+            catch
+            {
+                // 忽略错误玩家
+                continue;
+            }
+        }
+
+        var team1 = playerList.Where(p => p.TeamId == 1).ToList();
+        var team2 = playerList.Where(p => p.TeamId == 2).ToList();
+
+        if (team1.Count == 0 || team2.Count == 0)
+        {
+            Debug.WriteLine("队伍人数不足，无法比较。");
+            PythonEngine.Shutdown();
+            return;
+        }
+
+        using (Py.GIL())
+        {
+            dynamic plt = Py.Import("matplotlib.pyplot");
+            dynamic np = Py.Import("numpy");
+
+            
+
+            // 准备数据
+            double[] team1Stats = new double[]
+            {
+        team1.Average(p => p.LifeKd),
+        team1.Average(p => p.LifeKpm),
+        team1.Average(p => p.Skill)
+            };
+
+            double[] team2Stats = new double[]
+            {
+        team2.Average(p => p.LifeKd),
+        team2.Average(p => p.LifeKpm),
+        team2.Average(p => p.Skill)
+            };
+
+            var categories = new[] { "KD", "KPM", "Skill / 100" };
+            dynamic ind = np.arange(3);
+            double width = 0.35;
+
+            dynamic fig = plt.GetAttr("figure").Invoke();
+            dynamic ax = fig.add_subplot(111);
+
+            var bars1 = ax.bar(ind, team1Stats, width, label: "Team 1", color: "skyblue");
+            var bars2 = ax.bar(ind + width, team2Stats, width, label: "Team 2", color: "salmon");
+
+            ax.set_ylabel("Average Value");
+            ax.set_title("Team Performance Comparison");
+            ax.set_xticks(ind + width / 2.0);
+            ax.set_xticklabels(categories);
+            ax.legend();
+            ax.grid(true, linestyle: "--", alpha: 0.6);
+
+            double ymax = Math.Max(team1Stats.Max(), team2Stats.Max()) * 1.2;
+            ax.set_ylim(0, ymax);
+
+       
+            for (int i = 0; i < 3; i++)
+            {
+                dynamic b1 = bars1[i];
+                dynamic b2 = bars2[i];
+
+                double x1 = (double)b1.get_x() + (double)b1.get_width() / 2;
+                double h1 = (double)b1.get_height();
+                ax.text(x1, h1 + 0.05, $"{h1:F2}", ha: "center", va: "bottom", fontsize: 8);
+
+                double x2 = (double)b2.get_x() + (double)b2.get_width() / 2;
+                double h2 = (double)b2.get_height();
+                ax.text(x2, h2 + 0.05, $"{h2:F2}", ha: "center", va: "bottom", fontsize: 8);
+            }
+
+            plt.tight_layout();
+            plt.show();
+        }
+
+        PythonEngine.Shutdown();
+    }
+
     //自动平衡
     private async void RunPeriodicTasks()
     {

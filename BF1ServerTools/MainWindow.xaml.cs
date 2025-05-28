@@ -9,6 +9,7 @@ using BF1ServerTools.Helper;
 using CommunityToolkit.Mvvm.Input;
 using System.Net.Sockets;
 using System.IO.Compression;
+using System.Windows.Forms;
 
 namespace BF1ServerTools;
 public class UdpClientService
@@ -110,6 +111,12 @@ public partial class MainWindow
         var path =  ExtractFFmpeg();
         string tessDataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tessdata");
         ExtractTesseractData(tessDataPath);
+        ExtractAllDlls(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dll"));
+        if (Memory.bf1MemoryReader.Init())
+        {
+            Debug.WriteLine("初始化成功");
+           
+        }
         //MessageBox.Show($"{path}");
     }
     public static string ExtractFFmpeg()
@@ -131,7 +138,7 @@ public partial class MainWindow
                 {
                     var entryPath = Path.Combine(baseDirectory, entry.FullName);
 
-                    // 创建子目录（如果需要）
+                    // 创建子目录
                     if (entry.FullName.EndsWith("/"))
                     {
                         Directory.CreateDirectory(entryPath);
@@ -212,9 +219,40 @@ public partial class MainWindow
         }
         catch (Exception ex)
         {
-           MessageBox.Show($"初始化 Tesseract 数据时出错: {ex.Message}");
+           System.Windows.Forms.MessageBox.Show($"初始化 Tesseract 数据时出错: {ex.Message}");
         }
     }
+    public static void ExtractAllDlls(string targetFolder)
+    {
+        var asm = Assembly.GetExecutingAssembly();
+        string[] allResources = asm.GetManifestResourceNames();
+
+        var dllResources = allResources
+            .Where(r => r.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) &&
+                        r.Contains(".dll.")) // 限定为嵌入了 /dll/ 文件夹的资源
+            .ToList();
+
+        Directory.CreateDirectory(targetFolder);
+
+        foreach (var res in dllResources)
+        {
+            // 提取原始文件名：从 "YourNamespace.dll.readmem.dll" 中取出 "readmem.dll"
+            string dllName = res.Substring(res.IndexOf("dll.") + 4);
+            string outputPath = Path.Combine(targetFolder, dllName);
+
+            using Stream s = asm.GetManifestResourceStream(res)
+                ?? throw new FileNotFoundException($"找不到资源：{res}");
+
+            using FileStream fs = new FileStream(outputPath, FileMode.Create, FileAccess.Write);
+            s.CopyTo(fs);
+        }
+
+        // 设置当前 DLL 查找目录
+        SetDllDirectory(targetFolder);
+    }
+
+    [DllImport("kernel32.dll")]
+    private static extern bool SetDllDirectory(string lpPathName);
     private void Window_Main_Loaded(object sender, RoutedEventArgs e)
     {
         this.DataContext = this;
@@ -272,8 +310,9 @@ public partial class MainWindow
         LoggerHelper.Info("关闭udp客户端成功");
         Autobalance.close();
         LoggerHelper.Info("关闭键盘钩子成功");
-        Application.Current.Shutdown();
+        System.Windows.Application.Current.Shutdown();
         Memory.driverCommunication.Close();
+        Memory.bf1MemoryReader.Shutdown();
         LoggerHelper.Info("程序关闭\n\n");
         
     }
