@@ -575,7 +575,37 @@ public static class Player
     /// 获取玩家列表信息
     /// </summary>
     /// <returns></returns>
+    private static readonly object _lock = new();
+    private static List<PlayerData> _cachedList = new();
+    private static DateTime _lastUpdate = DateTime.MinValue;
+    private static readonly TimeSpan _cacheDuration = TimeSpan.FromMilliseconds(500);
+
+    /// <summary>
+    /// 获取玩家列表，每500ms最多读取一次。
+    /// </summary>
     public static List<PlayerData> GetPlayerList()
+    {
+        lock (_lock)
+        {
+            var now = DateTime.UtcNow;
+
+            if ((now - _lastUpdate) > _cacheDuration)
+            {
+                try
+                {
+                    _cachedList = FetchPlayerList();
+                    _lastUpdate = now;
+                }
+                catch
+                {
+                    
+                }
+            }
+
+            return _cachedList;
+        }
+    }
+    public static List<PlayerData> FetchPlayerList()
 
     {
         
@@ -784,6 +814,7 @@ public static class Player
 
             for (int i = 0; i < MaxPlayer; i++)
             {
+
                 var _baseAddress = Obfuscation.GetPlayerById(i);
                 if (!Memory.IsValid(_baseAddress))
                     continue;
@@ -996,7 +1027,8 @@ public static class Player
                             WeaponS7 = _weaponSlot[7],
                         });
                 }
-            }
+                    Thread.Sleep(20);
+                }
 
             //////////////////////////////// 得分板数据 ////////////////////////////////
 
@@ -1024,7 +1056,8 @@ public static class Player
                     _playerList[index].Dead = _dead;
                     _playerList[index].Score = _score;
                 }
-            }
+                    Thread.Sleep(10);
+                }
 
 
             return _playerList;

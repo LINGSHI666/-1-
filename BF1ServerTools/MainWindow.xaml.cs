@@ -341,11 +341,7 @@ public partial class MainWindow
             MainModel.DisplayName2 = Globals.DisplayName2;
             MainModel.PersonaId2 = Globals.PersonaId2;
 
-            if (!ProcessUtil.IsBf1Run())
-            {
-                this.Dispatcher.Invoke(this.Close);
-                return;
-            }
+            
 
             Thread.Sleep(1000);
         }

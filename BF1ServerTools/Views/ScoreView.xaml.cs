@@ -720,203 +720,206 @@ public partial class ScoreView : UserControl
             Thread.Sleep(1000);
         }
     }
+  private void CopyPlayerFields(PlayerData updated, PlayerDataModel item)
+{
+    item.Rank = updated.Rank;
+    item.Clan = updated.Clan;
+    item.Admin = updated.Admin;
+    item.Vip = updated.Vip;
+    item.White = updated.White;
+    item.SquadId = updated.SquadId;
+    item.SquadId2 = updated.SquadId2;
+    item.Kill = updated.Kill;
+    item.Dead = updated.Dead;
+    item.Kd = updated.Kd;
+    item.Kpm = updated.Kpm;
+    item.LifeKd = updated.LifeKd;
+    item.LifeKpm = updated.LifeKpm;
+    item.LifeTime = updated.LifeTime;
+    item.Score = updated.Score;
+    item.Kit = updated.Kit;
+    item.Kit2 = updated.Kit2;
+    item.Kit3 = updated.Kit3;
+    item.WeaponS0 = updated.WeaponS0;
+    item.WeaponS1 = updated.WeaponS1;
+    item.WeaponS2 = updated.WeaponS2;
+    item.WeaponS3 = updated.WeaponS3;
+    item.WeaponS4 = updated.WeaponS4;
+    item.WeaponS5 = updated.WeaponS5;
+    item.WeaponS6 = updated.WeaponS6;
+    item.WeaponS7 = updated.WeaponS7;
+}
+
 
     /// <summary>
     /// 动态更新 ListView 队伍1
     /// </summary>
     private void UpdateListViewTeam1()
     {
-        if (PlayerList_Team1.Count == 0 && ListView_PlayerList_Team1.Count != 0)
-            ListView_PlayerList_Team1.Clear();
-
-        if (PlayerList_Team1.Count != 0)
+        // 没有玩家，清空列表
+        if (PlayerList_Team1.Count == 0)
         {
-            // 更新ListView中现有的玩家数据，并把ListView中已经不在服务器的玩家清除
-            for (int i = 0; i < ListView_PlayerList_Team1.Count; i++)
-            {
-                int index = PlayerList_Team1.FindIndex(val => val.PersonaId == ListView_PlayerList_Team1[i].PersonaId);
-                if (index != -1)
-                {
-                    ListView_PlayerList_Team1[i].Rank = PlayerList_Team1[index].Rank;
-                    ListView_PlayerList_Team1[i].Clan = PlayerList_Team1[index].Clan;
-                    ListView_PlayerList_Team1[i].Admin = PlayerList_Team1[index].Admin;
-                    ListView_PlayerList_Team1[i].Vip = PlayerList_Team1[index].Vip;
-                    ListView_PlayerList_Team1[i].White = PlayerList_Team1[index].White;
-                    ListView_PlayerList_Team1[i].SquadId = PlayerList_Team1[index].SquadId;
-                    ListView_PlayerList_Team1[i].SquadId2 = PlayerList_Team1[index].SquadId2;
-                    ListView_PlayerList_Team1[i].Kill = PlayerList_Team1[index].Kill;
-                    ListView_PlayerList_Team1[i].Dead = PlayerList_Team1[index].Dead;
-                    ListView_PlayerList_Team1[i].Kd = PlayerList_Team1[index].Kd;
-                    ListView_PlayerList_Team1[i].Kpm = PlayerList_Team1[index].Kpm;
-                    ListView_PlayerList_Team1[i].LifeKd = PlayerList_Team1[index].LifeKd;
-                    ListView_PlayerList_Team1[i].LifeKpm = PlayerList_Team1[index].LifeKpm;
-                    ListView_PlayerList_Team1[i].LifeTime = PlayerList_Team1[index].LifeTime;
-                    ListView_PlayerList_Team1[i].Score = PlayerList_Team1[index].Score;
-                    ListView_PlayerList_Team1[i].Kit = PlayerList_Team1[index].Kit;
-                    ListView_PlayerList_Team1[i].Kit2 = PlayerList_Team1[index].Kit2;
-                    ListView_PlayerList_Team1[i].Kit3 = PlayerList_Team1[index].Kit3;
-                    ListView_PlayerList_Team1[i].WeaponS0 = PlayerList_Team1[index].WeaponS0;
-                    ListView_PlayerList_Team1[i].WeaponS1 = PlayerList_Team1[index].WeaponS1;
-                    ListView_PlayerList_Team1[i].WeaponS2 = PlayerList_Team1[index].WeaponS2;
-                    ListView_PlayerList_Team1[i].WeaponS3 = PlayerList_Team1[index].WeaponS3;
-                    ListView_PlayerList_Team1[i].WeaponS4 = PlayerList_Team1[index].WeaponS4;
-                    ListView_PlayerList_Team1[i].WeaponS5 = PlayerList_Team1[index].WeaponS5;
-                    ListView_PlayerList_Team1[i].WeaponS6 = PlayerList_Team1[index].WeaponS6;
-                    ListView_PlayerList_Team1[i].WeaponS7 = PlayerList_Team1[index].WeaponS7;
-                }
-                else
-                {
-                    ListView_PlayerList_Team1.RemoveAt(i);
-                }
-            }
+            if (ListView_PlayerList_Team1.Count != 0)
+                ListView_PlayerList_Team1.Clear();
 
-            // 增加ListView没有的玩家数据
-            for (int i = 0; i < PlayerList_Team1.Count; i++)
-            {
-                int index = ListView_PlayerList_Team1.ToList().FindIndex(val => val.PersonaId == PlayerList_Team1[i].PersonaId);
-                if (index == -1)
-                {
-                    ListView_PlayerList_Team1.Add(new()
-                    {
-                        Rank = PlayerList_Team1[i].Rank,
-                        Clan = PlayerList_Team1[i].Clan,
-                        Name = PlayerList_Team1[i].Name,
-                        PersonaId = PlayerList_Team1[i].PersonaId,
-                        Admin = PlayerList_Team1[i].Admin,
-                        Vip = PlayerList_Team1[i].Vip,
-                        White = PlayerList_Team1[i].White,
-                        SquadId = PlayerList_Team1[i].SquadId,
-                        SquadId2 = PlayerList_Team1[i].SquadId2,
-                        Kill = PlayerList_Team1[i].Kill,
-                        Dead = PlayerList_Team1[i].Dead,
-                        Kd = PlayerList_Team1[i].Kd,
-                        Kpm = PlayerList_Team1[i].Kpm,
-                        LifeKd = PlayerList_Team1[i].LifeKd,
-                        LifeKpm = PlayerList_Team1[i].LifeKpm,
-                        LifeTime = PlayerList_Team1[i].LifeTime,
-                        Score = PlayerList_Team1[i].Score,
-                        Kit = PlayerList_Team1[i].Kit,
-                        Kit2 = PlayerList_Team1[i].Kit2,
-                        Kit3 = PlayerList_Team1[i].Kit3,
-                        WeaponS0 = PlayerList_Team1[i].WeaponS0,
-                        WeaponS1 = PlayerList_Team1[i].WeaponS1,
-                        WeaponS2 = PlayerList_Team1[i].WeaponS2,
-                        WeaponS3 = PlayerList_Team1[i].WeaponS3,
-                        WeaponS4 = PlayerList_Team1[i].WeaponS4,
-                        WeaponS5 = PlayerList_Team1[i].WeaponS5,
-                        WeaponS6 = PlayerList_Team1[i].WeaponS6,
-                        WeaponS7 = PlayerList_Team1[i].WeaponS7
-                    });
-
-                }
-            }
-
-            // 排序
-            ListView_PlayerList_Team1.Sort();
-
-            // 修正序号
-            for (int i = 0; i < ListView_PlayerList_Team1.Count; i++)
-                ListView_PlayerList_Team1[i].Index = i + 1;
+            return;
         }
+
+        // 构建 PersonaId 索引，提升查找性能
+        var serverPlayerMap = PlayerList_Team1.ToDictionary(p => p.PersonaId);
+
+        // 构建新列表用于更新 UI 列表
+        var updatedList = new List<PlayerDataModel>();
+
+        // 保留并更新仍在线的玩家
+        foreach (var item in ListView_PlayerList_Team1)
+        {
+            if (serverPlayerMap.TryGetValue(item.PersonaId, out var updated))
+            {
+                CopyPlayerFields(updated, item); // 更新字段
+                updatedList.Add(item);           // 保留该项
+                serverPlayerMap.Remove(item.PersonaId); // 标记为已处理
+            }
+        }
+
+        // 添加新玩家
+        foreach (var kvp in serverPlayerMap)
+        {
+            var p = kvp.Value;
+            updatedList.Add(new PlayerDataModel
+            {
+                Rank = p.Rank,
+                Clan = p.Clan,
+                Name = p.Name,
+                PersonaId = p.PersonaId,
+                Admin = p.Admin,
+                Vip = p.Vip,
+                White = p.White,
+                SquadId = p.SquadId,
+                SquadId2 = p.SquadId2,
+                Kill = p.Kill,
+                Dead = p.Dead,
+                Kd = p.Kd,
+                Kpm = p.Kpm,
+                LifeKd = p.LifeKd,
+                LifeKpm = p.LifeKpm,
+                LifeTime = p.LifeTime,
+                Score = p.Score,
+                Kit = p.Kit,
+                Kit2 = p.Kit2,
+                Kit3 = p.Kit3,
+                WeaponS0 = p.WeaponS0,
+                WeaponS1 = p.WeaponS1,
+                WeaponS2 = p.WeaponS2,
+                WeaponS3 = p.WeaponS3,
+                WeaponS4 = p.WeaponS4,
+                WeaponS5 = p.WeaponS5,
+                WeaponS6 = p.WeaponS6,
+                WeaponS7 = p.WeaponS7
+            });
+        }
+
+        // 替换旧列表内容
+        ListView_PlayerList_Team1.Clear();
+        foreach (var item in updatedList)
+        {
+            ListView_PlayerList_Team1.Add(item);
+        }
+
+        // 排序
+        ListView_PlayerList_Team1.Sort();
+
+        // 设置序号
+        for (int i = 0; i < ListView_PlayerList_Team1.Count; i++)
+            ListView_PlayerList_Team1[i].Index = i + 1;
     }
+
+
+
 
     /// <summary>
     /// 动态更新 ListView 队伍2
     /// </summary>
     private void UpdateListViewTeam2()
     {
-        if (PlayerList_Team2.Count == 0 && ListView_PlayerList_Team2.Count != 0)
-            ListView_PlayerList_Team2.Clear();
-
-        if (PlayerList_Team2.Count != 0)
+        if (PlayerList_Team2.Count == 0)
         {
-            // 更新ListView中现有的玩家数据，并把ListView中已经不在服务器的玩家清除
-            for (int i = 0; i < ListView_PlayerList_Team2.Count; i++)
+            if (ListView_PlayerList_Team2.Count != 0)
+                ListView_PlayerList_Team2.Clear();
+            return;
+        }
+
+        // 构建快速索引
+        var serverPlayerMap = PlayerList_Team2.ToDictionary(p => p.PersonaId);
+
+        // 用于更新的新列表
+        var updatedList = new List<PlayerDataModel>();
+
+        // 更新现有项
+        foreach (var item in ListView_PlayerList_Team2)
+        {
+            if (serverPlayerMap.TryGetValue(item.PersonaId, out var updated))
             {
-                int index = PlayerList_Team2.FindIndex(val => val.PersonaId == ListView_PlayerList_Team2[i].PersonaId);
-                if (index != -1)
-                {
-                    ListView_PlayerList_Team2[i].Rank = PlayerList_Team2[index].Rank;
-                    ListView_PlayerList_Team2[i].Clan = PlayerList_Team2[index].Clan;
-                    ListView_PlayerList_Team2[i].Admin = PlayerList_Team2[index].Admin;
-                    ListView_PlayerList_Team2[i].Vip = PlayerList_Team2[index].Vip;
-                    ListView_PlayerList_Team2[i].White = PlayerList_Team2[index].White;
-                    ListView_PlayerList_Team2[i].SquadId = PlayerList_Team2[index].SquadId;
-                    ListView_PlayerList_Team2[i].SquadId2 = PlayerList_Team2[index].SquadId2;
-                    ListView_PlayerList_Team2[i].Kill = PlayerList_Team2[index].Kill;
-                    ListView_PlayerList_Team2[i].Dead = PlayerList_Team2[index].Dead;
-                    ListView_PlayerList_Team2[i].Kd = PlayerList_Team2[index].Kd;
-                    ListView_PlayerList_Team2[i].Kpm = PlayerList_Team2[index].Kpm;
-                    ListView_PlayerList_Team2[i].LifeKd = PlayerList_Team2[index].LifeKd;
-                    ListView_PlayerList_Team2[i].LifeKpm = PlayerList_Team2[index].LifeKpm;
-                    ListView_PlayerList_Team2[i].LifeTime = PlayerList_Team2[index].LifeTime;
-                    ListView_PlayerList_Team2[i].Score = PlayerList_Team2[index].Score;
-                    ListView_PlayerList_Team2[i].Kit = PlayerList_Team2[index].Kit;
-                    ListView_PlayerList_Team2[i].Kit2 = PlayerList_Team2[index].Kit2;
-                    ListView_PlayerList_Team2[i].Kit3 = PlayerList_Team2[index].Kit3;
-                    ListView_PlayerList_Team2[i].WeaponS0 = PlayerList_Team2[index].WeaponS0;
-                    ListView_PlayerList_Team2[i].WeaponS1 = PlayerList_Team2[index].WeaponS1;
-                    ListView_PlayerList_Team2[i].WeaponS2 = PlayerList_Team2[index].WeaponS2;
-                    ListView_PlayerList_Team2[i].WeaponS3 = PlayerList_Team2[index].WeaponS3;
-                    ListView_PlayerList_Team2[i].WeaponS4 = PlayerList_Team2[index].WeaponS4;
-                    ListView_PlayerList_Team2[i].WeaponS5 = PlayerList_Team2[index].WeaponS5;
-                    ListView_PlayerList_Team2[i].WeaponS6 = PlayerList_Team2[index].WeaponS6;
-                    ListView_PlayerList_Team2[i].WeaponS7 = PlayerList_Team2[index].WeaponS7;
-                }
-                else
-                {
-                    ListView_PlayerList_Team2.RemoveAt(i);
-                }
+                CopyPlayerFields(updated, item);
+                updatedList.Add(item);
+                serverPlayerMap.Remove(item.PersonaId);
             }
+        }
 
-            // 增加ListView没有的玩家数据
-            for (int i = 0; i < PlayerList_Team2.Count; i++)
+        // 添加新项
+        foreach (var kvp in serverPlayerMap)
+        {
+            var p = kvp.Value;
+            updatedList.Add(new PlayerDataModel
             {
-                int index = ListView_PlayerList_Team2.ToList().FindIndex(val => val.PersonaId == PlayerList_Team2[i].PersonaId);
-                if (index == -1)
-                {
-                    ListView_PlayerList_Team2.Add(new()
-                    {
-                        Rank = PlayerList_Team2[i].Rank,
-                        Clan = PlayerList_Team2[i].Clan,
-                        Name = PlayerList_Team2[i].Name,
-                        PersonaId = PlayerList_Team2[i].PersonaId,
-                        Admin = PlayerList_Team2[i].Admin,
-                        Vip = PlayerList_Team2[i].Vip,
-                        White = PlayerList_Team2[i].White,
-                        SquadId = PlayerList_Team2[i].SquadId,
-                        SquadId2 = PlayerList_Team2[i].SquadId2,
-                        Kill = PlayerList_Team2[i].Kill,
-                        Dead = PlayerList_Team2[i].Dead,
-                        Kd = PlayerList_Team2[i].Kd,
-                        Kpm = PlayerList_Team2[i].Kpm,
-                        LifeKd = PlayerList_Team2[i].LifeKd,
-                        LifeKpm = PlayerList_Team2[i].LifeKpm,
-                        LifeTime = PlayerList_Team2[i].LifeTime,
-                        Score = PlayerList_Team2[i].Score,
-                        Kit = PlayerList_Team2[i].Kit,
-                        Kit2 = PlayerList_Team2[i].Kit2,
-                        Kit3 = PlayerList_Team2[i].Kit3,
-                        WeaponS0 = PlayerList_Team2[i].WeaponS0,
-                        WeaponS1 = PlayerList_Team2[i].WeaponS1,
-                        WeaponS2 = PlayerList_Team2[i].WeaponS2,
-                        WeaponS3 = PlayerList_Team2[i].WeaponS3,
-                        WeaponS4 = PlayerList_Team2[i].WeaponS4,
-                        WeaponS5 = PlayerList_Team2[i].WeaponS5,
-                        WeaponS6 = PlayerList_Team2[i].WeaponS6,
-                        WeaponS7 = PlayerList_Team2[i].WeaponS7
-                    });
-                }
-            }
+                Rank = p.Rank,
+                Clan = p.Clan,
+                Name = p.Name,
+                PersonaId = p.PersonaId,
+                Admin = p.Admin,
+                Vip = p.Vip,
+                White = p.White,
+                SquadId = p.SquadId,
+                SquadId2 = p.SquadId2,
+                Kill = p.Kill,
+                Dead = p.Dead,
+                Kd = p.Kd,
+                Kpm = p.Kpm,
+                LifeKd = p.LifeKd,
+                LifeKpm = p.LifeKpm,
+                LifeTime = p.LifeTime,
+                Score = p.Score,
+                Kit = p.Kit,
+                Kit2 = p.Kit2,
+                Kit3 = p.Kit3,
+                WeaponS0 = p.WeaponS0,
+                WeaponS1 = p.WeaponS1,
+                WeaponS2 = p.WeaponS2,
+                WeaponS3 = p.WeaponS3,
+                WeaponS4 = p.WeaponS4,
+                WeaponS5 = p.WeaponS5,
+                WeaponS6 = p.WeaponS6,
+                WeaponS7 = p.WeaponS7
+            });
+        }
 
-            // 排序
-            ListView_PlayerList_Team2.Sort();
+        // 替换旧列表
+        ListView_PlayerList_Team2.Clear();
+        foreach (var item in updatedList)
+        {
+            ListView_PlayerList_Team2.Add(item);
+        }
 
-            // 修正序号
-            for (int i = 0; i < ListView_PlayerList_Team2.Count; i++)
-                ListView_PlayerList_Team2[i].Index = i + 1;
+        // 排序
+        ListView_PlayerList_Team2.Sort();
+
+        // 设置 Index
+        for (int i = 0; i < ListView_PlayerList_Team2.Count; i++)
+        {
+            ListView_PlayerList_Team2[i].Index = i + 1;
         }
     }
+
 
     /// <summary>
     /// 动态更新 ListBox 队伍01

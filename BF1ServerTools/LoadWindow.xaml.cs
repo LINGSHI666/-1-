@@ -142,8 +142,8 @@ public partial class LoadWindow : UiWindow
                     if (!File.Exists(BF1ServerTools.Utils.FileUtil.D_Robot_Path + "\\go-cqhttp.exe"))
                         BF1ServerTools.Utils.FileUtil.ExtractResFile(BF1ServerTools.Utils.FileUtil.Resource_Path + "go-cqhttp.exe", BF1ServerTools.Utils.FileUtil.D_Robot_Path + "\\go-cqhttp.exe");
 
-                    Chat.AllocateMemory();
-                    LoggerHelper.Info($"中文聊天指针分配成功 0x{Chat.AllocateMemAddress:x}");
+                    //Chat.AllocateMemory();
+                    //LoggerHelper.Info($"中文聊天指针分配成功 0x{Chat.AllocateMemAddress:x}");
 
                     ChineseConverter.ToTraditional("免费，跨平台，开源！");
                     LoggerHelper.Info("简繁翻译库初始化成功");
@@ -172,8 +172,8 @@ public partial class LoadWindow : UiWindow
                 if (!File.Exists(BF1ServerTools.Utils.FileUtil.D_Robot_Path + "\\go-cqhttp.exe"))
                     BF1ServerTools.Utils.FileUtil.ExtractResFile(BF1ServerTools.Utils.FileUtil.Resource_Path + "go-cqhttp.exe", BF1ServerTools.Utils.FileUtil.D_Robot_Path + "\\go-cqhttp.exe");
 
-                Chat.AllocateMemory();
-                LoggerHelper.Info($"中文聊天指针分配成功 0x{Chat.AllocateMemAddress:x}");
+                //Chat.AllocateMemory();
+                //LoggerHelper.Info($"中文聊天指针分配成功 0x{Chat.AllocateMemAddress:x}");
 
                 ChineseConverter.ToTraditional("免费，跨平台，开源！");
                 LoggerHelper.Info("简繁翻译库初始化成功");
