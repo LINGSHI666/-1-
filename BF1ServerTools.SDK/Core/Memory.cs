@@ -1,6 +1,9 @@
 ﻿using System.Buffers;
+using System.Collections.Concurrent;
 using System.IO;
+using System.Windows;
 using static BF1ServerTools.SDK.Core.Memory;
+
 namespace BF1ServerTools.SDK.Core;
 
 public static class Memory
@@ -40,8 +43,9 @@ public static class Memory
         Bf1ProBaseAddress2 = Bf1ProBaseAddress + 0x1000;
         //ExtractAllDlls(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dll"));
         bf1MemoryReader = new Bf1MemoryReader();
+        StartMemoryReadQueue();
 
-        
+
         try
         {
             driverCommunication = new DriverCommunication();
@@ -237,47 +241,251 @@ public static class Memory
     /// <typeparam name="T"></typeparam>
     /// <param name="address"></param>
     /// <returns></returns>
+    private static readonly BlockingCollection<MemoryReadRequest2> _dmaQueue = new();
+    private static readonly Thread _dmaWorker = new(ProcessReadQueue) { IsBackground = true };
+
+    public static void StartMemoryReadQueue()
+    {
+        if (!_dmaWorker.IsAlive)
+            _dmaWorker.Start();
+    }
+
     public static T Read<T>(long address) where T : struct
     {
-        int size = Marshal.SizeOf<T>();
+        try
+        {
+            return ReadAsync<T>(address).GetAwaiter().GetResult();
+        }
+        catch
+        {
+            return default;
+        }
+       
+    }
+    public static async Task<T> ReadAsync<T>(long address) where T : struct
+    {
+        StartMemoryReadQueue();
 
-        // 避免频繁 GC
+        int size = Marshal.SizeOf<T>();
         byte[] buffer = ArrayPool<byte>.Shared.Rent(size);
 
         try
         {
-            // 优先尝试 VMM 读取
-            if (bf1MemoryReader.IsReady)
-            {
-                byte[]? data = bf1MemoryReader.ReadMemory((ulong)address, (uint)size);
-                if (data != null && data.Length >= size)
-                {
-                    Buffer.BlockCopy(data, 0, buffer, 0, size);
-                    return ByteArrayToStructure<T>(buffer);
-                }
-            }
+            var data = await EnqueueMemoryRead(address, size).WaitWithTimeoutSafe(TimeSpan.FromMilliseconds(20));
 
-            // 使用 IOCTL 驱动方式读取
-            MemoryData memoryData = driverCommunication.ReadMemory(address, (uint)size);
-            if (memoryData.Data != null && memoryData.Data.Length >= size)
+            if (data != null && data.Length >= size)
             {
-                Buffer.BlockCopy(memoryData.Data, 0, buffer, 0, size);
+                Buffer.BlockCopy(data, 0, buffer, 0, size);
                 return ByteArrayToStructure<T>(buffer);
             }
         }
-        catch (Exception ex)
-        {
-            
-        }
+        catch { }
         finally
         {
-            // 释放 buffer 回数组池
             ArrayPool<byte>.Shared.Return(buffer);
         }
 
         return default;
     }
+    public static Task<byte[]?> EnqueueMemoryRead(long address, int size)
+    {
+        var request = new MemoryReadRequest2
+        {
+            Address = address,
+            Size = size,
+            CompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously)
+        };
 
+        if (!_dmaQueue.TryAdd(request, 10))
+        {
+            if (!request.CompletionSource.Task.IsCompleted)
+                request.CompletionSource.TrySetResult(null);
+        }
+
+        return request.CompletionSource.Task;
+    }
+
+    public class MemoryReadRequest2
+    {
+        public long Address;
+        public int Size;
+        public TaskCompletionSource<byte[]> CompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+    private class CachedMemoryBlock
+    {
+        public byte[] Data = Array.Empty<byte>();
+        public long BaseAddress;
+        public DateTime Timestamp = DateTime.UtcNow;
+    }
+
+    private static readonly Dictionary<long, CachedMemoryBlock> _memoryCache = new();
+    private static readonly object _cacheLock = new();
+    private const int CacheBlockSize = 512; // 每次预测读取512字节
+    private static readonly TimeSpan CacheTimeout = TimeSpan.FromSeconds(1); // 缓存有效期
+
+    private static void ProcessReadQueue()
+    {
+        try
+        {
+            foreach (var req in _dmaQueue.GetConsumingEnumerable())
+            {
+                try
+                {
+                    byte[]? result = TryGetFromCache(req.Address, req.Size);
+
+                    if (result == null)
+                    {
+                        // 添加延迟：仅在实际进行读取时添加
+                        Thread.Sleep(1);
+                        // 计算预测读取地址和大小
+                        long alignedAddress = req.Address & ~(CacheBlockSize - 1); // 向下对齐
+                        int fetchSize = CacheBlockSize;
+
+                        byte[]? block = null;
+
+                        if (bf1MemoryReader.IsReady)
+                        {
+                            block = bf1MemoryReader.ReadMemory((ulong)alignedAddress, (uint)fetchSize);
+                        }
+
+                        if (block == null || block.Length < fetchSize)
+                        {
+                            block = driverCommunication.ReadMemory(alignedAddress, (uint)fetchSize).Data;
+                        }
+
+                        if (block != null && block.Length >= fetchSize)
+                        {
+                            CacheBlock(alignedAddress, block);
+
+                            int offset = (int)(req.Address - alignedAddress);
+                            if (offset + req.Size <= block.Length)
+                            {
+                                result = new byte[req.Size];
+                                Buffer.BlockCopy(block, offset, result, 0, req.Size);
+                            }
+                        }
+                    }
+
+                    req.CompletionSource.TrySetResult(result);
+                }
+                catch (Exception ex)
+                {
+                    req.CompletionSource.TrySetException(ex);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("[DMA Queue Worker Fatal] " + ex);
+        }
+    }
+    private static byte[]? TryGetFromCache(long address, int size)
+    {
+        lock (_cacheLock)
+        {
+            long alignedAddress = address & ~(CacheBlockSize - 1);
+            if (_memoryCache.TryGetValue(alignedAddress, out var block))
+            {
+                if ((DateTime.UtcNow - block.Timestamp) < CacheTimeout)
+                {
+                    int offset = (int)(address - alignedAddress);
+                    if (offset + size <= block.Data.Length)
+                    {
+                        byte[] result = new byte[size];
+                        Buffer.BlockCopy(block.Data, offset, result, 0, size);
+                        return result;
+                    }
+                }
+                else
+                {
+                    _memoryCache.Remove(alignedAddress);
+                }
+            }
+
+            return null;
+        }
+    }
+
+    private static void CacheBlock(long alignedAddress, byte[] data)
+    {
+        lock (_cacheLock)
+        {
+            _memoryCache[alignedAddress] = new CachedMemoryBlock
+            {
+                BaseAddress = alignedAddress,
+                Data = data,
+                Timestamp = DateTime.UtcNow
+            };
+        }
+    }
+
+
+
+
+
+    public static async Task<T?> WaitWithTimeoutSafe<T>(this Task<T> task, TimeSpan timeout)
+    {
+        try
+        {
+            var completed = await Task.WhenAny(task, Task.Delay(timeout)).ConfigureAwait(false);
+            if (completed != task)
+                return default;
+
+            return await task.ConfigureAwait(false);
+        }
+        catch
+        {
+            return default;
+        }
+    }
+
+
+
+
+    /// <summary>
+    /// 读取字符串
+    /// </summary>
+    /// <param name="address"></param>
+    /// <param name="size"></param>
+    /// <returns></returns>
+    public static string ReadString(long address, int size, Encoding? encoding = null)
+    {
+        try
+        {
+            return ReadStringAsync(address, size, encoding).GetAwaiter().GetResult();
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+    public static async Task<string> ReadStringAsync(long address, int size, Encoding? encoding = null)
+    {
+        encoding ??= Encoding.UTF8;
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(size);
+
+        try
+        {
+            var data = await EnqueueMemoryRead(address, size).WaitWithTimeoutSafe(TimeSpan.FromMilliseconds(2000));
+
+            if (data == null || data.Length == 0)
+                return string.Empty;
+
+            // 查找 null 终止符（C风格字符串）
+            int nullIndex = Array.IndexOf(data, (byte)0);
+            int actualLength = nullIndex >= 0 ? nullIndex : data.Length;
+
+            return encoding.GetString(data, 0, actualLength);
+        }
+        catch
+        {
+            return string.Empty;
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
     /// <summary>
     /// 泛型写入内存
     /// </summary>
@@ -306,54 +514,6 @@ public static class Memory
         public ulong Address;     // 传递的内存地址
         public uint ReadLength;   // 要读取的内存长度
     }
-    /// <summary>
-    /// 读取字符串
-    /// </summary>
-    /// <param name="address"></param>
-    /// <param name="size"></param>
-    /// <returns></returns>
-    public static string ReadString(long address, int size, Encoding? encoding = null)
-    {
-        encoding ??= Encoding.UTF8;
-        byte[] buffer = null;
-
-        try
-        {
-            if (bf1MemoryReader.IsReady)
-            {
-                buffer = bf1MemoryReader.ReadMemory((ulong)address, (uint)size);
-            }
-        }
-        catch (Exception ex)
-        {
-            // 可选：日志记录
-        }
-
-        // 如果 VMM 读取失败，尝试驱动读取
-        if (buffer == null)
-        {
-            try
-            {
-                buffer = driverCommunication.ReadMemory(address, (uint)size).Data;
-            }
-            catch (Exception ex)
-            {
-                // 可选：日志记录
-                return string.Empty;
-            }
-        }
-
-        if (buffer == null || buffer.Length == 0)
-            return string.Empty;
-
-        // 查找 null 终止符（C风格字符串）
-        int nullIndex = Array.IndexOf(buffer, (byte)0);
-        int actualLength = nullIndex >= 0 ? nullIndex : buffer.Length;
-
-        return encoding.GetString(buffer, 0, actualLength);
-    }
-
-
     /// <summary>
     /// 写入字符串
     /// </summary>
